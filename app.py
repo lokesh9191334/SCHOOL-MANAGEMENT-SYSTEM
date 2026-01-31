@@ -413,7 +413,8 @@ def create_app(config=None):
 
     return app
 
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     # Listen on all interfaces so phone can connect via local IP
     app.run(debug=True, host='0.0.0.0', port=5000)
