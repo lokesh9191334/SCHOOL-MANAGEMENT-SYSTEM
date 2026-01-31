@@ -61,7 +61,7 @@ def index():
     all_students = all_students.all()
     all_classes = Classroom.query.all()
 
-    return render_template('dashboard/index.html',
+    return render_template('admin_dashboard.html',
                            total_students=total_students,
                            total_teachers=total_teachers,
                            total_female_students=total_female_students,

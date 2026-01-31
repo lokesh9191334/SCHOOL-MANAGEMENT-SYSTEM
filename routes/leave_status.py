@@ -158,7 +158,7 @@ def api_leave_status():
                 'duration': (leave.end_date - leave.start_date).days + 1,
                 'reason': leave.reason or 'No reason provided',
                 'applied_on': leave.created_at.strftime('%d %b %Y %H:%M'),
-                'approved_by': leave.approved_by.name if leave.approved_by else None,
+          'approved_by': leave.approved_by.name if leave.approved_by else None,
                 'approved_at': leave.approved_at.strftime('%d %b %Y %H:%M') if leave.approved_at else None,
                 'admin_comment': getattr(leave, 'admin_comment', None)
             })

@@ -145,7 +145,7 @@ def login():
     is_mobile = any(mobile in user_agent for mobile in ['mobile', 'android', 'iphone', 'ipad', 'tablet'])
     
     # Use professional premium login template
-    return render_template('auth/login_professional_premium.html')
+    return render_template('login.html')
 
 @auth_bp.route('/google-login')
 def google_login():

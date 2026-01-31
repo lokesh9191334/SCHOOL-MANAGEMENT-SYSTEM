@@ -22,7 +22,7 @@ parents_bp = Blueprint('parents', __name__, template_folder='../templates')
 @login_required
 def portal():
     # Show parent dashboard
-    return render_template('parents/parent_dashboard.html')
+    return render_template('parent_dashboard.html')
 
 @parents_bp.route('/student-details')
 @login_required

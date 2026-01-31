@@ -36,7 +36,7 @@ def portal():
 
     # If current user is mapped to a teacher, we could populate stats later
     return render_template(
-        'teachers/portal.html',
+        'teacher_dashboard.html',
         my_classes=my_classes,
         my_students=my_students,
         assignments=assignments,
