@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Registration{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100">
+    <div class="row h-100">
+        <div class="col-lg-6 mx-auto align-self-center">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Teacher Registration</h4>
+                </div>
+                <div class="card-body p-5">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('auth.teacher_register') }}">
+                        <div class="mb-4">
+                            <label for="secret_key" class="form-label fw-bold"><i class="fas fa-key me-2"></i>5-Digit Secret Key</label>
+                            <input type="text" class="form-control" id="secret_key" name="secret_key" placeholder="Enter 5-digit secret key" maxlength="5" pattern="[0-9]{5}" required>
+                            <div class="form-text">Enter the 5-digit secret key provided by your school admin.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="school_id" class="form-label fw-bold"><i class="fas fa-school me-2"></i>5-Digit School ID</label>
+                            <input type="text" class="form-control" id="school_id" name="school_id" placeholder="Enter 5-digit school ID" maxlength="5" pattern="[0-9]{5}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-bold"><i class="fas fa-user me-2"></i>Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter your full name" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-bold"><i class="fas fa-envelope me-2"></i>Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email address" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="phone" class="form-label fw-bold"><i class="fas fa-phone me-2"></i>Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter your phone number" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold"><i class="fas fa-lock me-2"></i>Password</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Create a strong password" required>
+                            <small class="text-muted">Password must be at least 8 characters long</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label fw-bold"><i class="fas fa-lock me-2"></i>Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-user-plus me-2"></i>Create Teacher Account</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Simple password confirmation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    if (password !== this.value) this.setCustomValidity('Passwords do not match'); else this.setCustomValidity('');
+});
+// Autofill when school_id + secret_key are entered
+(function() {
+    const secretEl = document.getElementById('secret_key');
+    const schoolEl = document.getElementById('school_id');
+    const nameEl = document.getElementById('name');
+    const emailEl = document.getElementById('email');
+    const phoneEl = document.getElementById('phone');
+
+    let timer = null;
+    function debounceLookup() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            const secret = (secretEl.value || '').trim();
+            const school = (schoolEl.value || '').trim();
+            if (!/^[0-9]{5}$/.test(secret) || !/^[0-9]{5}$/.test(school)) return;
+            const url = `/auth/teacher-lookup?school_id=${encodeURIComponent(school)}&secret_key=${encodeURIComponent(secret)}`;
+            fetch(url, { credentials: 'same-origin' })
+                .then(r => r.json().then(b => ({status: r.status, body: b})))
+                .then(({status, body}) => {
+                    if (status === 200 && body.found) {
+                        // Autofill fields if not already filled
+                        if (!nameEl.value) nameEl.value = body.name || '';
+                        if (!emailEl.value) emailEl.value = body.email || '';
+                        if (!phoneEl.value) phoneEl.value = body.phone || '';
+                    } else {
+                        // No action for not-found; leave user entries intact
+                    }
+                })
+                .catch(() => {
+                    // ignore network errors silently
+                });
+        }, 450);
+    }
+
+    if (secretEl && schoolEl) {
+        secretEl.addEventListener('input', debounceLookup);
+        schoolEl.addEventListener('input', debounceLookup);
+    }
+})();
+</script>
+{% endblock %}

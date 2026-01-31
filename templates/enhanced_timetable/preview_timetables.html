@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .preview-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    .preview-header {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        padding: 1.5rem;
+    }
+    .grade-section {
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .grade-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    .timetable-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    .timetable-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .timetable-status {
+        font-size: 0.8rem;
+    }
+    .has-timetable {
+        color: #28a745;
+    }
+    .no-timetable {
+        color: #dc3545;
+    }
+    .published-badge {
+        background: #28a745;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+    }
+    .draft-badge {
+        background: #ffc107;
+        color: #212529;
+        padding: 0.25rem 0.5rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+    }
+    .stats-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+    }
+    .filter-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Preview Header -->
+            <div class="preview-container mb-4">
+                <div class="preview-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2><i class="fas fa-eye me-2"></i>Preview All Timetables</h2>
+                            <p class="mb-0">
+                                {% if current_user.role in ['admin', 'principal'] %}
+                                View all created timetables across all classes and grades
+                                {% else %}
+                                View all timetables for your reference
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="d-flex justify-content-end">
+                                <a href="{{ url_for('enhanced_timetable_v2.enhanced_timetable_dashboard') }}" 
+                                   class="btn btn-light me-2">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </a>
+                                <button onclick="window.print()" class="btn btn-success">
+                                    <i class="fas fa-print me-2"></i>Print
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stats-card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ all_timetables | length }}</h4>
+                            <p class="mb-0">Total Timetables</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ all_timetables | selectattr('is_published') | list | length }}</h4>
+                            <p class="mb-0">Published</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ all_timetables | rejectattr('is_published') | list | length }}</h4>
+                            <p class="mb-0">Drafts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h4>{{ timetables_by_grade | length }}</h4>
+                            <p class="mb-0">Grade Levels</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section no-print">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Options</h6>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" onclick="showAll()">
+                                All ({{ all_timetables | length }})
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="showPublished()">
+                                Published ({{ all_timetables | selectattr('is_published') | list | length }})
+                            </button>
+                            <button type="button" class="btn btn-outline-warning" onclick="showDrafts()">
+                                Drafts ({{ all_timetables | rejectattr('is_published') | list | length }})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timetables by Grade -->
+            {% if timetables_by_grade %}
+            {% for grade, timetables in timetables_by_grade.items() %}
+            <div class="grade-section">
+                <div class="grade-header">
+                    <i class="fas fa-graduation-cap me-2"></i>Grade {{ grade }}
+                    <span class="badge bg-light text-dark ms-2">{{ timetables | length }} timetables</span>
+                </div>
+                <div class="p-3">
+                    <div class="row">
+                        {% for timetable in timetables %}
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card timetable-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h6 class="card-title mb-1">
+                                                {% if timetable.classroom %}
+                                                {{ timetable.classroom.name }}
+                                                {% else %}
+                                                General Timetable
+                                                {% endif %}
+                                            </h6>
+                                            <p class="card-text text-muted small mb-2">
+                                                <i class="fas fa-calendar me-1"></i>{{ timetable.academic_year }}
+                                                {% if timetable.semester %}
+                                                - {{ timetable.semester }}
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            {% if timetable.is_published %}
+                                            <span class="published-badge">
+                                                <i class="fas fa-check-circle me-1"></i>Published
+                                            </span>
+                                            {% else %}
+                                            <span class="draft-badge">
+                                                <i class="fas fa-edit me-1"></i>Draft
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timetable-status mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            Created: {{ timetable.created_at.strftime('%d %b %Y') }}
+                                        </small>
+                                        {% if timetable.created_by_id %}
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user me-1"></i>
+                                            By: {{ timetable.creator.name if timetable.creator else 'Unknown' }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ url_for('enhanced_timetable_v2.view_class_timetable', timetable_id=timetable.id) }}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View Timetable
+                                        </a>
+                                        {% if current_user.role in ['admin', 'principal'] %}
+                                        <a href="{{ url_for('enhanced_timetable_v2.view_class_timetable', timetable_id=timetable.id) }}" 
+                                           class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-print me-1"></i>Print
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-calendar-times fa-4x text-muted"></i>
+                </div>
+                <h4 class="text-muted">No Timetables Created Yet</h4>
+                <p class="text-muted mb-4">
+                    {% if current_user.role in ['admin', 'principal'] %}
+                    Start creating timetables for your classes to see them here.
+                    {% else %}
+                    No timetables have been created yet.
+                    {% endif %}
+                </p>
+                {% if current_user.role in ['admin', 'principal'] %}
+                <a href="{{ url_for('enhanced_timetable_v2.enhanced_timetable_dashboard') }}" 
+                   class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Create Timetables
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showAll() {
+        // Remove active class from all buttons
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        // Add active class to "All" button
+        event.target.classList.add('active');
+        
+        // Show all timetable cards
+        document.querySelectorAll('.timetable-card').forEach(card => {
+            card.style.display = 'block';
+        });
+    }
+    
+    function showPublished() {
+        // Remove active class from all buttons
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        // Add active class to "Published" button
+        event.target.classList.add('active');
+        
+        // Show only published timetables
+        document.querySelectorAll('.timetable-card').forEach(card => {
+            const hasPublishedBadge = card.querySelector('.published-badge');
+            card.style.display = hasPublishedBadge ? 'block' : 'none';
+        });
+    }
+    
+    function showDrafts() {
+        // Remove active class from all buttons
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        // Add active class to "Drafts" button
+        event.target.classList.add('active');
+        
+        // Show only draft timetables
+        document.querySelectorAll('.timetable-card').forEach(card => {
+            const hasDraftBadge = card.querySelector('.draft-badge');
+            card.style.display = hasDraftBadge ? 'block' : 'none';
+        });
+    }
+    
+    // Add print functionality
+    window.addEventListener('beforeprint', function() {
+        document.body.classList.add('printing');
+    });
+    
+    window.addEventListener('afterprint', function() {
+        document.body.classList.remove('printing');
+    });
+</script>
+{% endblock %}

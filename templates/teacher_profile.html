@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Teacher Profile</h2>
+                <div>
+                    <a href="{{ url_for('teachers.edit_teacher', teacher_id=teacher.id) }}" class="btn btn-warning me-2">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteTeacherModal">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <a href="{{ url_for('teachers.list_teachers') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Teachers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Teacher Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-gradient-primary text-white text-center py-4" style="background: linear-gradient(45deg, #4e73df, #224abe);">
+                    <div class="teacher-avatar mb-3 position-relative d-inline-block">
+                        {% if teacher.photo %}
+                        <img src="{{ url_for('static', filename=teacher.photo) }}" alt="{{ teacher.name }}" class="rounded-circle border border-4 border-white shadow" style="width: 140px; height: 140px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-white d-flex align-items-center justify-content-center mx-auto shadow" style="width: 140px; height: 140px;">
+                            <i class="fas fa-user-tie fa-5x text-primary"></i>
+                        </div>
+                        {% endif %}
+                        <span class="position-absolute bottom-0 end-0 p-2 bg-{{ 'success' if teacher.status == 'active' else 'secondary' }} border border-white rounded-circle">
+                            <span class="visually-hidden">{{ teacher.status|title }}</span>
+                        </span>
+                    </div>
+                    <h4 class="mb-1 fw-bold">
+                        {{ teacher.name }}
+                        {% if teacher.is_class_incharge %}
+                        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7em;">
+                            <i class="fas fa-star me-1"></i>Class Incharge
+                        </span>
+                        {% endif %}
+                    </h4>
+                    <p class="mb-0 opacity-75">{{ teacher.subject or 'Teacher' }}</p>
+                    {% if teacher.class_teacher_of %}
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-chalkboard me-1"></i>Class Teacher: {{ teacher.class_teacher_of }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item p-3">
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Identity</small>
+                            <div class="d-flex align-items-center mt-2">
+                                <div class="icon-square bg-light text-primary rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-id-badge"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Employee ID</h6>
+                                    <small class="text-dark">{{ teacher.employee_id or 'N/A' }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="list-group-item p-3">
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">School Credentials</small>
+                            <div class="mt-2">
+                                <h6 class="mb-0">School ID</h6>
+                                <small class="text-dark">{{ teacher.school_id or 'N/A' }}</small>
+                            </div>
+                            <div class="mt-2">
+                                <h6 class="mb-0">Teacher Secret Key</h6>
+                                <small class="text-dark">{{ teacher.secret_key or 'N/A' }}</small>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item p-3">
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Contact Details</small>
+                            <div class="d-flex align-items-center mt-3 mb-3">
+                                <div class="icon-square bg-light text-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <div class="text-truncate">
+                                    <h6 class="mb-0">Email</h6>
+                                    <small class="text-dark">{{ teacher.email or 'N/A' }}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="icon-square bg-light text-info rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-phone"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Phone</h6>
+                                    <small class="text-dark">{{ teacher.phone or 'N/A' }}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="icon-square bg-light text-warning rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Address</h6>
+                                    <small class="text-dark">{{ teacher.address or 'N/A' }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item p-3">
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Professional Info</small>
+                            <div class="row mt-2 g-3">
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light text-center h-100">
+                                        <i class="fas fa-briefcase text-secondary mb-1"></i>
+                                        <div class="small text-muted">Experience</div>
+                                        <div class="fw-bold">{{ teacher.experience_years }} Years</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light text-center h-100">
+                                        <i class="fas fa-users text-secondary mb-1"></i>
+                                        <div class="small text-muted">Class Teacher</div>
+                                        <div class="fw-bold">{{ teacher.class_teacher_of or 'N/A' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light text-center h-100">
+                                        <i class="fas fa-birthday-cake text-secondary mb-1"></i>
+                                        <div class="small text-muted">DOB</div>
+                                        <div class="fw-bold" style="font-size: 0.8rem;">{{ teacher.date_of_birth.strftime('%d %b %Y') if teacher.date_of_birth else 'N/A' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-light text-center h-100">
+                                        <i class="fas fa-calendar-check text-secondary mb-1"></i>
+                                        <div class="small text-muted">Joined</div>
+                                        <div class="fw-bold" style="font-size: 0.8rem;">{{ teacher.date_of_joining.strftime('%d %b %Y') if teacher.date_of_joining else 'N/A' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item p-3">
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Qualification</small>
+                            <div class="mt-2">
+                                <h6 class="mb-1"><i class="fas fa-graduation-cap text-primary me-2"></i>{{ teacher.qualification or 'N/A' }}</h6>
+                                
+                                {% if teacher.documents %}
+                                <div class="mt-2 d-flex flex-wrap gap-2">
+                                    {% for doc in teacher.documents %}
+                                    <a href="{{ url_for('static', filename=doc.file_path) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill" title="{{ doc.filename }}">
+                                        <i class="fas fa-file-pdf me-1"></i>Cert {{ loop.index }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% elif teacher.qualification_document %}
+                                <div class="mt-2">
+                                    <a href="{{ url_for('static', filename=teacher.qualification_document) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill">
+                                        <i class="fas fa-file-pdf me-1"></i>View Cert
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Bank Info & Salary Summary -->
+        <div class="col-md-8">
+            <!-- Bank & Identity Information (Replacing Parent Info) -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Bank & Identity Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-item mb-3">
+                                <h6><i class="fas fa-university me-2"></i>Bank Account</h6>
+                                <p class="mb-0">{{ teacher.bank_account or 'N/A' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item mb-3">
+                                <h6><i class="fas fa-code-branch me-2"></i>IFSC Code</h6>
+                                <p class="mb-0">{{ teacher.ifsc_code or 'N/A' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item mb-3">
+                                <h6><i class="fas fa-id-card me-2"></i>PAN Number</h6>
+                                <p class="mb-0">{{ teacher.pan or 'N/A' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item mb-3">
+                                <h6><i class="fas fa-fingerprint me-2"></i>Aadhaar Number</h6>
+                                <p class="mb-0">{{ teacher.aadhaar or 'N/A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary Summary -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Salary Summary</h5>
+                    <button class="btn btn-sm btn-light" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted">Total Pending</h6>
+                                <h4 class="text-danger">₹{{ "%0.2f"|format(salary_total_pending) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted">Total Paid</h6>
+                                <h4 class="text-success">₹{{ "%0.2f"|format(salary_total_paid) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted">Advance</h6>
+                                <h4 class="text-primary">₹{{ "%0.2f"|format(salary_total_advance) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Recent Salary Payments:</h6>
+                    <ul class="list-group mb-3">
+                        {% for salary in salary_records %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ salary.payment_date.strftime('%b %Y') if salary.payment_date else 'Pending' }}
+                            <span class="badge bg-{{ 'success' if salary.status == 'paid' else 'warning' }} rounded-pill">₹{{ "%0.2f"|format(salary.amount) }}</span>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-muted">No recent salary records found.</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="text-end">
+                        <a href="{{ url_for('salaries.list_salaries') }}" class="btn btn-outline-primary btn-sm">View All Salaries</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Performance</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ performance }}%" aria-valuenow="{{ performance }}" 
+                             aria-valuemin="0" aria-valuemax="100">{{ performance }}%</div>
+                    </div>
+                    <h5>Overall Grade: <span class="badge bg-success">{{ overall_grade }}</span></h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Salary and Attendance -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="profileTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="salary-tab" data-bs-toggle="tab" data-bs-target="#salary" type="button" role="tab">
+                        Salary History
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
+                        Attendance History
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="profileTabsContent">
+                <!-- Salary Tab -->
+                <div class="tab-pane fade show active" id="salary" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Payment Date</th>
+                                    <th>Notes</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for salary in salary_history %}
+                                <tr>
+                                    <td>{{ salary.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>₹{{ "%0.2f"|format(salary.amount) }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if salary.status == 'paid' else ('warning' if salary.status == 'pending' else 'danger') }}">
+                                            {{ salary.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ salary.payment_date.strftime('%Y-%m-%d') if salary.payment_date else 'N/A' }}</td>
+                                    <td>{{ salary.notes or '-' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('salaries.view_salary', salary_id=salary.id) }}" class="btn btn-sm btn-info text-white">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No salary records found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Attendance Tab -->
+                <div class="tab-pane fade" id="attendance" role="tabpanel">
+                    {% if attendance_records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Check In</th>
+                                    <th>Check Out</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in attendance_records %}
+                                <tr>
+                                    <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if attendance.status == 'present' else ('danger' if attendance.status == 'absent' else 'warning') }}">
+                                            {{ attendance.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ attendance.check_in.strftime('%H:%M') if attendance.check_in else '-' }}</td>
+                                    <td>{{ attendance.check_out.strftime('%H:%M') if attendance.check_out else '-' }}</td>
+                                    <td>{{ attendance.notes or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No attendance records found for this teacher yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Teacher Modal -->
+<div class="modal fade" id="deleteTeacherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Delete Teacher</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ teacher.name }}</strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone. All associated records (attendance, salaries, etc.) will also be deleted.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('teachers.delete_teacher', teacher_id=teacher.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

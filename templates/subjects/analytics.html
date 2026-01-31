@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Subjects Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Subjects Analytics Dashboard</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Subjects</h5>
+                                    <h2>{{ total_subjects }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Teachers</h5>
+                                    <h2>{{ total_teachers }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Classes</h5>
+                                    <h2>{{ total_classes }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Enrollments</h5>
+                                    <h2>{{ total_enrollments }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Subjects per Teacher</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="teacherSubjectsChart" width="400" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Subjects per Class</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="classSubjectsChart" width="400" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enrollment Distribution Chart -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Enrollment Distribution by Class</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="enrollmentChart" width="800" height="400"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Subjects per Teacher Chart
+const teacherSubjectsCtx = document.getElementById('teacherSubjectsChart').getContext('2d');
+const teacherSubjectsData = {{ teacher_subjects|tojson }};
+new Chart(teacherSubjectsCtx, {
+    type: 'bar',
+    data: {
+        labels: Object.keys(teacherSubjectsData),
+        datasets: [{
+            label: 'Number of Subjects',
+            data: Object.values(teacherSubjectsData),
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Subjects per Class Chart
+const classSubjectsCtx = document.getElementById('classSubjectsChart').getContext('2d');
+const classSubjectsData = {{ class_subjects|tojson }};
+new Chart(classSubjectsCtx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(classSubjectsData),
+        datasets: [{
+            data: Object.values(classSubjectsData),
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 205, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+
+// Enrollment Distribution Chart
+const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+const enrollmentData = {{ class_enrollments|tojson }};
+new Chart(enrollmentCtx, {
+    type: 'line',
+    data: {
+        labels: Object.keys(enrollmentData),
+        datasets: [{
+            label: 'Number of Students',
+            data: Object.values(enrollmentData),
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

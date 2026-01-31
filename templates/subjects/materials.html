@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Learning Materials: {{ subject.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('subjects.view_subject', subject_id=subject.id) }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Subject
+                        </a>
+                        <button class="btn btn-success btn-sm" data-bs-toggle="collapse" data-bs-target="#uploadForm">
+                            <i class="fas fa-upload"></i> Upload Material
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Materials Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5>Total Materials</h5>
+                                    <h2>{{ materials|length }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>PDF Files</h5>
+                                    <h2>{{ materials|selectattr('type', 'equalto', 'PDF')|list|length }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5>Video Files</h5>
+                                    <h2>{{ materials|selectattr('type', 'equalto', 'MP4')|list|length }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5>Documents</h5>
+                                    <h2>{{ materials|selectattr('type', 'equalto', 'DOCX')|list|length }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <div id="uploadForm" class="collapse mb-4">
+                        <form method="POST" action="{{ url_for('subjects.upload_material', subject_id=subject.id) }}" enctype="multipart/form-data" class="border rounded p-3">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Title</label>
+                                    <input type="text" name="title" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Description</label>
+                                    <input type="text" name="description" class="form-control">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Files</label>
+                                    <input type="file" name="files" class="form-control" multiple required>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Upload</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Materials List -->
+                    {% if materials %}
+                    <div class="row">
+                        {% for material in materials %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        {% if material.type == 'PDF' %}
+                                            <i class="fas fa-file-pdf fa-2x text-danger mr-3"></i>
+                                        {% elif material.type == 'DOCX' %}
+                                            <i class="fas fa-file-word fa-2x text-primary mr-3"></i>
+                                        {% elif material.type == 'MP4' %}
+                                            <i class="fas fa-file-video fa-2x text-success mr-3"></i>
+                                        {% else %}
+                                            <i class="fas fa-file fa-2x text-secondary mr-3"></i>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="card-title mb-1">{{ material.title }}</h6>
+                                            <small class="text-muted">{{ material.type }} • Uploaded by {{ material.uploaded_by }}</small>
+                                        </div>
+                                    </div>
+                                    <p class="card-text small text-muted">
+                                        Uploaded on {{ material.uploaded_at.strftime('%Y-%m-%d %H:%M') if material.uploaded_at else '' }}
+                                    </p>
+                                    <div class="btn-group btn-group-sm">
+                                        <a class="btn btn-outline-primary" href="{{ url_for('static', filename=material.file_path|replace('\\','/')) }}" target="_blank">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a class="btn btn-outline-secondary" href="{{ url_for('subjects.download_material', material_id=material.id) }}">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        <form method="POST" action="{{ url_for('subjects.delete_material', material_id=material.id) }}" onsubmit="return confirm('Delete this material?')">
+                                            <button class="btn btn-outline-danger">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-folder-open fa-3x mb-3"></i>
+                        <h4>No materials uploaded yet</h4>
+                        <p>Start building your digital library by uploading study materials, presentations, and resources.</p>
+                        <button class="btn btn-primary" onclick="uploadMaterial()">
+                            <i class="fas fa-upload"></i> Upload First Material
+                        </button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Optional Help -->
+                    <div class="alert alert-light border mt-2">
+                        <i class="fas fa-info-circle"></i>
+                        Supported files: PDF, DOC/DOCX, MP4. Large videos may take time to upload.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Classes Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Classes Analytics Dashboard</h3>
+                        <a href="{{ url_for('classes.list_classes') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Classes
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Classes</h5>
+                                    <h2>{{ total_classes }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Enrollments</h5>
+                                    <h2>{{ total_enrollments }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total Subjects</h5>
+                                    <h2>{{ total_subjects }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Avg Class Size</h5>
+                                    <h2>{{ "%.1f"|format(avg_class_size) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Enrollment per Class</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="enrollmentChart" width="400" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Subjects per Class</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="subjectsChart" width="400" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Distribution Chart -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Grade Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="gradeChart" width="800" height="400"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Enrollment per Class Chart
+const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
+const enrollmentData = {{ class_enrollments|tojson }};
+new Chart(enrollmentCtx, {
+    type: 'bar',
+    data: {
+        labels: Object.keys(enrollmentData),
+        datasets: [{
+            label: 'Number of Students',
+            data: Object.values(enrollmentData),
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Subjects per Class Chart
+const subjectsCtx = document.getElementById('subjectsChart').getContext('2d');
+const subjectsData = {{ class_subjects|tojson }};
+new Chart(subjectsCtx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(subjectsData),
+        datasets: [{
+            data: Object.values(subjectsData),
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 205, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+
+// Grade Distribution Chart
+const gradeCtx = document.getElementById('gradeChart').getContext('2d');
+const gradeData = {{ grade_distribution|tojson }};
+new Chart(gradeCtx, {
+    type: 'pie',
+    data: {
+        labels: Object.keys(gradeData),
+        datasets: [{
+            data: Object.values(gradeData),
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 205, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)',
+                'rgba(255, 159, 64, 0.5)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+</script>
+{% endblock %}

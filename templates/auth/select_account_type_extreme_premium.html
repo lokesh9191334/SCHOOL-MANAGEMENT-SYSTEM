@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Select Account Type - School Management System</title>
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: 
+                radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at top right, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom left, rgba(34, 197, 94, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(251, 146, 60, 0.15) 0%, transparent 50%),
+                linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.08) 0%, transparent 50%);
+            animation: extremeBackgroundShift 20s ease-in-out infinite;
+        }
+
+        @keyframes extremeBackgroundShift {
+            0%, 100% { 
+                transform: translate(0, 0) rotate(0deg) scale(1); 
+                filter: hue-rotate(0deg) brightness(1);
+            }
+            25% { 
+                transform: translate(-40px, -30px) rotate(90deg) scale(1.1); 
+                filter: hue-rotate(45deg) brightness(1.1);
+            }
+            50% { 
+                transform: translate(30px, -40px) rotate(180deg) scale(0.95); 
+                filter: hue-rotate(90deg) brightness(0.9);
+            }
+            75% { 
+                transform: translate(-30px, 30px) rotate(270deg) scale(1.05); 
+                filter: hue-rotate(135deg) brightness(1.05);
+            }
+        }
+
+        .auth-container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .left-panel {
+            flex: 1;
+            background: 
+                linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(236, 72, 153, 0.1) 50%, rgba(34, 197, 94, 0.1) 100%);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="leftPanelGrain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23leftPanelGrain)"/></svg>');
+            opacity: 0.3;
+            animation: leftPanelGrain 15s linear infinite;
+        }
+
+        @keyframes leftPanelGrain {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-10%, -15%) rotate(90deg); }
+            50% { transform: translate(15%, -10%) rotate(180deg); }
+            75% { transform: translate(-15%, 15%) rotate(270deg); }
+        }
+
+        .left-panel .content {
+            text-align: center;
+            z-index: 2;
+            position: relative;
+        }
+
+        .left-panel h1 {
+            font-size: 48px;
+            font-weight: 950;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(255, 255, 255, 0.2);
+            letter-spacing: -2px;
+            line-height: 1.2;
+        }
+
+        .left-panel p {
+            font-size: 20px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.5px;
+        }
+
+        .abstract-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            animation: floatShape 12s ease-in-out infinite;
+        }
+
+        .shape-1 {
+            width: 120px;
+            height: 120px;
+            top: 15%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 80px;
+            height: 80px;
+            top: 60%;
+            right: 15%;
+            animation-delay: 3s;
+        }
+
+        .shape-3 {
+            width: 100px;
+            height: 100px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 6s;
+        }
+
+        .shape-4 {
+            width: 60px;
+            height: 60px;
+            top: 30%;
+            right: 30%;
+            animation-delay: 9s;
+        }
+
+        @keyframes floatShape {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg) scale(1); 
+                opacity: 0.6;
+            }
+            25% { 
+                transform: translateY(-30px) rotate(90deg) scale(1.1); 
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translateY(-15px) rotate(180deg) scale(0.9); 
+                opacity: 0.7;
+            }
+            75% { 
+                transform: translateY(-25px) rotate(270deg) scale(1.05); 
+                opacity: 0.9;
+            }
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+        }
+
+        .login-card {
+            background: 
+                linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 50%, rgba(241, 245, 249, 0.94) 100%);
+            backdrop-filter: blur(50px) saturate(300%) contrast(1.2);
+            border-radius: 40px;
+            padding: 60px 50px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 
+                0 80px 160px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(255, 255, 255, 0.6),
+                inset 0 0 80px rgba(255, 255, 255, 0.4),
+                0 0 300px rgba(59, 130, 246, 0.25);
+            border: 4px solid rgba(255, 255, 255, 0.7);
+            position: relative;
+            overflow: hidden;
+            transform: perspective(2000px) rotateX(5deg) rotateY(-4deg);
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .login-card:hover {
+            transform: perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(-10px) scale(1.05);
+            box-shadow: 
+                0 100px 200px rgba(0, 0, 0, 0.45),
+                0 0 0 1px rgba(255, 255, 255, 0.8),
+                inset 0 0 100px rgba(255, 255, 255, 0.5),
+                0 0 400px rgba(59, 130, 246, 0.35);
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-title {
+            font-size: 32px;
+            font-weight: 950;
+            color: #0f172a;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-subtitle {
+            font-size: 16px;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 12px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .form-label::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 30px;
+            height: 3px;
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #22c55e 100%);
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        .form-group:hover .form-label::after {
+            width: 60px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 20px 30px;
+            border: 4px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 17px;
+            font-weight: 600;
+            background: 
+                linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            box-shadow: 
+                0 12px 30px rgba(0, 0, 0, 0.1),
+                inset 0 6px 12px rgba(255, 255, 255, 0.98),
+                0 0 0 1px rgba(255, 255, 255, 0.9);
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #0f172a;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 
+                0 0 0 12px rgba(59, 130, 246, 0.25),
+                0 30px 70px rgba(59, 130, 246, 0.5),
+                inset 0 6px 12px rgba(255, 255, 255, 0.98),
+                0 0 0 1px rgba(255, 255, 255, 0.95);
+            background: white;
+            transform: translateY(-5px) scale(1.02);
+        }
+
+        .form-input::placeholder {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 25px;
+            background: 
+                linear-gradient(135deg, #3b82f6 0%, #06b6d4 20%, #22c55e 40%, #eab308 60%, #f97316 80%, #ef4444 100%);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 18px;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 25px 50px rgba(59, 130, 246, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.5),
+                inset 0 6px 12px rgba(255, 255, 255, 0.5);
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 
+                0 35px 70px rgba(59, 130, 246, 0.9),
+                0 0 0 1px rgba(255, 255, 255, 0.6),
+                inset 0 6px 12px rgba(255, 255, 255, 0.6);
+        }
+
+        .submit-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+            transition: left 1.5s ease;
+        }
+
+        .submit-btn:hover::after {
+            left: 100%;
+        }
+
+        .submit-btn:active {
+            transform: translateY(-4px) scale(1.02);
+        }
+
+        .register-link-container {
+            text-align: center;
+            margin-top: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .register-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 16px;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .register-link:hover {
+            color: #22c55e;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            border-radius: 20px;
+            border: none;
+            margin-bottom: 30px;
+            padding: 20px 25px;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            position: relative;
+            z-index: 1;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #dc2626;
+            border-left: 4px solid #dc2626;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #16a34a;
+            border-left: 4px solid #16a34a;
+        }
+
+        @media (max-width: 1024px) {
+            .auth-container {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                min-height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .left-panel h1 {
+                font-size: 36px;
+            }
+
+            .right-panel {
+                min-height: 60vh;
+            }
+
+            .login-card {
+                margin: 20px;
+                padding: 40px 30px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .left-panel {
+                padding: 40px 20px;
+            }
+
+            .left-panel h1 {
+                font-size: 28px;
+            }
+
+            .left-panel p {
+                font-size: 16px;
+            }
+
+            .right-panel {
+                padding: 40px 20px;
+            }
+
+            .login-card {
+                padding: 30px 20px;
+                border-radius: 30px;
+            }
+
+            .form-title {
+                font-size: 24px;
+            }
+
+            .form-input {
+                padding: 16px 20px;
+                font-size: 16px;
+            }
+
+            .submit-btn {
+                padding: 20px;
+                font-size: 16px;
+            }
+        }
+
+        /* Parallax effect on mouse move */
+        .login-card {
+            transition: transform 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="left-panel">
+            <div class="content">
+                <h1>SCHOOL MANAGEMENT SYSTEM</h1>
+                <p>Select your account type to continue</p>
+            </div>
+            <div class="abstract-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+                <div class="shape shape-4"></div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="login-card">
+                <div class="form-header">
+                    <h2 class="form-title">SELECT ACCOUNT TYPE</h2>
+                    <p class="form-subtitle">Choose your role to get started</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="account_type" class="form-label">Choose Account Type</label>
+                        <select class="form-input" id="account_type" name="account_type" required>
+                            <option value="" disabled selected>Select Account Type</option>
+                            <option value="admin">System Administrator</option>
+                            <option value="teacher">Educational Faculty</option>
+                            <option value="parent">Parent/Guardian</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-input" id="phone" name="phone" placeholder="Enter your phone number" required>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-arrow-right me-2"></i>CONTINUE
+                    </button>
+                </form>
+
+                <div class="register-link-container">
+                    <a href="{{ url_for('auth.login') }}" class="register-link">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Parallax effect on mouse move
+        document.addEventListener('mousemove', function(e) {
+            const card = document.querySelector('.login-card');
+            const x = (e.clientX / window.innerWidth - 0.5) * 20;
+            const y = (e.clientY / window.innerHeight - 0.5) * 20;
+            
+            card.style.transform = `perspective(2000px) rotateX(${-y}deg) rotateY(${x}deg)`;
+        });
+
+        // Reset transform on mouse leave
+        document.querySelector('.login-card').addEventListener('mouseleave', function() {
+            this.style.transform = 'perspective(2000px) rotateX(5deg) rotateY(-4deg)';
+        });
+
+        // Enhanced floating animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const shapes = document.querySelectorAll('.shape');
+            shapes.forEach((shape, index) => {
+                shape.style.animation = `floatShape ${10 + index * 2}s ease-in-out infinite`;
+                shape.style.animationDelay = `${index * 1.5}s`;
+            });
+        });
+    </script>
+</body>
+</html>

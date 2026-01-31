@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-chart-line"></i> Advanced Analytics & Reports</h2>
+            <p class="text-muted">Real-time insights into school performance</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Student Attendance Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Student Attendance Trends</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Collection Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Fee Collection Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="feeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Academic Performance -->
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Academic Performance (Class Average)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="academicChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Attendance Chart
+    const ctxAttendance = document.getElementById('attendanceChart').getContext('2d');
+    new Chart(ctxAttendance, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            datasets: [{
+                label: 'Attendance %',
+                data: [95, 92, 98, 94, 89, 91],
+                borderColor: '#4e73df',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: false, min: 80, max: 100 }
+            }
+        }
+    });
+
+    // Fee Collection Chart
+    const ctxFee = document.getElementById('feeChart').getContext('2d');
+    new Chart(ctxFee, {
+        type: 'doughnut',
+        data: {
+            labels: ['Paid', 'Pending', 'Overdue'],
+            datasets: [{
+                data: [65, 25, 10],
+                backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b']
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+
+    // Academic Chart
+    const ctxAcademic = document.getElementById('academicChart').getContext('2d');
+    new Chart(ctxAcademic, {
+        type: 'bar',
+        data: {
+            labels: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'],
+            datasets: [{
+                label: 'Average Science Score',
+                data: [85, 88, 82, 90, 85, 78, 80, 84, 76, 82],
+                backgroundColor: '#36b9cc'
+            }, {
+                label: 'Average Math Score',
+                data: [80, 85, 78, 88, 82, 75, 78, 80, 72, 78],
+                backgroundColor: '#4e73df'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, max: 100 }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

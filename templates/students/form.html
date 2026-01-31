@@ -1,0 +1,1192 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0">
+          <i class="fas fa-{{ 'plus' if not student else 'edit' }} me-2 text-primary"></i>
+          {{ 'Add New Student' if not student else 'Edit Student' }}
+        </h4>
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          <div class="row">
+            <!-- Personal Information -->
+            <div class="col-md-6">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-user me-2"></i>Personal Information
+              </h5>
+
+              <div class="mb-3">
+                <label for="first_name" class="form-label">First Name *</label>
+                <input type="text" class="form-control" id="first_name" name="first_name"
+                       value="{{ student.first_name if student else '' }}" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="last_name" class="form-label">Last Name *</label>
+                <input type="text" class="form-control" id="last_name" name="last_name"
+                       value="{{ student.last_name if student else '' }}" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="roll_number" class="form-label">Roll Number *</label>
+                <input type="text" class="form-control" id="roll_number" name="roll_number"
+                       value="{{ student.roll_number if student else '' }}" required>
+                <small class="text-muted">Unique roll/admission number for internal tracking</small>
+              </div>
+
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ student.email if student else '' }}">
+              </div>
+
+              <div class="mb-3">
+                <label for="stream" class="form-label">Stream</label>
+                <select class="form-select" id="stream" name="stream">
+                  <option value="">Select Stream</option>
+                  <option value="Medical" {% if student and student.stream == 'Medical' %}selected{% endif %}>Medical</option>
+                  <option value="Non-Medical" {% if student and student.stream == 'Non-Medical' %}selected{% endif %}>Non-Medical</option>
+                  <option value="Arts" {% if student and student.stream == 'Arts' %}selected{% endif %}>Arts</option>
+                  <option value="Commerce" {% if student and student.stream == 'Commerce' %}selected{% endif %}>Commerce</option>
+                  <option value="Arts with Math" {% if student and student.stream == 'Arts with Math' %}selected{% endif %}>Arts with Math</option>
+                  <option value="Commerce with Math" {% if student and student.stream == 'Commerce with Math' %}selected{% endif %}>Commerce with Math</option>
+                  <option value="Medical with Math" {% if student and student.stream == 'Medical with Math' %}selected{% endif %}>Medical with Math</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="date_of_birth" class="form-label">Date of Birth *</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                       value="{{ student.get('date_of_birth', '') if student is mapping else (student.date_of_birth.strftime('%Y-%m-%d') if student and student.date_of_birth else '') }}"
+                       max="{{ (current_year - 5) }}-12-31"
+                       min="{{ (current_year - 18) }}-01-01"
+                       required>
+                <div class="form-text">
+                    <i class="fas fa-info-circle text-info me-1"></i>
+                    Student age should be between 5-18 years as of today
+                </div>
+                <div id="dob-error" class="text-danger small mt-1" style="display: none;"></div>
+              </div>
+
+              <div class="mb-3">
+                <label for="gender" class="form-label">Gender</label>
+                <select class="form-select" id="gender" name="gender">
+                  <option value="">Select Gender</option>
+                  <option value="Male" {% if student and student.gender == 'Male' %}selected{% endif %}>Male</option>
+                  <option value="Female" {% if student and student.gender == 'Female' %}selected{% endif %}>Female</option>
+                  <option value="Other" {% if student and student.gender == 'Other' %}selected{% endif %}>Other</option>
+                  <option value="Prefer not to say" {% if student and student.gender == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="health_problem" name="health_problem" value="true" {{ 'checked' if student and student.health_problem else '' }}>
+                  <label class="form-check-label" for="health_problem">
+                    Has Health Problem
+                  </label>
+                </div>
+              </div>
+              <div class="mb-3" id="health_problem_description_group" style="display: {{ 'block' if student and student.health_problem else 'none' }};">
+                <label for="health_problem_description" class="form-label">Health Problem Description</label>
+                <textarea class="form-control" id="health_problem_description" name="health_problem_description" rows="3" placeholder="Describe the health problem...">{{ student.health_problem_description if student and student.health_problem_description else '' }}</textarea>
+              </div>
+
+              <div class="mb-3">
+                <label for="religion" class="form-label">Religion</label>
+                <select class="form-select" id="religion" name="religion">
+                  <option value="">Select Religion</option>
+                  <option value="Hindu" {% if student and student.religion == 'Hindu' %}selected{% endif %}>Hindu</option>
+                  <option value="Muslim" {% if student and student.religion == 'Muslim' %}selected{% endif %}>Muslim</option>
+                  <option value="Christian" {% if student and student.religion == 'Christian' %}selected{% endif %}>Christian</option>
+                  <option value="Sikh" {% if student and student.religion == 'Sikh' %}selected{% endif %}>Sikh</option>
+                  <option value="Buddhist" {% if student and student.religion == 'Buddhist' %}selected{% endif %}>Buddhist</option>
+                  <option value="Jain" {% if student and student.religion == 'Jain' %}selected{% endif %}>Jain</option>
+                  <option value="Parsi" {% if student and student.religion == 'Parsi' %}selected{% endif %}>Parsi</option>
+                  <option value="Other" {% if student and student.religion == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="caste" class="form-label">Caste/Category</label>
+                <select class="form-select" id="caste" name="caste">
+                  <option value="">Select Caste/Category</option>
+                  <option value="General" {% if student and student.caste == 'General' %}selected{% endif %}>General</option>
+                  <option value="OBC" {% if student and student.caste == 'OBC' %}selected{% endif %}>OBC</option>
+                  <option value="SC" {% if student and student.caste == 'SC' %}selected{% endif %}>SC</option>
+                  <option value="ST" {% if student and student.caste == 'ST' %}selected{% endif %}>ST</option>
+                  <option value="Other" {% if student and student.caste == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="nationality" class="form-label">Nationality</label>
+                <select class="form-select" id="nationality" name="nationality">
+                  <option value="">Select Nationality</option>
+                  <option value="Indian" {% if student and student.nationality == 'Indian' %}selected{% endif %}>Indian</option>
+                  <option value="Other" {% if student and student.nationality == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="photo" class="form-label">Student Photo</label>
+                <input type="file" class="form-control" id="photo" name="photo" accept="image/*" onchange="previewImage(event, 'photo')">
+                <div id="photo-preview-container" class="mt-2">
+                  {% if student and student.photo %}
+                    <img src="{{ url_for('static', filename=student.photo) }}" alt="Current Photo" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                    <div class="form-check mt-2">
+                      <input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo" value="1" onchange="removeImage('photo')">
+                      <label class="form-check-label" for="remove_photo">
+                        Remove current photo
+                      </label>
+                    </div>
+                    <small class="text-muted d-block">Upload new photo to replace current one</small>
+                  {% else %}
+                    <div id="photo-preview" class="text-center text-muted p-3 border rounded" style="min-height: 100px; display: none;">
+                      <i class="fas fa-image fa-3x"></i>
+                      <p class="mb-0">No photo selected</p>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="permanent_address" class="form-label">Permanent Address</label>
+                <textarea class="form-control" id="permanent_address" name="permanent_address" rows="3">{{ student.permanent_address if student else '' }}</textarea>
+                <small class="text-muted">Student's permanent residential address</small>
+              </div>
+
+              <div class="mb-3">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="same_address" name="same_address">
+                  <label class="form-check-label" for="same_address">
+                    Same as Permanent Address
+                  </label>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="correspondence_address" class="form-label">Correspondence Address</label>
+                <textarea class="form-control" id="correspondence_address" name="correspondence_address" rows="3">{{ student.correspondence_address if student else '' }}</textarea>
+                <small class="text-muted">Address for sending communications</small>
+              </div>
+
+            </div>
+
+            <!-- Contact & Academic Information -->
+            <div class="col-md-6">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-address-book me-2"></i>Contact & Academic
+              </h5>
+
+              <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phone" name="phone"
+                       value="{{ student.phone if student else '' }}">
+              </div>
+
+
+              <div class="mb-3">
+                <label for="class_id" class="form-label">Class</label>
+                <select class="form-select" id="class_id" name="class_id">
+                  <option value="">Select Class</option>
+                  {% for cls in classes %}
+                  <option value="{{ cls.id }}" data-room="{{ cls.room or '' }}" {% if student and student.class_id == cls.id %}selected{% endif %}>
+                    {{ cls.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="mb-3" id="room-display" style="display: none;">
+                <label class="form-label">Room Number</label>
+                <input type="text" class="form-control" id="room" readonly>
+              </div>
+
+              {% if student %}
+              <div class="mb-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                         {% if student.is_active %}checked{% endif %}>
+                  <label class="form-check-label" for="is_active">
+                    Active Student
+                  </label>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Student-Specific Fee Setup -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-receipt me-2"></i>Student Fee Setup
+              </h5>
+              <p class="text-muted">Set up fees specific to this student. These fees will be tracked individually.</p>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="annual_fee" class="form-label">Annual Fee Amount (₹)</label>
+                <input type="number" step="0.01" class="form-control" id="annual_fee" name="annual_fee"
+                       value="{{ student_fee.annual_fee if student_fee and student_fee.annual_fee else '' }}" placeholder="e.g., 45000.00"
+                       oninput="updateFeePreview('annual_fee')">
+                <small class="text-muted">Annual tuition fee for this student</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="fee_category" class="form-label">Fee Category</label>
+                <select class="form-select" id="fee_category" name="fee_category">
+                  <option value="">Select category</option>
+                  <option value="tuition" {% if student_fee and student_fee.fee_category == 'tuition' %}selected{% endif %}>Tuition Fee</option>
+                  <option value="transport" {% if student_fee and student_fee.fee_category == 'transport' %}selected{% endif %}>Transport Fee</option>
+                  <option value="lab" {% if student_fee and student_fee.fee_category == 'lab' %}selected{% endif %}>Laboratory Fee</option>
+                  <option value="library" {% if student_fee and student_fee.fee_category == 'library' %}selected{% endif %}>Library Fee</option>
+                  <option value="uniform" {% if student_fee and student_fee.fee_category == 'uniform' %}selected{% endif %}>Uniform Fee</option>
+                  <option value="other" {% if student_fee and student_fee.fee_category == 'other' %}selected{% endif %}>Other Fee</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="payment_frequency" class="form-label">Payment Frequency</label>
+                <select class="form-select" id="payment_frequency" name="payment_frequency">
+                  <option value="monthly" {% if student_fee and student_fee.payment_frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                  <option value="quarterly" {% if student_fee and student_fee.payment_frequency == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                  <option value="half_yearly" {% if student_fee and student_fee.payment_frequency == 'half_yearly' %}selected{% endif %}>Half-Yearly</option>
+                  <option value="yearly" {% if student_fee and student_fee.payment_frequency == 'yearly' %}selected{% endif %}>Yearly</option>
+                  <option value="one_time" {% if student_fee and student_fee.payment_frequency == 'one_time' %}selected{% endif %}>One-Time</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="due_date" class="form-label">First Due Date</label>
+                <input type="date" class="form-control" id="student_due_date" name="due_date"
+                       value="{{ student_fee.due_date.strftime('%Y-%m-%d') if student_fee and student_fee.due_date else '' }}"
+                       placeholder="Select due date">
+                <small class="text-muted">First payment due date</small>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="p-3 border rounded bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-semibold">Fee Preview</span>
+                  <span class="text-primary fs-5" id="studentFeePreview">₹{{ student_fee.annual_fee if student_fee and student_fee.annual_fee else '0.00' }}</span>
+                </div>
+                <small class="text-muted">Annual fee amount: <span id="annualFeeDisplay">₹{{ student_fee.annual_fee if student_fee and student_fee.annual_fee else '0.00' }}</span></small>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-12">
+              <button type="button" class="btn btn-outline-primary" onclick="addStudentFeeRow()">
+                <i class="fas fa-plus-circle me-1"></i>Add Additional Fee
+              </button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <div id="studentFeesContainer">
+                <!-- Student-specific fees will be dynamically added here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Parent/Guardian Information -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-users me-2"></i>Parent Information
+              </h5>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="father_name" class="form-label">Father's Name *</label>
+                <input type="text" class="form-control" id="father_name" name="father_name"
+                       value="{{ student.father_name if student else '' }}" placeholder="Father's full name" required>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="mother_name" class="form-label">Mother's Name *</label>
+                <input type="text" class="form-control" id="mother_name" name="mother_name"
+                       value="{{ student.mother_name if student else '' }}" placeholder="Mother's full name" required>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="parent_phone" class="form-label">Parent Phone *</label>
+                <input type="tel" class="form-control" id="parent_phone" name="parent_phone"
+                       value="{{ student.parent_phone if student else '' }}" placeholder="Primary contact number" required>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="parent_email" class="form-label">Parent Email</label>
+                <input type="email" class="form-control" id="parent_email" name="parent_email"
+                       value="{{ student.parent_email if student else '' }}" placeholder="Email address">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="parent_secret_key" class="form-label">Parent Portal Secret Key *</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="parent_secret_key" name="parent_secret_key"
+                         value="{{ student.parent_secret_key if student else '' }}" 
+                         placeholder="6-digit key" maxlength="6" pattern="[0-9]{6}" required>
+                  <button class="btn btn-outline-secondary" type="button" onclick="generateSecretKey()">
+                    <i class="fas fa-key"></i> Generate
+                  </button>
+                </div>
+                <div class="form-text">
+                  <i class="fas fa-info-circle text-info me-1"></i>
+                  6-digit secret key for parent portal registration. Share this with parents securely.
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="school_id_display" class="form-label">School ID</label>
+                <input type="text" class="form-control" id="school_id_display" 
+                       value="{{ current_user.school_id if current_user and current_user.school_id else '' }}" 
+                       readonly>
+                <div class="form-text">
+                  <i class="fas fa-info-circle text-info me-1"></i>
+                  Your school's 5-digit ID (for parent registration).
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Hidden fields for backward compatibility -->
+          <input type="hidden" id="guardian_name" name="guardian_name" value="{{ student.guardian_name if student else '' }}">
+          <input type="hidden" id="parent_name" name="parent_name" value="{{ student.parent_name if student else '' }}">
+
+          <!-- Aadhaar Card Information -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-id-card me-2"></i>Aadhaar Card Information
+              </h5>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="student_aadhaar" class="form-label">Student Aadhaar Number</label>
+                <input type="text" class="form-control" id="student_aadhaar" name="student_aadhaar"
+                       value="{{ student.student_aadhaar if student else '' }}"
+                       pattern="^\d{12}$" maxlength="12" placeholder="12-digit Aadhaar number">
+                <div class="invalid-feedback">
+                  Please enter a valid 12-digit Aadhaar number.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="student_aadhaar_photo" class="form-label">Upload Student Aadhaar Photo</label>
+                <input type="file" class="form-control" id="student_aadhaar_photo" name="student_aadhaar_photo" accept="image/*" onchange="previewImage(event, 'student_aadhaar_photo')">
+                <div id="student_aadhaar_photo-preview-container" class="mt-2">
+                  {% if student and student.student_aadhaar_photo %}
+                    <img src="{{ url_for('static', filename=student.student_aadhaar_photo) }}" alt="Current Student Aadhaar Photo" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                    <div class="form-check mt-2">
+                      <input class="form-check-input" type="checkbox" id="remove_student_aadhaar_photo" name="remove_student_aadhaar_photo" value="1" onchange="removeImage('student_aadhaar_photo')">
+                      <label class="form-check-label" for="remove_student_aadhaar_photo">
+                        Remove current photo
+                      </label>
+                    </div>
+                    <small class="text-muted d-block">Upload new photo to replace current one</small>
+                  {% else %}
+                    <div id="student_aadhaar_photo-preview" class="text-center text-muted p-3 border rounded" style="min-height: 100px; display: none;">
+                      <i class="fas fa-image fa-3x"></i>
+                      <p class="mb-0">No photo selected</p>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="father_aadhaar" class="form-label">Father Aadhaar Number</label>
+                <input type="text" class="form-control" id="father_aadhaar" name="father_aadhaar"
+                       value="{{ student.father_aadhaar if student else '' }}"
+                       pattern="^\d{12}$" maxlength="12" placeholder="12-digit Aadhaar number">
+                <div class="invalid-feedback">
+                  Please enter a valid 12-digit Aadhaar number.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="father_aadhaar_photo" class="form-label">Upload Father Aadhaar Photo</label>
+                <input type="file" class="form-control" id="father_aadhaar_photo" name="father_aadhaar_photo" accept="image/*" onchange="previewImage(event, 'father_aadhaar_photo')">
+                <div id="father_aadhaar_photo-preview-container" class="mt-2">
+                  {% if student and student.father_aadhaar_photo %}
+                    <img src="{{ url_for('static', filename=student.father_aadhaar_photo) }}" alt="Current Father Aadhaar Photo" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                    <div class="form-check mt-2">
+                      <input class="form-check-input" type="checkbox" id="remove_father_aadhaar_photo" name="remove_father_aadhaar_photo" value="1" onchange="removeImage('father_aadhaar_photo')">
+                      <label class="form-check-label" for="remove_father_aadhaar_photo">
+                        Remove current photo
+                      </label>
+                    </div>
+                    <small class="text-muted d-block">Upload new photo to replace current one</small>
+                  {% else %}
+                    <div id="father_aadhaar_photo-preview" class="text-center text-muted p-3 border rounded" style="min-height: 100px; display: none;">
+                      <i class="fas fa-image fa-3x"></i>
+                      <p class="mb-0">No photo selected</p>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="mother_aadhaar" class="form-label">Mother Aadhaar Number</label>
+                <input type="text" class="form-control" id="mother_aadhaar" name="mother_aadhaar"
+                       value="{{ student.mother_aadhaar if student else '' }}"
+                       pattern="^\d{12}$" maxlength="12" placeholder="12-digit Aadhaar number">
+                <div class="invalid-feedback">
+                  Please enter a valid 12-digit Aadhaar number.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="mother_aadhaar_photo" class="form-label">Upload Mother Aadhaar Photo</label>
+                <input type="file" class="form-control" id="mother_aadhaar_photo" name="mother_aadhaar_photo" accept="image/*" onchange="previewImage(event, 'mother_aadhaar_photo')">
+                <div id="mother_aadhaar_photo-preview-container" class="mt-2">
+                  {% if student and student.mother_aadhaar_photo %}
+                    <img src="{{ url_for('static', filename=student.mother_aadhaar_photo) }}" alt="Current Mother Aadhaar Photo" class="img-thumbnail" style="max-width: 100px; max-height: 100px;">
+                    <div class="form-check mt-2">
+                      <input class="form-check-input" type="checkbox" id="remove_mother_aadhaar_photo" name="remove_mother_aadhaar_photo" value="1" onchange="removeImage('mother_aadhaar_photo')">
+                      <label class="form-check-label" for="remove_mother_aadhaar_photo">
+                        Remove current photo
+                      </label>
+                    </div>
+                    <small class="text-muted d-block">Upload new photo to replace current one</small>
+                  {% else %}
+                    <div id="mother_aadhaar_photo-preview" class="text-center text-muted p-3 border rounded" style="min-height: 100px; display: none;">
+                      <i class="fas fa-image fa-3x"></i>
+                      <p class="mb-0">No photo selected</p>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aadhaar Verification Section -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-check-circle me-2"></i>Aadhaar Verification
+              </h5>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="p-3 border rounded bg-light">
+                <h6>Verification Status:</h6>
+                <div id="aadhaar-verification-result" class="mt-2 mb-3">
+                  <p class="text-muted">Click the verify button to check Aadhaar number and photo match.</p>
+                </div>
+                <button type="button" id="verify-aadhaar" class="btn btn-primary">
+                  <i class="fas fa-check me-1"></i>Verify Aadhaar Details
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <a href="{{ url_for('students.list_students') }}" class="btn-back">
+                  <i class="fas fa-arrow-left me-2"></i>Back to Students
+                </a>
+                <div>
+                  <button type="button" class="btn btn-outline-danger me-2" onclick="resetForm()">
+                    <i class="fas fa-times me-2"></i>Cancel
+                  </button>
+                  <button type="reset" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-undo me-2"></i>Reset
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>{{ 'Update Student' if student else 'Save Student' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Image preview and management functions
+function previewImage(event, imageId) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const previewContainer = document.getElementById(imageId + '-preview-container');
+      const preview = document.getElementById(imageId + '-preview');
+      
+      if (preview) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        preview.className = 'text-center p-3 border rounded';
+        preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">`;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function removeImage(imageId) {
+  const checkbox = document.getElementById('remove_' + imageId);
+  const fileInput = document.getElementById(imageId);
+  const previewContainer = document.getElementById(imageId + '-preview-container');
+  const preview = document.getElementById(imageId + '-preview');
+  
+  if (checkbox.checked) {
+    // Mark for removal
+    fileInput.value = ''; // Clear file input
+    if (preview) {
+      preview.style.display = 'none';
+      preview.innerHTML = '<i class="fas fa-image fa-3x"></i><p class="mb-0">Photo marked for removal</p>';
+      preview.className = 'text-center text-warning p-3 border rounded';
+    }
+  } else {
+    // Unmark for removal
+    if (preview) {
+      preview.style.display = 'none';
+      preview.innerHTML = '<i class="fas fa-image fa-3x"></i><p class="mb-0">No photo selected</p>';
+      preview.className = 'text-center text-muted p-3 border rounded';
+    }
+  }
+}
+
+function resetForm() {
+  // Clear all file inputs
+  const fileInputs = document.querySelectorAll('input[type="file"]');
+  fileInputs.forEach(input => {
+    input.value = '';
+  });
+  
+  // Reset all image previews
+  const previews = document.querySelectorAll('[id$="-preview"]');
+  previews.forEach(preview => {
+    preview.style.display = 'none';
+    preview.innerHTML = '<i class="fas fa-image fa-3x"></i><p class="mb-0">No photo selected</p>';
+    preview.className = 'text-center text-muted p-3 border rounded';
+  });
+  
+  // Uncheck all remove image checkboxes
+  const removeCheckboxes = document.querySelectorAll('[id^="remove_"]');
+  removeCheckboxes.forEach(checkbox => {
+    checkbox.checked = false;
+  });
+  
+  // Reset form fields
+  document.querySelector('form').reset();
+}
+
+// Student Fee Management Functions
+function updateFeePreview(feeId) {
+  const amountInput = document.getElementById(feeId);
+  const preview = document.getElementById(feeId + 'Display');
+  
+  if (amountInput && preview) {
+    const amount = parseFloat(amountInput.value) || 0;
+    preview.textContent = `₹${amount.toFixed(2)}`;
+  }
+}
+
+function addStudentFeeRow() {
+  const container = document.getElementById('studentFeesContainer');
+  const template = document.querySelector('.other-fee-row');
+  
+  if (container && template) {
+    const clone = template.cloneNode(true);
+    // Clear all input values in clone
+    clone.querySelectorAll('input').forEach(input => input.value = '');
+    
+    // Generate unique IDs for new row
+    const timestamp = Date.now().getTime();
+    const newRowId = 'student_fee_' + timestamp;
+    
+    // Update IDs in clone
+    clone.querySelectorAll('select').forEach(select => {
+      const newId = select.id.replace('student_fee_', 'student_fee_' + timestamp);
+      select.id = newId;
+    });
+    clone.querySelectorAll('input').forEach(input => {
+      const newId = input.id.replace('student_fee_', 'student_fee_' + timestamp);
+      input.id = newId;
+    });
+    
+    // Insert new row before container
+    container.insertBefore(clone, container.firstChild);
+  }
+}
+
+function removeStudentFeeRow(button) {
+  const row = button.closest('.other-fee-row');
+  if (row && row.parentNode) {
+    row.remove();
+  }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+  const firstName = document.getElementById('first_name').value.trim();
+  const lastName = document.getElementById('last_name').value.trim();
+  const dob = document.getElementById('date_of_birth').value;
+
+  if (!firstName || !lastName) {
+    e.preventDefault();
+    alert('First Name and Last Name are required fields.');
+    return false;
+  }
+
+  // DOB validation
+  if (!dob) {
+    e.preventDefault();
+    document.getElementById('dob-error').style.display = 'block';
+    document.getElementById('dob-error').textContent = 'Date of Birth is required';
+    return false;
+  }
+
+  const dobDate = new Date(dob);
+  const today = new Date();
+  const age = Math.floor((today - dobDate) / (365.25 * 24 * 60 * 60 * 1000));
+
+  if (age < 5 || age > 18) {
+    e.preventDefault();
+    document.getElementById('dob-error').style.display = 'block';
+    document.getElementById('dob-error').textContent = 'Student age must be between 5-18 years';
+    return false;
+  }
+
+  // Clear DOB error if valid
+  document.getElementById('dob-error').style.display = 'none';
+
+  // Email validation
+  const email = document.getElementById('email').value.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    e.preventDefault();
+    alert('Please enter a valid email address.');
+    return false;
+  }
+
+  // Validate all Aadhaar fields on form submission (only if values are provided)
+  const aadhaarFields = ['student_aadhaar', 'father_aadhaar', 'mother_aadhaar'];
+  let allValid = true;
+  
+  for (const fieldId of aadhaarFields) {
+    const field = document.getElementById(fieldId);
+    const value = field.value.trim();
+    
+    if (value) {
+      const result = verifyAadhaar(value);
+      showVerificationStatus(fieldId, result.valid, result.message);
+      if (!result.valid) {
+        allValid = false;
+        field.focus();
+      }
+    } else {
+      // Clear status if field is empty
+      const statusElement = document.getElementById(`${fieldId}-status`);
+      if (statusElement) {
+        statusElement.remove();
+      }
+    }
+  }
+  
+  // Only prevent submission if Aadhaar fields have invalid values
+  if (!allValid) {
+    e.preventDefault();
+    alert('Please fix Aadhaar validation errors before submitting.');
+    return false;
+  }
+
+  return true;
+});
+
+// Real-time DOB validation
+document.getElementById('date_of_birth').addEventListener('change', function() {
+  const dob = this.value;
+  const errorDiv = document.getElementById('dob-error');
+  
+  if (!dob) {
+    errorDiv.style.display = 'block';
+    errorDiv.textContent = 'Date of Birth is required';
+    return;
+  }
+
+  const dobDate = new Date(dob);
+  const today = new Date();
+  const age = Math.floor((today - dobDate) / (365.25 * 24 * 60 * 60 * 1000));
+
+  if (age < 5 || age > 18) {
+    errorDiv.style.display = 'block';
+    errorDiv.textContent = 'Student age must be between 5-18 years';
+  } else {
+    errorDiv.style.display = 'none';
+  }
+});
+
+// Real-time Aadhaar verification as user types
+const aadhaarInputFields = ['student_aadhaar', 'father_aadhaar', 'mother_aadhaar'];
+aadhaarInputFields.forEach(fieldId => {
+  const field = document.getElementById(fieldId);
+  if (field) {
+    field.addEventListener('input', function() {
+      const value = this.value.trim();
+      if (value && value.length === 12) {
+        // Only verify when exactly 12 digits are entered
+        const result = verifyAadhaar(value);
+        showVerificationStatus(fieldId, result.valid, result.message);
+      } else if (value.length > 12) {
+        // Show error if more than 12 digits
+        showVerificationStatus(fieldId, false, 'Aadhaar number must be exactly 12 digits');
+      } else {
+        // Clear status if less than 12 digits
+        const statusElement = document.getElementById(`${fieldId}-status`);
+        if (statusElement) {
+          statusElement.remove();
+        }
+      }
+    });
+  }
+});
+
+// Auto-generate roll number if empty (keeping for backward compatibility)
+document.getElementById('first_name').addEventListener('blur', function() {
+  const rollInput = document.getElementById('roll_number');
+  if (rollInput && !rollInput.value) {
+    const firstName = this.value.substring(0, 2).toUpperCase();
+    const lastName = document.getElementById('last_name').value.substring(0, 2).toUpperCase();
+    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    rollInput.value = firstName + lastName + randomNum;
+  }
+});
+
+document.getElementById('last_name').addEventListener('blur', function() {
+  const rollInput = document.getElementById('roll_number');
+  if (rollInput && !rollInput.value) {
+    const firstName = document.getElementById('first_name').value.substring(0, 2).toUpperCase();
+    const lastName = this.value.substring(0, 2).toUpperCase();
+    const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    rollInput.value = firstName + lastName + randomNum;
+  }
+});
+
+// Health problem toggle
+document.getElementById('health_problem').addEventListener('change', function() {
+  const descriptionGroup = document.getElementById('health_problem_description_group');
+  const descriptionField = document.getElementById('health_problem_description');
+
+  if (this.checked) {
+    descriptionGroup.style.display = 'block';
+    descriptionField.required = true;
+  } else {
+    descriptionGroup.style.display = 'none';
+    descriptionField.required = false;
+    descriptionField.value = '';
+  }
+});
+
+// Class selection and room display
+document.getElementById('class_id').addEventListener('change', function() {
+  const selectedOption = this.options[this.selectedIndex];
+  const room = selectedOption.getAttribute('data-room');
+  const roomDisplay = document.getElementById('room-display');
+  const roomInput = document.getElementById('room');
+
+  if (room) {
+    roomInput.value = room;
+    roomDisplay.style.display = 'block';
+  } else {
+    roomInput.value = '';
+    roomDisplay.style.display = 'none';
+  }
+});
+
+// Initialize room display on page load if class is selected
+document.addEventListener('DOMContentLoaded', function() {
+  const classSelect = document.getElementById('class_id');
+  if (classSelect.value) {
+    const selectedOption = classSelect.options[classSelect.selectedIndex];
+    const room = selectedOption.getAttribute('data-room');
+    const roomDisplay = document.getElementById('room-display');
+    const roomInput = document.getElementById('room');
+
+    if (room) {
+      roomInput.value = room;
+      roomDisplay.style.display = 'block';
+    }
+  }
+
+  // Address synchronization functionality
+  const sameAddressCheckbox = document.getElementById('same_address');
+  const permanentAddress = document.getElementById('permanent_address');
+  const correspondenceAddress = document.getElementById('correspondence_address');
+
+  if (sameAddressCheckbox && permanentAddress && correspondenceAddress) {
+    // Sync addresses when checkbox changes
+    sameAddressCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        correspondenceAddress.value = permanentAddress.value;
+        correspondenceAddress.disabled = true;
+      } else {
+        correspondenceAddress.disabled = false;
+      }
+    });
+
+    // Sync permanent address to correspondence when it changes and checkbox is checked
+    permanentAddress.addEventListener('input', function() {
+      if (sameAddressCheckbox.checked) {
+        correspondenceAddress.value = this.value;
+      }
+    });
+  }
+});
+
+// Dynamic other fee rows
+(function() {
+  const container = document.getElementById('otherFeesContainer');
+  const addBtn = document.getElementById('addOtherFeeRow');
+  if (!container || !addBtn) return;
+
+  const maxRows = 6;
+
+  addBtn.addEventListener('click', function() {
+    const rows = container.querySelectorAll('.other-fee-row');
+    if (rows.length >= maxRows) {
+      alert(`Maximum ${maxRows} other fee rows allowed.`);
+      return;
+    }
+    const firstRow = rows[0];
+    const clone = firstRow.cloneNode(true);
+    clone.querySelectorAll('input').forEach(inp => inp.value = '');
+    clone.querySelectorAll('select').forEach(sel => sel.value = '');
+    container.appendChild(clone);
+    attachRemoveHandlers(clone);
+  });
+
+  function attachRemoveHandlers(scope) {
+    const btn = scope.querySelector('.remove-other-fee');
+    if (btn) {
+      btn.onclick = function() {
+        const rows = container.querySelectorAll('.other-fee-row');
+        if (rows.length > 1) {
+          scope.remove();
+        } else {
+          // clear instead of remove last row
+          scope.querySelectorAll('input').forEach(inp => inp.value = '');
+          scope.querySelectorAll('select').forEach(sel => sel.value = '');
+        }
+      };
+    }
+  }
+
+  // Init for first row
+  container.querySelectorAll('.other-fee-row').forEach(r => attachRemoveHandlers(r));
+})();
+  // Aadhaar verification system functions (global scope)
+  function verifyAadhaar(aadhaarNumber) {
+    // Check if it's exactly 12 digits
+    if (!/^\d{12}$/.test(aadhaarNumber)) {
+      return { valid: false, message: 'Aadhaar number must be exactly 12 digits' };
+    }
+    
+    // Aadhaar checksum validation algorithm
+    const digits = aadhaarNumber.split('').map(Number);
+    let sum = 0;
+    
+    for (let i = 0; i < digits.length; i++) {
+      let weight = i % 2 === 0 ? 1 : 2;
+      let product = digits[i] * weight;
+      sum += product < 10 ? product : Math.floor(product / 10) + (product % 10);
+    }
+    
+    const isValid = sum % 10 === 0;
+    return {
+      valid: isValid,
+      message: isValid ? 'Aadhaar number is valid' : 'Invalid Aadhaar number (checksum failed)'
+    };
+  }
+
+  // Function to show verification status
+  function showVerificationStatus(fieldId, status, message) {
+    const field = document.getElementById(fieldId);
+    const statusElement = document.getElementById(`${fieldId}-status`);
+    
+    // Remove existing status element if it exists
+    if (statusElement) {
+      statusElement.remove();
+    }
+    
+    // Create new status element
+    const newStatus = document.createElement('div');
+    newStatus.id = `${fieldId}-status`;
+    newStatus.className = `mt-1 small ${status ? 'text-success' : 'text-danger'}`;
+    newStatus.innerHTML = `${status ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-times-circle"></i> '}${message}`;
+    field.parentNode.appendChild(newStatus);
+  }
+
+  // Real-time Aadhaar verification as user types
+  const aadhaarFields = ['student_aadhaar', 'father_aadhaar', 'mother_aadhaar'];
+aadhaarFields.forEach(fieldId => {
+  const field = document.getElementById(fieldId);
+  if (field) {
+    field.addEventListener('input', function() {
+      const value = this.value.trim();
+      if (value && value.length === 12) {
+        // Only verify when exactly 12 digits are entered
+        const result = verifyAadhaar(value);
+        showVerificationStatus(fieldId, result.valid, result.message);
+      } else if (value.length > 12) {
+        // Show error if more than 12 digits
+        showVerificationStatus(fieldId, false, 'Aadhaar number must be exactly 12 digits');
+      } else {
+        // Clear status if less than 12 digits
+        const statusElement = document.getElementById(`${fieldId}-status`);
+        if (statusElement) {
+          statusElement.remove();
+        }
+      }
+    });
+  }
+});
+
+// Aadhaar verification button functionality
+const verifyBtn = document.getElementById('verify-aadhaar');
+if (verifyBtn) {
+  verifyBtn.addEventListener('click', async function() {
+    const resultDiv = document.getElementById('aadhaar-verification-result');
+    let allValid = true;
+    let results = [];
+    
+    // Show loading state
+    resultDiv.innerHTML = '<p class="text-info"><i class="fas fa-spinner fa-spin"></i> Verifying Aadhaar details...</p>';
+
+    // Verify all Aadhaar numbers
+    aadhaarFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field && field.value.trim()) {
+        const result = verifyAadhaar(field.value.trim());
+        results.push({
+          type: fieldId.replace('_aadhaar', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          valid: result.valid,
+          message: result.message
+        });
+        if (!result.valid) {
+          allValid = false;
+        }
+      }
+    });
+
+    // Aadhaar Photo Verification with OCR
+    const photoFields = ['student_aadhaar_photo', 'father_aadhaar_photo', 'mother_aadhaar_photo'];
+    
+    for (const fieldId of photoFields) {
+      const field = document.getElementById(fieldId);
+      const aadhaarFieldId = fieldId.replace('_photo', '');
+      const aadhaarValue = document.getElementById(aadhaarFieldId).value.trim();
+      
+      if (aadhaarValue) {
+        // Check if photo is uploaded
+        if (!field.files.length) {
+          results.push({
+            type: fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Aadhaar Photo',
+            valid: false,
+            message: 'Aadhaar photo is required when Aadhaar number is provided'
+          });
+          allValid = false;
+        } else {
+          // Validate photo file
+          const file = field.files[0];
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+          const maxSize = 5 * 1024 * 1024; // 5MB
+          
+          if (!allowedTypes.includes(file.type)) {
+            results.push({
+              type: fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Aadhaar Photo',
+              valid: false,
+              message: 'Only JPEG, JPG, and PNG formats are allowed'
+            });
+            allValid = false;
+          } else if (file.size > maxSize) {
+            results.push({
+              type: fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Aadhaar Photo',
+              valid: false,
+              message: `Photo size must be less than 5MB (current: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+            });
+            allValid = false;
+          } else {
+            // Basic photo validation passed
+            results.push({
+              type: fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Aadhaar Photo',
+              valid: true,
+              message: 'Photo uploaded successfully (format and size are valid)'
+            });
+            
+            try {
+              // Extract Aadhaar details from photo using OCR API
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('lang', 'en');
+              
+              const response = await fetch('/api_integrations/ai/ocr', {
+                method: 'POST',
+                body: formData
+              });
+              
+              const ocrResult = await response.json();
+              
+              if (ocrResult.success) {
+                // Extract text from OCR result
+                let ocrText = '';
+                if (ocrResult.text) {
+                  ocrText = ocrResult.text;
+                } else if (ocrResult.result && Array.isArray(ocrResult.result)) {
+                  ocrText = ocrResult.result.map(item => item.text || '').join(' ');
+                } else if (typeof ocrResult.result === 'string') {
+                  ocrText = ocrResult.result;
+                } else {
+                  ocrText = JSON.stringify(ocrResult);
+                }
+                
+                // Extract Aadhaar number from OCR text (12-digit number)
+                const aadhaarNumberRegex = /\b\d{12}\b/g;
+                const extractedNumbers = ocrText.match(aadhaarNumberRegex) || [];
+                
+                // Extract name from OCR text
+                // This is a simple implementation - can be improved with more sophisticated logic
+                const nameRegex = /Name\s*:\s*([A-Za-z\s]+)/i;
+                const nameMatch = ocrText.match(nameRegex);
+                const extractedName = nameMatch ? nameMatch[1].trim() : '';
+                
+                // Compare extracted Aadhaar number with entered number
+                const personType = fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                // Check if extracted number matches entered number
+                if (extractedNumbers.length > 0) {
+                  const matchFound = extractedNumbers.some(num => num === aadhaarValue);
+                  
+                  results.push({
+                    type: `${personType} Aadhaar OCR Number Match`,
+                    valid: matchFound,
+                    message: matchFound ? `Extracted Aadhaar number matches entered number (${aadhaarValue})` : `Extracted Aadhaar number does not match entered number. Extracted: ${extractedNumbers.join(', ')}`
+                  });
+                  
+                  if (!matchFound) {
+                    allValid = false;
+                  }
+                } else {
+                  results.push({
+                    type: `${personType} Aadhaar OCR Number Detection`,
+                    valid: false,
+                    message: 'Could not extract 12-digit Aadhaar number from photo'
+                  });
+                  allValid = false;
+                }
+                
+                // Check name if it's student Aadhaar
+                if (personType === 'Student') {
+                  const enteredFirstName = document.getElementById('first_name').value.trim().toUpperCase();
+                  const enteredLastName = document.getElementById('last_name').value.trim().toUpperCase();
+                  const fullEnteredName = `${enteredFirstName} ${enteredLastName}`.trim();
+                  
+                  if (extractedName) {
+                    const extractedNameUpper = extractedName.toUpperCase();
+                    const nameMatch = extractedNameUpper.includes(enteredFirstName) || extractedNameUpper.includes(enteredLastName) || fullEnteredName.includes(extractedNameUpper);
+                    
+                    results.push({
+                      type: `${personType} Aadhaar OCR Name Match`,
+                      valid: nameMatch,
+                      message: nameMatch ? `Extracted name (${extractedName}) matches entered name (${fullEnteredName})` : `Extracted name (${extractedName}) does not match entered name (${fullEnteredName})`
+                    });
+                    
+                    if (!nameMatch) {
+                      allValid = false;
+                    }
+                  } else {
+                    results.push({
+                      type: `${personType} Aadhaar OCR Name Detection`,
+                      valid: false,
+                      message: 'Could not extract name from photo'
+                    });
+                    allValid = false;
+                  }
+                }
+              } else {
+                // OCR failed
+                results.push({
+                  type: fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Aadhaar OCR',
+                  valid: false,
+                  message: `OCR failed: ${ocrResult.error || 'Unknown error'}`
+                });
+                allValid = false;
+              }
+            } catch (error) {
+              // Error in OCR processing
+              results.push({
+                type: fieldId.replace('_aadhaar_photo', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Aadhaar OCR',
+                valid: false,
+                message: `Error processing photo: ${error.message}`
+              });
+              allValid = false;
+            }
+          }
+        }
+      }
+    }
+
+    // Display results
+    if (results.length === 0) {
+      resultDiv.innerHTML = '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> No Aadhaar information provided for verification.</p>';
+      return;
+    }
+
+    let html = '<ul class="list-unstyled">';
+    results.forEach(result => {
+      html += `<li class="${result.valid ? 'text-success' : 'text-danger'} mb-1">
+        <i class="fas fa-${result.valid ? 'check-circle' : 'times-circle'}"></i> 
+        ${result.type}: ${result.message}
+      </li>`;
+    });
+    html += '</ul>';
+
+    if (allValid) {
+      html += '<div class="alert alert-success mt-3" role="alert"><i class="fas fa-check-circle me-2"></i><strong>Verification Successful!</strong> All Aadhaar details are valid. You can now save the student record.</div>';
+    } else {
+      html += '<div class="alert alert-danger mt-3" role="alert"><i class="fas fa-times-circle me-2"></i><strong>Verification Failed!</strong> Please check the errors above before saving.</div>';
+    }
+
+    resultDiv.innerHTML = html;
+  });
+}
+</script>
+{% endblock %}

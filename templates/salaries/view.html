@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Salary Details</h2>
+        <a href="{{ url_for('salaries.list_salaries') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+        </a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-money-bill-wave me-2 text-info"></i>Salary Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Employee Information</h6>
+                    <hr>
+                    <p><strong>Employee Type:</strong> Teacher</p>
+                    <p><strong>Employee Name:</strong> 
+                        {% if teacher %}
+                            {{ teacher.name }} ({{ teacher.id or 'N/A' }})
+                        {% else %}
+                            Teacher #{{ salary.teacher_id }}
+                        {% endif %}
+                    </p>
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" 
+                           name="amount" 
+                           value="{{ "%.2f"|format(salary.amount) if salary.amount is not none else '0.00' }}" 
+                           required>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status" required>
+                <option value="pending" {% if salary.status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="paid" {% if salary.status == 'paid' %}selected{% endif %}>Paid</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" name="notes" rows="3">{{ salary.notes or '' }}</textarea>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ url_for('salaries.list_salaries') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

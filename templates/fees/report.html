@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="mb-0">
+          <i class="fas fa-file-alt me-3 text-secondary"></i>
+          Fee Reports
+        </h2>
+        <p class="text-muted mt-1">Detailed fee reports with advanced filtering options</p>
+      </div>
+      <div class="btn-group">
+        <a href="{{ url_for('fees.list_fees') }}" class="btn-back">
+          <i class="fas fa-arrow-left me-2"></i>Back to Fees
+        </a>
+        <a href="{{ url_for('fees.fees_analytics') }}" class="btn btn-info">
+          <i class="fas fa-chart-bar me-2"></i>Analytics
+        </a>
+        <button class="btn btn-outline-success" onclick="exportReport()">
+          <i class="fas fa-download me-2"></i>Export Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="fas fa-filter me-2 text-primary"></i>Filter Options
+    </h5>
+  </div>
+  <div class="card-body">
+    <form method="GET" class="row g-3">
+      <div class="col-md-3">
+        <label for="student" class="form-label">Student Name</label>
+        <input type="text" class="form-control" id="student" name="student"
+               placeholder="Search by student name..." value="{{ student_filter }}">
+      </div>
+      <div class="col-md-2">
+        <label for="status" class="form-label">Payment Status</label>
+        <select class="form-select" id="status" name="status">
+          <option value="">All Status</option>
+          <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="start_date" class="form-label">From Date</label>
+        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+      </div>
+      <div class="col-md-2">
+        <label for="end_date" class="form-label">To Date</label>
+        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">&nbsp;</label>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search me-2"></i>Apply Filters
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Report Summary -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-chart-line me-2 text-info"></i>Report Summary
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-md-3">
+            <h4 class="text-primary">{{ fees|length }}</h4>
+            <p class="text-muted mb-0">Total Records</p>
+          </div>
+          <div class="col-md-3">
+            <h4 class="text-success">{{ fees|selectattr('paid', 'equalto', true)|list|length }}</h4>
+            <p class="text-muted mb-0">Paid Fees</p>
+          </div>
+          <div class="col-md-3">
+            <h4 class="text-warning">{{ fees|selectattr('paid', 'equalto', false)|list|length }}</h4>
+            <p class="text-muted mb-0">Pending Fees</p>
+          </div>
+          <div class="col-md-3">
+            <h4 class="text-danger">${{ "%.2f"|format(fees|selectattr('paid', 'equalto', true)|map(attribute='amount')|sum) }}</h4>
+            <p class="text-muted mb-0">Total Collected</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Report Table -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="fas fa-table me-2 text-secondary"></i>Detailed Fee Report
+    </h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover" id="reportTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Student Name</th>
+            <th>Amount</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Payment Date</th>
+            <th>Days Overdue</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fee in fees %}
+          <tr>
+            <td>
+              <strong>{{ fee.student.full_name() if fee.student else 'Unknown' }}</strong>
+            </td>
+            <td>${{ "%.2f"|format(fee.amount) }}</td>
+            <td>
+              {% if fee.due_date %}
+                <span class="{% if fee.due_date < date.today() and not fee.paid %}text-danger{% endif %}">
+                  {{ fee.due_date.strftime('%Y-%m-%d') }}
+                </span>
+              {% else %}
+                <span class="text-muted">Not set</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if fee.paid %}
+                <span class="badge bg-success">Paid</span>
+              {% elif fee.due_date and fee.due_date < date.today() %}
+                <span class="badge bg-danger">Overdue</span>
+              {% else %}
+                <span class="badge bg-warning">Pending</span>
+              {% endif %}
+            </td>
+            <td>
+              {% set payment = fee.payments.first() %}
+              {% if payment and payment.paid_on %}
+                {{ payment.paid_on.strftime('%Y-%m-%d') }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if fee.due_date and not fee.paid %}
+                {% set days_overdue = (date.today() - fee.due_date).days %}
+                {% if days_overdue > 0 %}
+                  <span class="text-danger">{{ days_overdue }} days</span>
+                {% else %}
+                  <span class="text-success">Not overdue</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="btn-group" role="group">
+                <a href="{{ url_for('fees.edit_fee', fee_id=fee.id) }}" class="btn btn-sm btn-outline-warning">
+                  <i class="fas fa-edit"></i>
+                </a>
+                {% if not fee.paid %}
+                  <form method="post" action="{{ url_for('fees.pay_fee', fee_id=fee.id) }}" style="display: inline;">
+                    <input type="hidden" name="amount" value="{{ fee.amount }}" />
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="Mark as Paid">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if not fees %}
+    <div class="text-center py-5">
+      <i class="fas fa-search fa-4x text-muted mb-3"></i>
+      <h4 class="text-muted">No fees match your filters</h4>
+      <p class="text-muted">Try adjusting your search criteria or <a href="{{ url_for('fees.fees_report') }}">clear all filters</a>.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function exportReport() {
+  // Create a downloadable CSV from the current filtered results
+  const table = document.getElementById('reportTable');
+  let csv = [];
+
+  // Get headers
+  const headers = [];
+  for (let i = 0; i < table.rows[0].cells.length - 1; i++) { // Exclude actions column
+    headers.push(table.rows[0].cells[i].textContent.trim());
+  }
+  csv.push(headers.join(','));
+
+  // Get data rows
+  for (let i = 1; i < table.rows.length; i++) {
+    const row = [];
+    for (let j = 0; j < table.rows[i].cells.length - 1; j++) { // Exclude actions column
+      let cellText = table.rows[i].cells[j].textContent.trim();
+      // Remove badges and formatting
+      cellText = cellText.replace(/Paid|Pending|Overdue/g, '').trim();
+      row.push('"' + cellText + '"');
+    }
+    csv.push(row.join(','));
+  }
+
+  // Download CSV
+  const csvContent = csv.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'fee_report.csv');
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Add sorting functionality to table headers
+document.addEventListener('DOMContentLoaded', function() {
+  const table = document.getElementById('reportTable');
+  const headers = table.querySelectorAll('th');
+
+  headers.forEach((header, index) => {
+    if (index < headers.length - 1) { // Don't add sorting to actions column
+      header.style.cursor = 'pointer';
+      header.addEventListener('click', function() {
+        sortTable(table, index);
+      });
+    }
+  });
+});
+
+function sortTable(table, column) {
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+
+  rows.sort((a, b) => {
+    const aText = a.cells[column].textContent.trim().toLowerCase();
+    const bText = b.cells[column].textContent.trim().toLowerCase();
+
+    if (aText < bText) return -1;
+    if (aText > bText) return 1;
+    return 0;
+  });
+
+  // Re-append sorted rows
+  rows.forEach(row => tbody.appendChild(row));
+}
+</script>
+
+{% endblock %}

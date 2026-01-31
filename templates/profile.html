@@ -1,0 +1,1212 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='css/ultra_premium.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e1b4b 100%); min-height: 100vh; position: relative;">
+  <!-- Ultra Premium Background Effects -->
+  <div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+  </div>
+  
+  <div class="row justify-content-center">
+    <div class="col-lg-11">
+      <!-- Premium Profile Header Card -->
+      <div class="card premium-card shadow-2xl border-0 overflow-hidden mb-5 position-relative">
+        <!-- Animated Background -->
+        <div class="position-absolute top-0 start-0 w-100 h-100">
+          <div class="premium-gradient-bg"></div>
+          <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+          </div>
+        </div>
+        
+        <!-- Profile Header Content -->
+        <div class="bg-gradient-premium position-relative">
+          <div class="card-body relative z-10 py-5">
+            <div class="row align-items-center">
+              <!-- Premium Avatar Section -->
+              <div class="col-md-3 text-center">
+                <div class="profile-avatar mb-4">
+                  <div class="avatar-wrapper position-relative">
+                    <div class="avatar-circle mx-auto overflow-hidden premium-avatar-shadow">
+                      {% if user.photo %}
+                      <img src="{{ url_for('static', filename=user.photo) }}" alt="Profile Photo" class="avatar-img w-100 h-100 object-cover">
+                      {% else %}
+                      <div class="d-flex align-items-center justify-content-center w-100 h-100 bg-gradient-to-br from-blue-400 to-purple-600">
+                        <i class="fas fa-user fa-5x text-white"></i>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <!-- Premium Edit Avatar Button -->
+                    <button class="btn btn-premium btn-sm rounded-circle shadow-xl position-absolute bottom-0 end-50 translate-middle-y hover-scale transition-all duration-300" 
+                            onclick="changeAvatar()" title="Change Photo">
+                      <i class="fas fa-camera text-white fs-6"></i>
+                    </button>
+                    <!-- Online Status Indicator -->
+                    <div class="position-absolute top-0 end-0">
+                      <span class="badge bg-success rounded-pill p-2 border border-2 border-white cursor-pointer transition-all duration-300" 
+                            id="statusIndicator" 
+                            onclick="toggleOnlineStatus()" 
+                            title="Click to change status">
+                        <i class="fas fa-circle fs-6"></i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Profile Completion Badge -->
+                <div class="mt-3">
+                  <div class="profile-completion-badge">
+                    <div class="d-flex align-items-center justify-content-center mb-2">
+                      <div class="progress-circle" data-percent="85">
+                        <svg width="60" height="60">
+                          <circle cx="30" cy="30" r="25" stroke="#e0e0e0" stroke-width="5" fill="none"></circle>
+                          <circle cx="30" cy="30" r="25" stroke="#4CAF50" stroke-width="5" fill="none" 
+                                  stroke-dasharray="157" stroke-dashoffset="24" stroke-linecap="round"
+                                  transform="rotate(-90 30 30)"></circle>
+                        </svg>
+                        <span class="percentage">85%</span>
+                      </div>
+                    </div>
+                    <small class="text-white text-opacity-90">Profile Complete</small>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Enhanced Profile Information -->
+              <div class="col-md-9">
+                <div class="text-white">
+                  <div class="d-flex align-items-center mb-3">
+                    <h1 class="display-4 fw-bold mb-0 me-3" id="displayName">{{ user.name }}</h1>
+                    <div class="premium-badges">
+                      {% if user.role == 'teacher' and user.teacher_profile and user.teacher_profile.is_class_incharge %}
+                      <span class="badge bg-warning text-dark px-3 py-2 rounded-pill me-2">
+                        <i class="fas fa-star me-1"></i>Class Incharge
+                      </span>
+                      {% endif %}
+                      <span class="badge bg-success px-3 py-2 rounded-pill">
+                        <i class="fas fa-check-circle me-1"></i>Verified
+                      </span>
+                    </div>
+                     {% if user.role == 'admin' %}
+                     <div class="ms-3">
+                       <span class="badge bg-warning text-dark px-4 py-2 rounded-pill shadow-sm" title="School ID">
+                         <i class="fas fa-school me-2"></i>School ID: <strong class="ms-1">{{ user.school_id if user.school_id else '—' }}</strong>
+                       </span>
+                     </div>
+                     {% endif %}
+                  </div>
+                  <p class="fs-5 text-white text-opacity-90 mb-4" id="displayTitle">{{ user.role | capitalize }} Professional</p>
+                  
+                  <!-- Enhanced Quick Stats -->
+                  <div class="row g-3 mb-4">
+                    <div class="col-sm-3">
+                      <div class="premium-stat-card bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-3 hover-scale transition-all duration-300">
+                        <div class="text-white text-opacity-80 small mb-1">Email</div>
+                        <div class="text-white fw-semibold" id="displayEmail">{{ user.email }}</div>
+                      </div>
+                    </div>
+                    <div class="col-sm-3">
+                      <div class="premium-stat-card bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-3 hover-scale transition-all duration-300">
+                        <div class="text-white text-opacity-80 small mb-1">Phone</div>
+                        <div class="text-white fw-semibold" id="displayPhone">{{ user.phone if user.phone else 'Not available' }}</div>
+                      </div>
+                    </div>
+                    <div class="col-sm-3">
+                      <div class="premium-stat-card bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-3 hover-scale transition-all duration-300">
+                        <div class="text-white text-opacity-80 small mb-1">Department</div>
+                        <div class="text-white fw-semibold" id="displayDepartment">{{ user.department if user.department else 'General' }}</div>
+                      </div>
+                    </div>
+                    <div class="col-sm-3">
+                      <div class="premium-stat-card bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-3 hover-scale transition-all duration-300">
+                        <div class="text-white text-opacity-80 small mb-1">Status</div>
+                        <div class="d-flex align-items-center">
+                          <span class="badge bg-success bg-opacity-20 text-white px-3 py-1 rounded-full border border-success border-opacity-30">
+                            <i class="fas fa-circle me-1" style="font-size: 8px;"></i>Active Now
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- View Only Information for Teachers -->
+                  {% if user.role == 'teacher' %}
+                  <div class="d-flex gap-4 align-items-center justify-content-between" style="position: relative !important; z-index: 99999 !important; background: linear-gradient(135deg, rgba(30,41,59,0.95) 0%, rgba(30,41,59,0.85) 100%); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="bg-warning bg-opacity-30 rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                          <div class="text-center">
+                            <div class="text-warning fw-bold" style="font-size: 1.2rem; line-height: 1;">{{ user.name.split(' ')[0][0].upper() }}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <h5 class="mb-1 text-white fw-bold">Profile Information</h5>
+                          <p class="text-white text-opacity-80 mb-0 small">YOUR PROFILE IS MANAGED BY SCHOOL ADMINISTRATOR</p>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn bg-gradient-to-r from-blue-500 to-blue-600 hover-lift fw-semibold py-2 px-4 rounded-lg shadow transition-all duration-300 text-white border-0" 
+                            onclick="changePassword()"
+                            style="position: relative !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; display: inline-block !important; pointer-events: auto !important; font-size: 0.85rem; letter-spacing: 0.5px;">
+                      <i class="fas fa-key me-2"></i>Change Password
+                    </button>
+                  </div>
+                  {% else %}
+                  <!-- Premium Action Buttons for Admin -->
+                  <div class="d-flex gap-3 flex-wrap" style="position: relative !important; z-index: 99999 !important; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px;">
+                    <button type="button" class="btn btn-premium-gold hover-lift fw-bold py-3 px-5 rounded-xl shadow-lg transition-all duration-300" 
+                            data-bs-toggle="modal" data-bs-target="#editProfileModal"
+                            style="position: relative !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; display: inline-block !important; pointer-events: auto !important; color: #1a1a1a !important; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important; border: none !important;">
+                      <i class="fas fa-edit me-2" style="color: #1a1a1a !important;"></i>Edit Profile
+                    </button>
+                    <button type="button" class="btn btn-premium-silver hover-lift fw-bold py-1 px-2 rounded shadow-sm transition-all duration-300" 
+                            onclick="changePassword()"
+                            style="position: relative !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; display: inline-block !important; pointer-events: auto !important; color: white !important; background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important; border: none !important; font-size: 0.75rem;">
+                      <i class="fas fa-key me-1" style="color: white !important; font-size: 0.7rem;"></i>Change
+                    </button>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Profile Details Cards -->
+        <div class="row g-4" style="display: flex; flex-wrap: wrap;">
+          <!-- Personal Information -->
+          <div class="col-lg-6" style="display: flex; flex-direction: column;">
+            <div class="card shadow-lg border-0 rounded-lg overflow-hidden hover-lift transition-all duration-300" style="height: 100%; display: flex; flex-direction: column;">
+              <div class="card-header bg-gradient-premium text-white">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-user-shield me-2"></i>Personal Information</h5>
+              </div>
+              <div class="card-body bg-light" style="flex: 1;">
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-user me-1"></i>Full Name
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.name }}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-briefcase me-1"></i>Role
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.role | capitalize }}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-calendar me-1"></i>Join Date
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.created_at.strftime('%B %d, %Y') }}</p>
+                  </div>
+                </div>
+                {% if user.role == 'admin' %}
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-building me-1"></i>Department
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">Admin</p>
+                  </div>
+                </div>
+                {% elif user.role == 'teacher' %}
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-id-badge me-1"></i>Employee ID
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.teacher_profile.employee_id if user.teacher_profile and user.teacher_profile.employee_id else 'Not assigned' }}</p>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Contact Information -->
+          <div class="col-lg-6" style="display: flex; flex-direction: column;">
+            <div class="card shadow-lg border-0 rounded-lg overflow-hidden hover-lift transition-all duration-300" style="height: 100%; display: flex; flex-direction: column;">
+              <div class="card-header bg-gradient-premium-alt text-white">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-envelope-open-text me-2"></i>Contact Information</h5>
+              </div>
+              <div class="card-body bg-light" style="flex: 1;">
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-envelope me-1"></i>Email
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.email }}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-phone me-1"></i>Phone
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.teacher_profile.phone if user.teacher_profile and user.teacher_profile.phone else (user.phone if user.phone else 'Not available') }}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-map-marker-alt me-1"></i>Address
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.teacher_profile.address if user.teacher_profile and user.teacher_profile.address else (user.address if user.address else 'Not available') }}</p>
+                  </div>
+                </div>
+                {% if user.role == 'admin' %}
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-school me-1"></i>School ID
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <p class="mb-3 fw-semibold text-dark">{{ user.school_id if user.school_id else 'Not set' }}</p>
+                  </div>
+                </div>
+                {% elif user.role == 'teacher' %}
+                <div class="row">
+                  <div class="col-sm-4">
+                    <span class="badge bg-purple bg-opacity-10 text-dark px-3 py-2 rounded-pill fw-semibold">
+                      <i class="fas fa-award me-1"></i>Experience
+                    </span>
+                  </div>
+                  <div class="col-sm-8">
+                    <div class="d-flex align-items-center">
+                      <span class="badge bg-gradient-to-r from-purple-500 to-indigo-600 text-dark px-4 py-2 rounded-lg shadow">
+                        <i class="fas fa-briefcase me-2"></i>
+                        <span class="fw-bold text-dark">{{ user.teacher_profile.experience_years if user.teacher_profile and user.teacher_profile.experience_years else '0' }}</span>
+                        <span class="ms-1 text-dark">Years</span>
+                      </span>
+                      {% if user.teacher_profile and user.teacher_profile.experience_years and user.teacher_profile.experience_years > 0 %}
+                      <span class="ms-3 badge bg-success bg-opacity-20 text-success px-3 py-2 rounded-full border border-success border-opacity-30">
+                        <i class="fas fa-check-circle me-1"></i>Proven
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal (Admin Only) -->
+{% if current_user.role == 'admin' %}
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content border-0 rounded-2xl shadow-xxl overflow-hidden">
+      <!-- Modal Header with Gradient -->
+      <div class="modal-header bg-gradient-primary to-secondary text-white">
+        <h1 class="modal-title fs-4 fw-bold" id="editProfileModalLabel">
+          <i class="fas fa-user-edit me-2"></i>Edit Profile Information
+        </h1>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="modal-body p-6">
+        <form class="profile-edit-form">
+          <div class="row g-5">
+            <!-- Personal Details Column -->
+            <div class="col-md-6">
+              <h3 class="h6 fw-semibold text-gray-700 mb-4">Personal Details</h3>
+              
+              <div class="space-y-4">
+                <div class="form-group">
+                  <label for="fullName" class="form-label fw-semibold text-gray-700">Full Name <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-user text-primary"></i>
+                    </span>
+                    <input type="text" class="form-control border-primary focus-ring focus-ring-primary" id="fullName" value="{{ user.name }}" required>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="email" class="form-label fw-semibold text-gray-700">Email Address <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-envelope text-primary"></i>
+                    </span>
+                    <input type="email" class="form-control border-primary focus-ring focus-ring-primary" id="email" value="{{ user.email }}" required>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="phone" class="form-label fw-semibold text-gray-700">Phone Number</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-phone text-primary"></i>
+                    </span>
+                    <input type="tel" class="form-control border-primary focus-ring focus-ring-primary" id="phone" value="{{ user.phone if user.phone else '' }}">
+                  </div>
+                </div>
+                
+                {% if user.role == 'admin' %}
+                <div class="form-group">
+                  <label for="department" class="form-label fw-semibold text-gray-700">Department</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-building text-primary"></i>
+                    </span>
+                    <input type="text" class="form-control border-primary focus-ring focus-ring-primary" id="department" value="Admin" readonly>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <!-- Additional Information Column -->
+            <div class="col-md-6">
+              <h3 class="h6 fw-semibold text-gray-700 mb-4">Additional Information</h3>
+              
+              <div class="space-y-4">
+                <div class="form-group">
+                  <label for="address" class="form-label fw-semibold text-gray-700">Address</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary" style="height: auto; padding: 12px;">
+                      <i class="fas fa-map-marker-alt text-primary"></i>
+                    </span>
+                    <textarea class="form-control border-primary focus-ring focus-ring-primary" id="address" rows="4">{{ user.address if user.address else '' }}</textarea>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="profilePhoto" class="form-label fw-semibold text-gray-700">Profile Photo</label>
+                  <div class="d-flex align-items-center gap-4">
+                    <div class="avatar-preview">
+                      {% if user.photo %}
+                      <img src="{{ url_for('static', filename=user.photo) }}" class="rounded-lg shadow-md" style="width: 100px; height: 100px; object-fit: cover;" alt="Current Photo">
+                      {% else %}
+                      <div class="rounded-lg shadow-md d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-user fa-3x text-white"></i>
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="flex-grow-1">
+                      <input type="file" class="form-control border-primary focus-ring focus-ring-primary" id="profilePhoto" accept="image/*">
+                      <small class="text-muted d-block mt-1">Allowed formats: JPG, PNG, GIF. Max size: 5MB</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="modal-footer bg-light border-top border-light p-6">
+        <button type="button" class="btn btn-outline-gray-600 hover:bg-gray-100 fw-semibold py-2 px-6 rounded-lg transition-all duration-300" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary fw-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300" onclick="saveProfile()">
+          <i class="fas fa-save me-2"></i>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 rounded-2xl shadow-xxl overflow-hidden">
+      <div class="modal-header bg-gradient-primary to-secondary text-white">
+        <h1 class="modal-title fs-4 fw-bold" id="changePasswordModalLabel">
+          <i class="fas fa-key me-2"></i>Change Password
+        </h1>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-6">
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-info" role="alert">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Password Requirements:</strong> Minimum 8 characters, at least one uppercase, one lowercase, and one number.
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 mb-4">
+            <label for="currentPassword" class="form-label fw-bold">Current Password</label>
+            <input type="password" class="form-control form-control-lg" id="currentPassword" placeholder="Enter your current password">
+            <div class="form-text">We need your current password to confirm the change</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 mb-4">
+            <label for="newPassword" class="form-label fw-bold">New Password</label>
+            <input type="password" class="form-control form-control-lg" id="newPassword" placeholder="Enter your new password">
+            <div id="passwordStrength" class="form-text mt-2"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 mb-4">
+            <label for="confirmPassword" class="form-label fw-bold">Confirm New Password</label>
+            <input type="password" class="form-control form-control-lg" id="confirmPassword" placeholder="Confirm your new password">
+            <div id="passwordMatch" class="form-text mt-2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light border-top border-light p-6">
+        <button type="button" class="btn btn-outline-gray-600 hover:bg-gray-100 fw-semibold py-2 px-6 rounded-lg transition-all duration-300" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary fw-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300" onclick="submitPasswordChange()">
+          <i class="fas fa-check me-2"></i>Update Password
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Premium Profile Styles */
+.premium-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+}
+
+.bg-gradient-primary.to-secondary {
+  background: linear-gradient(135deg, #4299e1 0%, #38b2ac 100%);
+}
+
+.bg-pattern {
+  background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  background-size: 20px 20px;
+}
+
+.bg-pattern {
+  background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  background-size: 20px 20px;
+}
+
+/* Avatar Styles */
+.avatar-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar-circle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Card Styling */
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  border-radius: 12px 12px 0 0 !important;
+  border: none;
+  font-weight: 700;
+  padding: 1.5rem 2.5rem;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.03) 0%, rgba(56, 178, 172, 0.03) 100%);
+  border-bottom: 2px solid rgba(66, 153, 225, 0.1);
+}
+
+.card-header h5 {
+  font-size: 1.25rem;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-header i {
+  font-size: 1.5rem;
+  color: #4299e1;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.1) 0%, rgba(56, 178, 172, 0.1) 100%);
+  padding: 0.75rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.card:hover .card-header i {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.15) 0%, rgba(56, 178, 172, 0.15) 100%);
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+/* Profile Detail Items */
+.profile-detail-item {
+  padding: 1rem 0;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.profile-detail-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.profile-detail-item:hover {
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.05) 0%, rgba(56, 178, 172, 0.05) 100%);
+  border-radius: 12px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+/* Profile Detail Labels */
+.profile-detail-item label.form-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.3rem;
+}
+
+/* Profile Detail Values */
+.profile-detail-item p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #1a202c;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Icon Styling */
+.profile-detail-item i {
+  font-size: 1.2rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4299e1;
+  background: rgba(66, 153, 225, 0.1);
+  border-radius: 50%;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  transition: all 0.3s ease;
+}
+
+.profile-detail-item:hover i {
+  background: rgba(66, 153, 225, 0.2);
+  transform: scale(1.1);
+}
+
+/* Card Body Padding Adjustment */
+.card-body {
+  padding: 2.5rem;
+}
+
+/* Form Styling */
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.form-control:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  outline: none;
+}
+
+.focus-ring {
+  transition: box-shadow 0.3s ease;
+}
+
+.focus-ring:focus {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* Button Styling */
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%);
+}
+
+/* Input Group Styling */
+.input-group {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.input-group-text {
+  background: rgba(66, 153, 225, 0.1);
+  border: 2px solid #4299e1;
+  border-right: none;
+  color: #4299e1;
+  font-weight: 600;
+  min-width: 45px;
+  justify-content: center;
+}
+
+.input-group .form-control {
+  border-left: none;
+  border: 2px solid #4299e1;
+}
+
+/* Modal Styling */
+.modal-content {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  border-bottom: none;
+  padding: 1.5rem 2rem;
+  border-radius: 16px 16px 0 0;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #e2e8f0;
+  padding: 1.5rem 2rem;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Utility Classes */
+.text-gray-700 {
+  color: #4a5568;
+}
+
+.text-gray-900 {
+  color: #1a202c;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .avatar-circle {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 1rem;
+  }
+  
+  .card-body {
+    padding: 1.25rem;
+  }
+  
+  .row {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+  }
+  
+  .avatar-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+  }
+}
+</style>
+
+<script>
+// Profile data management - Simple
+let profileData = {
+  fullName: "{{ user.name }}",
+  email: "{{ user.email }}",
+  phone: "{{ user.phone or '' }}",
+  address: "{{ user.address or '' }}"
+};
+
+// Update display with server data
+document.addEventListener('DOMContentLoaded', function() {
+  updateDisplay();
+});
+
+function updateDisplay() {
+  // Update all display elements
+  document.getElementById('displayName').textContent = profileData.fullName;
+  document.getElementById('displayFullName').textContent = profileData.fullName;
+  document.getElementById('displayEmail').textContent = profileData.email;
+  document.getElementById('displayPhone').textContent = profileData.phone || 'Not available';
+  document.getElementById('displayAddress').textContent = profileData.address || 'Not available';
+
+  // Update form fields
+  document.getElementById('fullName').value = profileData.fullName;
+  document.getElementById('email').value = profileData.email;
+  document.getElementById('phone').value = profileData.phone;
+  document.getElementById('address').value = profileData.address;
+}
+
+async function saveProfile() {
+  console.log('saveProfile function called');
+  
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const profilePhoto = document.getElementById('profilePhoto').files[0];
+
+  console.log('Form data:', { fullName, email, phone, address, hasPhoto: !!profilePhoto });
+
+  // Validation
+  if (!fullName || !email) {
+    showToast('Please fill in all required fields (Full Name and Email)', 'danger');
+    return;
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('Please enter a valid email address', 'danger');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('fullName', fullName);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('address', address);
+    
+    // Only add department if the field exists (admin users)
+    const departmentField = document.getElementById('department');
+    if (departmentField) {
+      formData.append('department', departmentField.value.trim());
+    }
+    
+    if (profilePhoto) {
+      formData.append('profilePhoto', profilePhoto);
+    }
+
+    console.log('Sending request to /profile/update');
+
+    // Send data to server
+    const response = await fetch('/profile/update', {
+      method: 'POST',
+      body: formData
+    });
+
+    console.log('Response status:', response.status);
+    const result = await response.json();
+    console.log('Response result:', result);
+
+    if (result.success) {
+      // Update profile data
+      profileData.fullName = fullName;
+      profileData.email = email;
+      profileData.phone = phone;
+      profileData.address = address;
+
+      // Update display
+      updateDisplay();
+
+      // If photo was updated, reload the page to show new photo
+      if (profilePhoto) {
+        window.location.reload();
+      }
+
+      // Show success message and close modal
+      showToast('Profile updated successfully!', 'success');
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+      if (modal) {
+        modal.hide();
+      }
+    } else {
+      showToast('Error updating profile: ' + (result.message || 'Unknown error'), 'danger');
+    }
+  } catch (error) {
+    console.error('Error in saveProfile:', error);
+    showToast('An error occurred while updating the profile. Please try again.', 'danger');
+  }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed bottom-5 end-5 z-50 shadow-lg`;
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">
+        ${message}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  `;
+  
+  // Add to body
+  document.body.appendChild(toast);
+  
+  // Initialize and show toast
+  const bootstrapToast = new bootstrap.Toast(toast, {
+    autohide: true,
+    delay: 3000
+  });
+  bootstrapToast.show();
+  
+  // Remove toast after it's hidden
+  toast.addEventListener('hidden.bs.toast', () => {
+    toast.remove();
+  });
+}
+
+function changeAvatar() {
+  document.getElementById('profilePhoto').click();
+}
+
+function changePassword() {
+  // Reset form fields
+  document.getElementById('currentPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  document.getElementById('passwordStrength').innerHTML = '';
+  document.getElementById('passwordMatch').innerHTML = '';
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+  modal.show();
+}
+
+// Check password strength
+document.addEventListener('DOMContentLoaded', function() {
+  const newPasswordInput = document.getElementById('newPassword');
+  const confirmPasswordInput = document.getElementById('confirmPassword');
+  
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener('input', function() {
+      const password = this.value;
+      const strengthDiv = document.getElementById('passwordStrength');
+      
+      if (!password) {
+        strengthDiv.innerHTML = '';
+        return;
+      }
+      
+      let strength = 0;
+      let feedback = '';
+      
+      if (password.length >= 8) strength++;
+      else feedback += '❌ At least 8 characters. ';
+      
+      if (/[A-Z]/.test(password)) strength++;
+      else feedback += '❌ At least one uppercase letter. ';
+      
+      if (/[a-z]/.test(password)) strength++;
+      else feedback += '❌ At least one lowercase letter. ';
+      
+      if (/[0-9]/.test(password)) strength++;
+      else feedback += '❌ At least one number. ';
+      
+      let color = 'danger';
+      let text = 'Weak';
+      if (strength >= 4) {
+        color = 'success';
+        text = 'Strong';
+        feedback = '✅ Password is strong!';
+      } else if (strength >= 3) {
+        color = 'warning';
+        text = 'Medium';
+      }
+      
+      strengthDiv.innerHTML = `<span class="text-${color}"><strong>${text}:</strong> ${feedback}</span>`;
+    });
+  }
+  
+  if (confirmPasswordInput) {
+    confirmPasswordInput.addEventListener('input', function() {
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = this.value;
+      const matchDiv = document.getElementById('passwordMatch');
+      
+      if (!confirmPassword) {
+        matchDiv.innerHTML = '';
+        return;
+      }
+      
+      if (newPassword === confirmPassword) {
+        matchDiv.innerHTML = '<span class="text-success"><strong>✅ Passwords match!</strong></span>';
+      } else {
+        matchDiv.innerHTML = '<span class="text-danger"><strong>❌ Passwords do not match</strong></span>';
+      }
+    });
+  }
+});
+
+async function submitPasswordChange() {
+  const currentPassword = document.getElementById('currentPassword').value.trim();
+  const newPassword = document.getElementById('newPassword').value.trim();
+  const confirmPassword = document.getElementById('confirmPassword').value.trim();
+  
+  // Validate inputs
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showToast('All fields are required', 'danger');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showToast('New passwords do not match', 'danger');
+    return;
+  }
+  
+  if (newPassword.length < 8) {
+    showToast('New password must be at least 8 characters long', 'danger');
+    return;
+  }
+  
+  if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    showToast('Password must contain uppercase, lowercase, and numbers', 'danger');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/settings/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        old_password: currentPassword,
+        new_password: newPassword
+      })
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      showToast('Password changed successfully!', 'success');
+      const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+      modal.hide();
+      
+      // Log out user for security
+      setTimeout(() => {
+        window.location.href = '/auth/logout';
+      }, 2000);
+    } else {
+      showToast('Error: ' + (result.message || 'Failed to change password'), 'danger');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('An error occurred. Please try again.', 'danger');
+  }
+}
+
+// Enhanced animations
+document.addEventListener('DOMContentLoaded', function() {
+  // Add entrance animations
+  const cards = document.querySelectorAll('.card');
+  cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      card.style.transition = 'all 0.6s ease';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 100);
+  });
+  
+  // Add hover effects to stat cards
+  const statCards = document.querySelectorAll('.premium-stat-card');
+  statCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-5px) scale(1.02)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0) scale(1)';
+    });
+  });
+  
+  // Initialize tooltips
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+});
+
+// Premium loading states
+function showLoadingState(element) {
+  element.disabled = true;
+  element.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+}
+
+function hideLoadingState(element, originalText) {
+  element.disabled = false;
+  element.innerHTML = originalText;
+}
+
+// Toggle Online Status Function
+function toggleOnlineStatus() {
+  const statusIndicator = document.getElementById('statusIndicator');
+  const statusBadge = document.querySelector('.badge.bg-opacity-20');
+  
+  if (statusIndicator.classList.contains('bg-success')) {
+    // Change to inactive
+    statusIndicator.classList.remove('bg-success');
+    statusIndicator.classList.add('bg-danger');
+    statusBadge.innerHTML = '<i class="fas fa-circle me-1" style="font-size: 8px;"></i>Inactive';
+    statusBadge.classList.remove('bg-success', 'bg-opacity-20', 'border-success', 'border-opacity-30');
+    statusBadge.classList.add('bg-danger', 'bg-opacity-20', 'border-danger', 'border-opacity-30');
+    showToast('Status changed to Inactive', 'info');
+  } else {
+    // Change to active
+    statusIndicator.classList.remove('bg-danger');
+    statusIndicator.classList.add('bg-success');
+    statusBadge.innerHTML = '<i class="fas fa-circle me-1" style="font-size: 8px;"></i>Active Now';
+    statusBadge.classList.remove('bg-danger', 'bg-opacity-20', 'border-danger', 'border-opacity-30');
+    statusBadge.classList.add('bg-success', 'bg-opacity-20', 'border-success', 'border-opacity-30');
+    showToast('Status changed to Active', 'success');
+  }
+}
+
+// Force Button Visibility Function
+function forceButtonVisibility() {
+  const buttons = document.querySelectorAll('.btn-premium-gold, .btn-premium-silver');
+  buttons.forEach(button => {
+    button.style.setProperty('position', 'relative', 'important');
+    button.style.setProperty('z-index', '99999', 'important');
+    button.style.setProperty('opacity', '1', 'important');
+    button.style.setProperty('visibility', 'visible', 'important');
+    button.style.setProperty('display', 'inline-block', 'important');
+    button.style.setProperty('pointer-events', 'auto', 'important');
+  });
+}
+
+// Force button visibility on page load and hover
+document.addEventListener('DOMContentLoaded', function() {
+  forceButtonVisibility();
+  
+  // Force visibility on hover
+  const buttonContainer = document.querySelector('.d-flex.gap-3.flex-wrap');
+  if (buttonContainer) {
+    buttonContainer.addEventListener('mouseenter', forceButtonVisibility);
+    buttonContainer.addEventListener('mouseleave', forceButtonVisibility);
+    buttonContainer.addEventListener('mouseover', forceButtonVisibility);
+    buttonContainer.addEventListener('mouseout', forceButtonVisibility);
+  }
+  
+  // Force visibility every 100ms to ensure buttons stay visible
+  setInterval(forceButtonVisibility, 100);
+});
+
+</script>
+{% endblock %}

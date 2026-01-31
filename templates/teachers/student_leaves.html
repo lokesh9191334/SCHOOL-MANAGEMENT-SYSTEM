@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Leave Requests{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">
+      <i class="fas fa-user-graduate me-2"></i>Student Leave Requests
+    </h3>
+    <div>
+      <span class="me-2">Filter:</span>
+      <a href="{{ url_for('teachers.student_leaves', status='all') }}" class="btn btn-sm btn-outline-secondary {% if status == 'all' %}active{% endif %}">All</a>
+      <a href="{{ url_for('teachers.student_leaves', status='pending') }}" class="btn btn-sm btn-outline-warning {% if status == 'pending' %}active{% endif %}">Pending</a>
+      <a href="{{ url_for('teachers.student_leaves', status='approved') }}" class="btn btn-sm btn-outline-success {% if status == 'approved' %}active{% endif %}">Approved</a>
+      <a href="{{ url_for('teachers.student_leaves', status='rejected') }}" class="btn btn-sm btn-outline-danger {% if status == 'rejected' %}active{% endif %}">Rejected</a>
+    </div>
+  </div>
+
+  {% if not teacher %}
+    <div class="alert alert-info">
+      No teacher profile linked to this account.
+    </div>
+  {% elif not leaves %}
+    <div class="alert alert-secondary">
+      No student leave requests found for the selected filter.
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Student</th>
+                <th>Parent</th>
+                <th>Reason</th>
+                <th>Days</th>
+                <th>Status</th>
+                <th>Requested At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for l in leaves %}
+              <tr>
+                <td>{{ l.id }}</td>
+                <td>{{ l.student.full_name() if l.student else 'N/A' }}</td>
+                <td>{{ l.parent.name if l.parent else 'N/A' }}</td>
+                <td>
+                  {% if l.reason_type == 'urgent_home' %}
+                    Urgent at home
+                  {% elif l.reason_type == 'fever_night' %}
+                    Fever at night
+                  {% elif l.reason_type == 'urgent_many_days' %}
+                    Urgent leave for many days
+                  {% else %}
+                    {{ l.reason_type }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if l.days %}
+                    {{ l.days }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge
+                    {% if l.status == 'pending' %}bg-warning text-dark
+                    {% elif l.status == 'approved' %}bg-success
+                    {% elif l.status == 'rejected' %}bg-danger
+                    {% else %}bg-secondary{% endif %}">
+                    {{ l.status|capitalize }}
+                  </span>
+                </td>
+                <td>{{ l.created_at }}</td>
+                <td>
+                  {% if l.status == 'pending' %}
+                  <button class="btn btn-sm btn-success me-1" onclick="updateLeaveStatus({{ l.id }}, 'approve')">
+                    Approve
+                  </button>
+                  <button class="btn btn-sm btn-danger" onclick="updateLeaveStatus({{ l.id }}, 'reject')">
+                    Reject
+                  </button>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  function updateLeaveStatus(id, action) {
+    const url = `/teachers/student-leaves/${id}/${action}`;
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }).then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'Failed to update leave status');
+        }
+      }).catch(() => {
+        alert('Failed to update leave status');
+      });
+  }
+</script>
+{% endblock %}
+

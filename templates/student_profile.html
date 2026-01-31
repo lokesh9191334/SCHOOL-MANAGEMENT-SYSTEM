@@ -1,0 +1,460 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Student Profile</h2>
+                <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Students
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Student Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="student-avatar mb-3">
+                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        </div>
+                        <h4>Lokesh Kumar</h4>
+                        <span class="badge bg-success">Active</span>
+                    </div>
+                    
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-id-card me-2"></i>Roll No: LO578</h6>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-envelope me-2"></i>Email</h6>
+                        <p class="mb-0">lk5278127@gmail.com</p>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-phone me-2"></i>Phone</h6>
+                        <p class="mb-0">08168658102</p>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-birthday-cake me-2"></i>Date of Birth</h6>
+                        <p class="mb-0">January 05, 2005</p>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-venus-mars me-2"></i>Gender</h6>
+                        <p class="mb-0">Male</p>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-chalkboard me-2"></i>Class</h6>
+                        <p class="mb-0">Class 12-A</p>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-door-open me-2"></i>Room Number</h6>
+                        <p class="mb-0">Not assigned</p>
+                    </div>
+                    <div class="info-item mb-3">
+                        <h6><i class="fas fa-calendar-alt me-2"></i>Admission Date</h6>
+                        <p class="mb-0">Not available</p>
+                    </div>
+                    <div class="info-item">
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>Address</h6>
+                        <p class="mb-0">dharuhera panchal colony</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent/Guardian Information -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Parent/Guardian Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-item mb-3">
+                                <h6><i class="fas fa-user me-2"></i>Name</h6>
+                                <p class="mb-0">MOHAR SINGH</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item mb-3">
+                                <h6><i class="fas fa-phone me-2"></i>Phone</h6>
+                                <p class="mb-0">08168658102</p>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="info-item">
+                                <h6><i class="fas fa-envelope me-2"></i>Email</h6>
+                                <p class="mb-0">lk5278127@gmail.com</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fee Summary -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Fee Summary</h5>
+                    <button class="btn btn-sm btn-light" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted">Total Due</h6>
+                                <h4 class="text-danger">₹51,500.00</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted">Paid</h6>
+                                <h4 class="text-success">₹0.00</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted">Balance</h6>
+                                <h4 class="text-primary">₹51,500.00</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Recent Fees:</h6>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Fee
+                            <span class="badge bg-primary rounded-pill">₹50,000.00</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Exam Fee
+                            <span class="badge bg-primary rounded-pill">₹1,500.00</span>
+                        </li>
+                    </ul>
+                    <div class="text-end">
+                        <a href="#" class="btn btn-outline-primary btn-sm">View All Fees</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Performance</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 85%" aria-valuenow="85" 
+                             aria-valuemin="0" aria-valuemax="100">85%</div>
+                    </div>
+                    <h5>Overall Grade: <span class="badge bg-success">Grade A</span></h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Fees and Attendance -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="profileTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="fees-tab" data-bs-toggle="tab" data-bs-target="#fees" type="button" role="tab">
+                        Fees History
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab">
+                        Attendance History
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="profileTabsContent">
+                <!-- Fees Tab -->
+                <div class="tab-pane fade show active" id="fees" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Paid</th>
+                                    <th class="text-end">Remaining</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Dec 23, 2025</td>
+                                    <td>Fee Payment</td>
+                                    <td class="text-end">₹50,000.00</td>
+                                    <td class="text-end">₹50,000.00</td>
+                                    <td class="text-end">₹0.00</td>
+                                    <td><span class="badge bg-success">Paid</span></td>
+                                    <td>Jul 07, 2026</td>
+                                </tr>
+                                <tr>
+                                    <td>Dec 23, 2025</td>
+                                    <td>Exam Fee</td>
+                                    <td class="text-end">₹1,500.00</td>
+                                    <td class="text-end">₹1,500.00</td>
+                                    <td class="text-end">₹0.00</td>
+                                    <td><span class="badge bg-success">Paid</span></td>
+                                    <td>N/A</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="2">Total</th>
+                                    <th class="text-end">₹51,500.00</th>
+                                    <th class="text-end">₹51,500.00</th>
+                                    <th class="text-end">₹0.00</th>
+                                    <th colspan="2"></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="text-end mt-3">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+                            <i class="fas fa-plus"></i> Record Payment
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Attendance Tab -->
+                <div class="tab-pane fade" id="attendance" role="tabpanel">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No attendance records found for this student yet.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Record Payment Modal -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-labelledby="recordPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="recordPaymentModalLabel">Record Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="paymentForm" action="{{ url_for('students.add_payment', student_id=student.id) }}" method="POST">
+                <div class="modal-body">
+                    <div id="paymentAlert" class="alert d-none" role="alert"></div>
+                    
+                    <div class="mb-3">
+                        <label for="fee_id" class="form-label">Select Fee</label>
+                        <select class="form-select" id="fee_id" name="fee_id" required>
+                            <option value="" selected disabled>Select fee to pay</option>
+                            {% for fee in fee_records %}
+                                {% if fee.remaining_amount > 0 %}
+                                <option value="{{ fee.id }}" data-amount-due="{{ fee.remaining_amount }}">
+                                    {{ fee.fee_type.name if fee.fee_type else 'Fee' }} - Due ₹{{ "%0.2f"|format(fee.remaining_amount) }}
+                                </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="payment_amount" class="form-label">Amount (₹)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="payment_amount" 
+                                   name="payment_amount" 
+                                   step="0.01" 
+                                   min="1" 
+                                   required
+                                   placeholder="Enter amount">
+                        </div>
+                        <small class="text-muted" id="amountHelp">Enter amount to pay</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="payment_method" name="payment_method" required>
+                            <option value="cash">Cash</option>
+                            <option value="card">Credit/Debit Card</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="upi">UPI</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="payment_date" class="form-label">Payment Date</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="payment_date" 
+                               name="payment_date" 
+                               value="{{ now.strftime('%Y-%m-%d') }}" 
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="payment_notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" 
+                                 id="payment_notes" 
+                                 name="payment_notes" 
+                                 rows="2" 
+                                 placeholder="Add any additional notes about this payment"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="savePaymentBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Format currency input
+function formatCurrency(input) {
+    // Remove non-numeric characters and convert to number
+    let value = input.value.replace(/[^\d.]/g, '');
+    
+    // Format with 2 decimal places
+    if (value) {
+        const num = parseFloat(value).toFixed(2);
+        input.value = num;
+        return parseFloat(num);
+    }
+    return 0;
+}
+
+// Handle fee selection change
+document.getElementById('fee_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const amountDue = parseFloat(selectedOption.dataset.amountDue) || 0;
+    const amountInput = document.getElementById('payment_amount');
+    
+    if (amountDue > 0) {
+        amountInput.max = amountDue;
+        amountInput.value = amountDue.toFixed(2);
+        document.getElementById('amountHelp').textContent = `Amount due: ₹${amountDue.toFixed(2)}`;
+    } else {
+        amountInput.max = '';
+        amountInput.value = '';
+        document.getElementById('amountHelp').textContent = 'Enter amount to pay';
+    }
+});
+
+// Handle payment form submission
+document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const submitBtn = document.getElementById('savePaymentBtn');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    const alertBox = document.getElementById('paymentAlert');
+    
+    // Validate amount
+    const amountInput = document.getElementById('payment_amount');
+    const amount = parseFloat(amountInput.value);
+    const maxAmount = parseFloat(amountInput.max) || Infinity;
+    
+    if (isNaN(amount) || amount <= 0) {
+        showAlert('Please enter a valid amount', 'danger', alertBox);
+        return;
+    }
+    
+    if (amount > maxAmount) {
+        showAlert(`Amount cannot exceed the due amount of ₹${maxAmount.toFixed(2)}`, 'danger', alertBox);
+        return;
+    }
+    
+    // Disable submit button and show spinner
+    submitBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Show success message and close modal
+            showAlert('Payment recorded successfully!', 'success', alertBox);
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal'));
+                modal.hide();
+                window.location.reload();
+            }, 1500);
+        } else {
+            // Show error message
+            const errorMsg = result.message || 'Failed to record payment. Please try again.';
+            showAlert(errorMsg, 'danger', alertBox);
+            submitBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('An error occurred. Please try again.', 'danger', alertBox);
+        submitBtn.disabled = false;
+    } finally {
+        spinner.classList.add('d-none');
+    }
+});
+
+// Show alert message
+function showAlert(message, type, container) {
+    container.textContent = message;
+    container.className = `alert alert-${type} alert-dismissible fade show`;
+    container.role = 'alert';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        container.classList.remove('show');
+        setTimeout(() => container.className = 'alert d-none', 150);
+    }, 5000);
+}
+
+// Initialize tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+
+// Initialize modals
+var paymentModal = document.getElementById('recordPaymentModal');
+if (paymentModal) {
+    paymentModal.addEventListener('hidden.bs.modal', function () {
+        const form = this.querySelector('form');
+        form.reset();
+        document.getElementById('amountHelp').textContent = 'Enter amount to pay';
+        document.getElementById('paymentAlert').className = 'alert d-none';
+        document.getElementById('savePaymentBtn').disabled = false;
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apply for Leave - Premium Portal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, 
+                #f8fafc 0%, 
+                #e2e8f0 50%, 
+                #cbd5e1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"><animate attributeName="r" values="40;45;40" dur="4s" repeatCount="indefinite"/></circle><circle cx="50" cy="50" r="60" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"><animate attributeName="r" values="60;65;60" dur="6s" repeatCount="indefinite"/></circle></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .premium-container {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin: 0;
+            z-index: 10;
+            position: relative;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .premium-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(99, 102, 241, 0.05) 0%, 
+                rgba(139, 92, 246, 0.05) 50%, 
+                rgba(124, 58, 237, 0.05) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, 
+                #4f46e5 0%, 
+                #6366f1 50%, 
+                #8b5cf6 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-section h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-section p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+            font-weight: 400;
+        }
+
+        .form-section {
+            padding: 40px;
+            position: relative;
+            z-index: 2;
+            background: #ffffff;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .form-section::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .form-section::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .form-section::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #6366f1, transparent);
+            border-radius: 1px;
+        }
+
+        .section-title i {
+            color: #6366f1;
+            font-size: 1.5rem;
+        }
+
+        .leave-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .leave-card {
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .leave-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+            border-color: #6366f1;
+        }
+
+        .leave-card.selected {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.25);
+            border-color: #6366f1;
+        }
+
+        .leave-card .checkmark {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 28px;
+            height: 28px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .leave-card.selected .checkmark {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .leave-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #6366f1;
+            transition: all 0.3s ease;
+        }
+
+        .leave-card.selected i {
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .leave-card h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+
+        .leave-card.selected h4 {
+            color: white;
+        }
+
+        .leave-card p {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .leave-card.selected p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 8px 25px rgba(99, 102, 241, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .input-group i {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 1.2rem;
+        }
+
+        .reason-section {
+            margin-bottom: 40px;
+        }
+
+        .reason-section label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .reason-section textarea {
+            width: 100%;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            resize: vertical;
+            min-height: 120px;
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .reason-section textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 8px 25px rgba(99, 102, 241, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .duration-display {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .duration-display.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .duration-display strong {
+            color: #0ea5e9;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .premium-container {
+                margin: 10px;
+                border-radius: 20px;
+            }
+            
+            .header-section {
+                padding: 30px;
+            }
+            
+            .header-section h1 {
+                font-size: 2rem;
+            }
+            
+            .form-section {
+                padding: 30px;
+            }
+            
+            .leave-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .date-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="premium-container">
+        <div class="header-section">
+            <h1>Apply for Leave</h1>
+            <p>Submit your leave application with our ultra-premium system</p>
+        </div>
+
+        <div class="form-section">
+            <form id="leaveApplicationForm">
+                <!-- Leave Type Selection -->
+                <div class="section-title">
+                    <i class="fas fa-tag"></i>
+                    Select Leave Type
+                </div>
+                <div class="leave-cards">
+                    <div class="leave-card" data-type="sick" onclick="selectLeaveType(this)">
+                        <div class="checkmark">✓</div>
+                        <i class="fas fa-medkit"></i>
+                        <h4>Sick Leave</h4>
+                        <p>For medical reasons</p>
+                    </div>
+                    <div class="leave-card" data-type="personal" onclick="selectLeaveType(this)">
+                        <div class="checkmark">✓</div>
+                        <i class="fas fa-user"></i>
+                        <h4>Personal Leave</h4>
+                        <p>For personal matters</p>
+                    </div>
+                    <div class="leave-card" data-type="vacation" onclick="selectLeaveType(this)">
+                        <div class="checkmark">✓</div>
+                        <i class="fas fa-plane"></i>
+                        <h4>Vacation</h4>
+                        <p>For planned vacation</p>
+                    </div>
+                    <div class="leave-card" data-type="emergency" onclick="selectLeaveType(this)">
+                        <div class="checkmark">✓</div>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h4>Emergency</h4>
+                        <p>For urgent situations</p>
+                    </div>
+                </div>
+                <input type="hidden" id="leaveType" name="leave_type" required>
+
+                <!-- Date Selection -->
+                <div class="section-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Leave Duration
+                </div>
+                <div class="date-inputs">
+                    <div class="input-group">
+                        <label>Start Date</label>
+                        <input type="date" id="startDate" name="start_date" required>
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="input-group">
+                        <label>End Date</label>
+                        <input type="date" id="endDate" name="end_date" required>
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                </div>
+
+                <!-- Duration Display -->
+                <div class="duration-display" id="durationDisplay">
+                    <strong>Total Duration: <span id="durationNumber">0</span> days</strong>
+                </div>
+
+                <!-- Reason Section -->
+                <div class="section-title">
+                    <i class="fas fa-pen"></i>
+                    Reason for Leave
+                </div>
+                <div class="reason-section">
+                    <textarea id="reason" name="reason" placeholder="Please provide a detailed reason for your leave application..." required></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Submit Application
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Leave Type Selection
+        function selectLeaveType(card) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.leave-card').forEach(c => c.classList.remove('selected'));
+            
+            // Add selected class to clicked card
+            card.classList.add('selected');
+            
+            // Set hidden input value
+            document.getElementById('leaveType').value = card.dataset.type;
+            
+            console.log('✅ Selected leave type:', card.dataset.type);
+        }
+
+        // Duration Calculation
+        function calculateDuration() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const durationDisplay = document.getElementById('durationDisplay');
+            const durationNumber = document.getElementById('durationNumber');
+            
+            if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                
+                if (end >= start) {
+                    const diffTime = end - start;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    durationNumber.textContent = diffDays;
+                    durationDisplay.classList.add('show');
+                } else {
+                    durationDisplay.classList.remove('show');
+                }
+            } else {
+                durationDisplay.classList.remove('show');
+            }
+        }
+
+        // Form Submission
+        document.getElementById('leaveApplicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const leaveType = document.getElementById('leaveType').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const reason = document.getElementById('reason').value;
+            
+            if (!leaveType) {
+                alert('Please select a leave type');
+                return;
+            }
+            
+            console.log('📤 Submitting leave application:', {
+                leaveType,
+                startDate,
+                endDate,
+                reason
+            });
+            
+            // Here you would normally submit to server
+            alert('Leave application submitted successfully!');
+        });
+
+        // Event Listeners
+        document.getElementById('startDate').addEventListener('change', calculateDuration);
+        document.getElementById('endDate').addEventListener('change', calculateDuration);
+
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').setAttribute('min', today);
+        document.getElementById('endDate').setAttribute('min', today);
+    </script>
+</body>
+</html>

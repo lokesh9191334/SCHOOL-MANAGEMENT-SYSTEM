@@ -1,0 +1,970 @@
+/* 
+ * ORIGINAL PROFESSIONAL SIDEBAR - Same as original desktop
+ * 3-Bar menu on mobile + Same original sidebar as desktop
+ */
+
+/* Base sidebar styles - original professional design */
+#sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%) !important;
+    color: #ffffff !important;
+    z-index: 1000 !important;
+    overflow-y: auto !important;
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15) !important;
+    transition: transform 0.3s ease !important;
+}
+
+/* Original sidebar header - ultra premium styling */
+.sidebar-header {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    padding: 10px 20px !important;
+    min-height: 115px !important;
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-top: 8px !important;
+    justify-content: center !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.sidebar-header::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="premium-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23premium-grid)"/></svg>') !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+}
+
+/* Original user profile - ultra premium styling */
+.user-profile {
+    display: flex !important;
+    align-items: center !important;
+    gap: 20px !important;
+    width: 100% !important;
+    justify-content: center !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+.profile-pic img,
+.profile-pic div {
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 3px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.profile-pic::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -2px !important;
+    left: -2px !important;
+    right: -2px !important;
+    bottom: -2px !important;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent, rgba(255, 255, 255, 0.1)) !important;
+    border-radius: 50% !important;
+    z-index: -1 !important;
+    animation: shimmer 3s infinite !important;
+}
+
+@keyframes shimmer {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.profile-pic:hover img,
+.profile-pic:hover div {
+    transform: scale(1.08) !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.profile-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-align: center !important;
+}
+
+.profile-info h4 {
+    margin: 0 !important;
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    color: white !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.profile-info p {
+    margin: 8px 0 0 0 !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
+    padding: 6px 18px !important;
+    border-radius: 15px !important;
+    display: inline-block !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    white-space: nowrap !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Original sidebar menu - original font colors for teacher */
+.sidebar-menu {
+    padding: 0 !important;
+}
+
+.menu-section-title {
+    padding: 20px 25px 12px 25px !important;
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.2px !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05)) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.menu-items {
+    padding: 5px 0 !important;
+}
+
+.menu-items a {
+    display: block !important;
+    padding: 15px 25px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    text-decoration: none !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    position: relative !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    letter-spacing: 0.3px !important;
+    line-height: 1.4 !important;
+}
+
+.menu-items a::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 3px !important;
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    transform: scaleY(0) !important;
+    transition: transform 0.3s ease !important;
+}
+
+.menu-items a:hover::before {
+    transform: scaleY(1) !important;
+}
+
+.menu-items a:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)) !important;
+    color: white !important;
+    padding-left: 30px !important;
+    transform: translateX(3px) !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.menu-items a i {
+    width: 22px !important;
+    margin-right: 15px !important;
+    text-align: center !important;
+    font-size: 1.1rem !important;
+    transition: all 0.3s ease !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.menu-items a:hover i {
+    transform: scale(1.1) !important;
+    color: white !important;
+}
+
+/* Premium badges */
+.menu-items .badge {
+    margin-left: auto !important;
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    color: white !important;
+    padding: 4px 10px !important;
+    border-radius: 12px !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.menu-items a:hover .badge {
+    background: linear-gradient(135deg, #27ae60, #2ecc71) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3) !important;
+}
+
+/* Active menu item state */
+.menu-items a.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.15)) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.menu-items a.active::before {
+    transform: scaleY(1) !important;
+}
+
+.menu-items a.active i {
+    color: white !important;
+    transform: scale(1.05) !important;
+}
+
+/* Content area - original styling */
+#content {
+    margin-left: 280px !important;
+    padding: 20px !important;
+    min-height: 100vh !important;
+    transition: margin-left 0.3s ease !important;
+}
+
+/* Wrapper layout */
+.wrapper {
+    display: flex !important;
+    width: 100% !important;
+    align-items: stretch !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Hide back button on all devices */
+.mobile-back-btn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Mobile-specific styles - SAME AS DESKTOP but with 3-bar menu */
+@media (max-width: 768px) {
+    #sidebar {
+        transform: translateX(-100%) !important;
+        box-shadow: none !important;
+    }
+    
+    #sidebar.active {
+        transform: translateX(0) !important;
+        box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    #content {
+        margin-left: 0 !important;
+        padding: 70px 15px 15px 15px !important;
+    }
+    
+    .wrapper {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+    
+    /* Apply SAME desktop styling to mobile */
+    .sidebar-header {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        padding: 10px 20px !important;
+        min-height: 115px !important;
+        display: flex !important;
+        align-items: center !important;
+        margin: 0 !important;
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding-top: 8px !important;
+        justify-content: center !important;
+        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .sidebar-header::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="premium-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23premium-grid)"/></svg>') !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    }
+
+    .user-profile {
+        display: flex !important;
+        align-items: center !important;
+        gap: 20px !important;
+        width: 100% !important;
+        justify-content: center !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        z-index: 2 !important;
+    }
+
+    .profile-pic img,
+    .profile-pic div {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        border: 3px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+
+    .profile-pic::after {
+        content: '' !important;
+        position: absolute !important;
+        top: -2px !important;
+        left: -2px !important;
+        right: -2px !important;
+        bottom: -2px !important;
+        background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent, rgba(255, 255, 255, 0.1)) !important;
+        border-radius: 50% !important;
+        z-index: -1 !important;
+        animation: shimmer 3s infinite !important;
+    }
+
+    @keyframes shimmer {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .profile-pic:hover img,
+    .profile-pic:hover div {
+        transform: scale(1.08) !important;
+        border-color: rgba(255, 255, 255, 0.7) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .profile-info {
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-align: center !important;
+    }
+
+    .profile-info h4 {
+        margin: 0 !important;
+        font-size: 1.3rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+        letter-spacing: 0.5px !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 100% !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    .profile-info p {
+        margin: 8px 0 0 0 !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
+        padding: 6px 18px !important;
+        border-radius: 15px !important;
+        display: inline-block !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        white-space: nowrap !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+        backdrop-filter: blur(5px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Apply SAME desktop menu styling to mobile */
+    .sidebar-menu {
+        padding: 0 !important;
+    }
+
+    .menu-section-title {
+        padding: 20px 25px 12px 25px !important;
+        font-size: 0.75rem !important;
+        font-weight: 800 !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.2px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05)) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items {
+        padding: 5px 0 !important;
+    }
+
+    .menu-items a {
+        display: block !important;
+        padding: 15px 25px !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        text-decoration: none !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        position: relative !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        letter-spacing: 0.3px !important;
+        line-height: 1.4 !important;
+    }
+
+    .menu-items a::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 3px !important;
+        background: linear-gradient(135deg, #667eea, #764ba2) !important;
+        transform: scaleY(0) !important;
+        transition: transform 0.3s ease !important;
+    }
+
+    .menu-items a:hover::before {
+        transform: scaleY(1) !important;
+    }
+
+    .menu-items a:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)) !important;
+        color: white !important;
+        padding-left: 30px !important;
+        transform: translateX(3px) !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15) !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items a i {
+        width: 22px !important;
+        margin-right: 15px !important;
+        text-align: center !important;
+        font-size: 1.1rem !important;
+        transition: all 0.3s ease !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .menu-items a:hover i {
+        transform: scale(1.1) !important;
+        color: white !important;
+    }
+
+    /* Premium badges */
+    .menu-items .badge {
+        margin-left: auto !important;
+        background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+        color: white !important;
+        padding: 4px 10px !important;
+        border-radius: 12px !important;
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items a:hover .badge {
+        background: linear-gradient(135deg, #27ae60, #2ecc71) !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3) !important;
+    }
+
+    /* Active menu item state */
+    .menu-items a.active {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.15)) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items a.active::before {
+        transform: scaleY(1) !important;
+    }
+
+    .menu-items a.active i {
+        color: white !important;
+        transform: scale(1.05) !important;
+    }
+    
+    /* Hide profile actions on mobile - make it same as desktop */
+    .profile-actions {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    
+    /* Hide profile details on mobile - make it same as desktop */
+    .profile-info .profile-details {
+        display: none !important;
+    }
+    
+    /* RESTORE profile info text on mobile for teachers */
+    .profile-info {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+    
+    /* RESTORE role text on mobile - show Admin/Teacher/Parent below name */
+    .profile-info p {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
+        padding: 6px 18px !important;
+        border-radius: 15px !important;
+        margin-top: 8px !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    /* Force show role text with specific selectors */
+    .profile-info p.role-text {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
+        padding: 6px 18px !important;
+        border-radius: 15px !important;
+        margin-top: 8px !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    /* Force show all p elements in profile-info */
+    .profile-info p.mb-0 {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Force show role text with specific selectors */
+    .user-profile .profile-info p,
+    .sidebar-header .profile-info p,
+    .profile-info p.text-xs,
+    .profile-info p.text-white {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    /* Restore 3-bar menu for mobile */
+    .mobile-nav-toggle {
+        display: flex !important;
+        position: fixed !important;
+        top: 15px !important;
+        left: 15px !important;
+        z-index: 1001 !important;
+        background: linear-gradient(135deg, #667eea, #764ba2) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 12px 16px !important;
+        font-size: 1.3em !important;
+        cursor: pointer !important;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .mobile-nav-toggle:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5) !important;
+    }
+    
+    /* Hide 3-bar menu when sidebar is open */
+    body:has(#sidebar.active) .mobile-nav-toggle,
+    .sidebar.active + .wrapper .mobile-nav-toggle,
+    .sidebar.active ~ .wrapper .mobile-nav-toggle,
+    .sidebar.active ~ .mobile-nav-toggle {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    
+    /* Mobile overlay */
+    .mobile-overlay {
+        display: none !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 999 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .mobile-overlay.active {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+}
+
+/* Desktop styles - same premium styling as mobile */
+@media (min-width: 769px) {
+    #sidebar {
+        transform: translateX(0) !important;
+        box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    #content {
+        margin-left: 280px !important;
+        padding: 20px !important;
+    }
+    
+    .wrapper {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+    }
+    
+    /* Hide mobile elements on desktop */
+    .mobile-nav-toggle,
+    .mobile-overlay {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    
+    /* Apply same premium styling to desktop sidebar */
+    .sidebar-header {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        padding: 10px 20px !important;
+        min-height: 115px !important;
+        display: flex !important;
+        align-items: center !important;
+        margin: 0 !important;
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding-top: 8px !important;
+        justify-content: center !important;
+        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .sidebar-header::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="premium-grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23premium-grid)"/></svg>') !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    }
+
+    .user-profile {
+        display: flex !important;
+        align-items: center !important;
+        gap: 20px !important;
+        width: 100% !important;
+        justify-content: center !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        z-index: 2 !important;
+    }
+
+    .profile-pic img,
+    .profile-pic div {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        border: 3px solid rgba(255, 255, 255, 0.4) !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+
+    .profile-pic::after {
+        content: '' !important;
+        position: absolute !important;
+        top: -2px !important;
+        left: -2px !important;
+        right: -2px !important;
+        bottom: -2px !important;
+        background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent, rgba(255, 255, 255, 0.1)) !important;
+        border-radius: 50% !important;
+        z-index: -1 !important;
+        animation: shimmer 3s infinite !important;
+    }
+
+    @keyframes shimmer {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .profile-pic:hover img,
+    .profile-pic:hover div {
+        transform: scale(1.08) !important;
+        border-color: rgba(255, 255, 255, 0.7) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .profile-info {
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-align: center !important;
+    }
+
+    .profile-info h4 {
+        margin: 0 !important;
+        font-size: 1.3rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+        letter-spacing: 0.5px !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 100% !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    .profile-info p {
+        margin: 8px 0 0 0 !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15)) !important;
+        padding: 6px 18px !important;
+        border-radius: 15px !important;
+        display: inline-block !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        white-space: nowrap !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+        backdrop-filter: blur(5px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Apply same premium menu styling to desktop */
+    .sidebar-menu {
+        padding: 0 !important;
+    }
+
+    .menu-section-title {
+        padding: 20px 25px 12px 25px !important;
+        font-size: 0.75rem !important;
+        font-weight: 800 !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.2px !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05)) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items {
+        padding: 5px 0 !important;
+    }
+
+    .menu-items a {
+        display: block !important;
+        padding: 15px 25px !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        text-decoration: none !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        position: relative !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        letter-spacing: 0.3px !important;
+        line-height: 1.4 !important;
+    }
+
+    .menu-items a::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 3px !important;
+        background: linear-gradient(135deg, #667eea, #764ba2) !important;
+        transform: scaleY(0) !important;
+        transition: transform 0.3s ease !important;
+    }
+
+    .menu-items a:hover::before {
+        transform: scaleY(1) !important;
+    }
+
+    .menu-items a:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)) !important;
+        color: white !important;
+        padding-left: 30px !important;
+        transform: translateX(3px) !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15) !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items a i {
+        width: 22px !important;
+        margin-right: 15px !important;
+        text-align: center !important;
+        font-size: 1.1rem !important;
+        transition: all 0.3s ease !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .menu-items a:hover i {
+        transform: scale(1.1) !important;
+        color: white !important;
+    }
+
+    /* Premium badges */
+    .menu-items .badge {
+        margin-left: auto !important;
+        background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+        color: white !important;
+        padding: 4px 10px !important;
+        border-radius: 12px !important;
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items a:hover .badge {
+        background: linear-gradient(135deg, #27ae60, #2ecc71) !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3) !important;
+    }
+
+    /* Active menu item state */
+    .menu-items a.active {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.15)) !important;
+        color: white !important;
+        font-weight: 700 !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .menu-items a.active::before {
+        transform: scaleY(1) !important;
+    }
+
+    .menu-items a.active i {
+        color: white !important;
+        transform: scale(1.05) !important;
+    }
+}
+
+/* Large desktop */
+@media (min-width: 1200px) {
+    #sidebar {
+        width: 280px !important;
+    }
+    
+    #content {
+        margin-left: 280px !important;
+    }
+}
+
+/* Hide profile actions on all devices */
+.profile-actions {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Hide profile details on all devices */
+.profile-info .profile-details {
+    display: none !important;
+}
+
+/* Show original role text on all devices */
+.profile-info p {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}

@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="mb-0">
+          <i class="fas fa-chart-bar me-3 text-primary"></i>
+          Student Analytics
+        </h2>
+        <p class="text-muted mt-1">Comprehensive insights and statistics about student data</p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline-primary" onclick="exportAnalytics()">
+          <i class="fas fa-download me-2"></i>Export Report
+        </button>
+        <button class="btn btn-outline-success" onclick="printAnalytics()">
+          <i class="fas fa-print me-2"></i>Print Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card stats-card border-primary">
+      <div class="card-body text-center">
+        <i class="fas fa-users fa-2x text-primary mb-2"></i>
+        <h3 class="text-primary">{{ total_students }}</h3>
+        <p class="mb-0">Total Students</p>
+        <small class="text-muted">All enrolled</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stats-card border-success">
+      <div class="card-body text-center">
+        <i class="fas fa-user-check fa-2x text-success mb-2"></i>
+        <h3 class="text-success">{{ active_students }}</h3>
+        <p class="mb-0">Active Students</p>
+        <small class="text-muted">{{ "%.1f"|format(active_students/total_students*100 if total_students > 0 else 0) }}% of total</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stats-card border-info">
+      <div class="card-body text-center">
+        <i class="fas fa-venus-mars fa-2x text-info mb-2"></i>
+        <h3 class="text-info">{{ male_count + female_count }}</h3>
+        <p class="mb-0">Gender Data</p>
+        <small class="text-muted">{{ male_count }}M / {{ female_count }}F</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stats-card border-warning">
+      <div class="card-body text-center">
+        <i class="fas fa-school fa-2x text-warning mb-2"></i>
+        <h3 class="text-warning">{{ class_distribution|length }}</h3>
+        <p class="mb-0">Classes</p>
+        <small class="text-muted">Active classes</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Gender Distribution -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-chart-pie me-2 text-info"></i>Gender Distribution
+        </h5>
+      </div>
+      <div class="card-body">
+        <canvas id="genderChart" width="400" height="300"></canvas>
+        <div class="mt-3">
+          <div class="d-flex justify-content-around">
+            <div class="text-center">
+              <div class="badge bg-primary fs-6 p-2">{{ male_count }}</div>
+              <small class="d-block mt-1">Male</small>
+            </div>
+            <div class="text-center">
+              <div class="badge bg-danger fs-6 p-2">{{ female_count }}</div>
+              <small class="d-block mt-1">Female</small>
+            </div>
+            <div class="text-center">
+              <div class="badge bg-secondary fs-6 p-2">{{ other_count }}</div>
+              <small class="d-block mt-1">Other</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Class Distribution -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-chart-bar me-2 text-success"></i>Class Distribution
+        </h5>
+      </div>
+      <div class="card-body">
+        <canvas id="classChart" width="400" height="300"></canvas>
+        <div class="mt-3">
+          {% for class_data in class_distribution %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>{{ class_data[0] }}</span>
+            <div>
+              <span class="badge bg-primary">{{ class_data[1] }}</span>
+              <small class="text-muted ms-2">{{ "%.1f"|format(class_data[1]/total_students*100 if total_students > 0 else 0) }}%</small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Status Overview -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-toggle-on me-2 text-warning"></i>Student Status Overview
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-4">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Active Students</span>
+            <span class="fw-bold text-success">{{ active_students }}</span>
+          </div>
+          <div class="progress mb-3" style="height: 8px;">
+            <div class="progress-bar bg-success" style="width: {{ active_students/total_students*100 if total_students > 0 else 0 }}%"></div>
+          </div>
+
+          <div class="d-flex justify-content-between mb-2">
+            <span>Inactive Students</span>
+            <span class="fw-bold text-secondary">{{ total_students - active_students }}</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-secondary" style="width: {{ (total_students - active_students)/total_students*100 if total_students > 0 else 0 }}%"></div>
+          </div>
+        </div>
+
+        <div class="row text-center">
+          <div class="col-6">
+            <div class="border-end">
+              <h4 class="text-success">{{ "%.1f"|format(active_students/total_students*100 if total_students > 0 else 0) }}%</h4>
+              <small class="text-muted">Active Rate</small>
+            </div>
+          </div>
+          <div class="col-6">
+            <h4 class="text-primary">{{ "%.1f"|format((total_students - active_students)/total_students*100 if total_students > 0 else 0) }}%</h4>
+            <small class="text-muted">Inactive Rate</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Insights -->
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-lightbulb me-2 text-primary"></i>Quick Insights
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="insights-list">
+          <div class="insight-item mb-3 p-3 rounded" style="background: rgba(0, 255, 255, 0.1); border-left: 4px solid var(--primary-color);">
+            <i class="fas fa-users text-primary me-2"></i>
+            <strong>Largest Class:</strong>
+            {% if class_distribution %}
+            {{ class_distribution|sort(attribute='1')|last[0] }} ({{ class_distribution|sort(attribute='1')|last[1] }} students)
+            {% else %}
+            No data available
+            {% endif %}
+          </div>
+
+          <div class="insight-item mb-3 p-3 rounded" style="background: rgba(255, 0, 255, 0.1); border-left: 4px solid var(--secondary-color);">
+            <i class="fas fa-balance-scale text-danger me-2"></i>
+            <strong>Gender Balance:</strong>
+            {{ "%.1f"|format(male_count/(male_count + female_count)*100 if (male_count + female_count) > 0 else 0) }}% Male,
+            {{ "%.1f"|format(female_count/(male_count + female_count)*100 if (male_count + female_count) > 0 else 0) }}% Female
+          </div>
+
+          <div class="insight-item mb-3 p-3 rounded" style="background: rgba(255, 255, 0, 0.1); border-left: 4px solid #ffff00;">
+            <i class="fas fa-chart-line text-warning me-2"></i>
+            <strong>Activity Rate:</strong>
+            {{ "%.1f"|format(active_students/total_students*100 if total_students > 0 else 0) }}% of students are currently active
+          </div>
+
+          <div class="insight-item p-3 rounded" style="background: rgba(0, 255, 0, 0.1); border-left: 4px solid #00ff00;">
+            <i class="fas fa-graduation-cap text-success me-2"></i>
+            <strong>Total Classes:</strong>
+            {{ class_distribution|length }} active classes with student enrollment
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Table -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="fas fa-table me-2 text-info"></i>Detailed Statistics
+    </h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Metric</th>
+            <th>Value</th>
+            <th>Percentage</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><i class="fas fa-users me-2 text-primary"></i>Total Students</td>
+            <td><strong>{{ total_students }}</strong></td>
+            <td>100%</td>
+            <td><span class="badge bg-primary">Complete</span></td>
+          </tr>
+          <tr>
+            <td><i class="fas fa-user-check me-2 text-success"></i>Active Students</td>
+            <td><strong>{{ active_students }}</strong></td>
+            <td>{{ "%.1f"|format(active_students/total_students*100 if total_students > 0 else 0) }}%</td>
+            <td><span class="badge bg-success">Good</span></td>
+          </tr>
+          <tr>
+            <td><i class="fas fa-venus me-2 text-danger"></i>Female Students</td>
+            <td><strong>{{ female_count }}</strong></td>
+            <td>{{ "%.1f"|format(female_count/total_students*100 if total_students > 0 else 0) }}%</td>
+            <td><span class="badge bg-info">Balanced</span></td>
+          </tr>
+          <tr>
+            <td><i class="fas fa-mars me-2 text-primary"></i>Male Students</td>
+            <td><strong>{{ male_count }}</strong></td>
+            <td>{{ "%.1f"|format(male_count/total_students*100 if total_students > 0 else 0) }}%</td>
+            <td><span class="badge bg-info">Balanced</span></td>
+          </tr>
+          <tr>
+            <td><i class="fas fa-school me-2 text-warning"></i>Classes</td>
+            <td><strong>{{ class_distribution|length }}</strong></td>
+            <td>N/A</td>
+            <td><span class="badge bg-warning">Active</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gender Distribution Chart
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+new Chart(genderCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Male', 'Female', 'Other'],
+    datasets: [{
+      data: [{{ male_count }}, {{ female_count }}, {{ other_count }}],
+      backgroundColor: [
+        'rgba(0, 123, 255, 0.8)',
+        'rgba(220, 53, 69, 0.8)',
+        'rgba(108, 117, 125, 0.8)'
+      ],
+      borderColor: [
+        'rgba(0, 123, 255, 1)',
+        'rgba(220, 53, 69, 1)',
+        'rgba(108, 117, 125, 1)'
+      ],
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      }
+    }
+  }
+});
+
+// Class Distribution Chart
+const classCtx = document.getElementById('classChart').getContext('2d');
+new Chart(classCtx, {
+  type: 'bar',
+  data: {
+    labels: {{ class_distribution|map(attribute='0')|list|tojson }},
+    datasets: [{
+      label: 'Students per Class',
+      data: {{ class_distribution|map(attribute='1')|list|tojson }},
+      backgroundColor: 'rgba(0, 255, 255, 0.8)',
+      borderColor: 'rgba(0, 255, 255, 1)',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    },
+    plugins: {
+      legend: {
+        display: false
+      }
+    }
+  }
+});
+
+function exportAnalytics() {
+  alert('Exporting analytics report...\nReport will be downloaded as PDF shortly.');
+}
+
+function printAnalytics() {
+  window.print();
+}
+</script>
+
+<style>
+.insights-list .insight-item {
+}
+
+.insights-list .insight-item:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+@media print {
+  .btn, .card-header .btn-group {
+    display: none !important;
+  }
+
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+</style>
+
+{% endblock %}

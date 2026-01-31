@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>QR Code Test</h1>
+    <button onclick="generateTestQR()">Generate Test QR Code</button>
+    <div id="qrContainer" style="margin-top: 20px;"></div>
+
+    <script>
+        function generateTestQR() {
+            console.log('Testing QRCode library...');
+            console.log('QRCode object:', typeof QRCode);
+
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.innerHTML = '';
+
+            if (typeof QRCode === 'undefined') {
+                qrContainer.innerHTML = '<p style="color: red;">QRCode library not loaded!</p>';
+                return;
+            }
+
+            const testUrl = 'upi://pay?pa=lk5278127-1@okicici&pn=Bank of Baroda&am=100&cu=INR';
+
+            QRCode.toCanvas(testUrl, {
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: 'H'
+            }, function(error, canvas) {
+                if (error) {
+                    console.error('QRCode error:', error);
+                    qrContainer.innerHTML = '<p style="color: red;">Error generating QR code: ' + error + '</p>';
+                    return;
+                }
+
+                console.log('QR Code generated successfully');
+                qrContainer.appendChild(canvas);
+                qrContainer.innerHTML += '<p style="color: green;">QR Code generated successfully!</p>';
+            });
+        }
+    </script>
+</body>
+</html>

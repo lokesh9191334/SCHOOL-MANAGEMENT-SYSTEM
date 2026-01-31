@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Edit Subject</h2>
+  <form method="post">
+    <div class="mb-3">
+      <label class="form-label">Subject name</label>
+      <input class="form-control" name="name" value="{{ subject.name }}" required />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Stream (For 11th & 12th)</label>
+      <select class="form-select" name="stream">
+        <option value="">-- Select Stream (Optional) --</option>
+        <option value="Medical" {% if subject.stream == 'Medical' %}selected{% endif %}>Medical</option>
+        <option value="Non-Medical" {% if subject.stream == 'Non-Medical' %}selected{% endif %}>Non-Medical</option>
+        <option value="Arts" {% if subject.stream == 'Arts' %}selected{% endif %}>Arts</option>
+        <option value="Commerce" {% if subject.stream == 'Commerce' %}selected{% endif %}>Commerce</option>
+        <option value="Arts with Math" {% if subject.stream == 'Arts with Math' %}selected{% endif %}>Arts with Math</option>
+        <option value="Commerce with Math" {% if subject.stream == 'Commerce with Math' %}selected{% endif %}>Commerce with Math</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Teacher</label>
+      <select class="form-select" name="teacher_id">
+        <option value="">Select teacher...</option>
+        {% for t in teachers %}
+          <option value="{{ t.id }}" {% if t.id == subject.teacher_id %}selected{% endif %}>
+            {{ t.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Class</label>
+      <select class="form-select" name="classroom_id">
+        <option value="">Select class...</option>
+        {% for c in classes %}
+          <option value="{{ c.id }}" {% if c.id == subject.classroom_id %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a href="{{ url_for('subjects.list_subjects') }}" class="btn-back">
+      <i class="fas fa-arrow-left me-2"></i>Back to Subjects
+    </a>
+  </form>
+{% endblock %}

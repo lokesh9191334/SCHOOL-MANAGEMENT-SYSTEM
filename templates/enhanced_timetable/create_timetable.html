@@ -1,0 +1,791 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .timetable-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+        background: rgba(255,255,255,0.95);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0 !important;
+        border: none;
+        padding: 15px 20px;
+    }
+    
+    .timetable-grid {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table th {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+        text-align: center;
+        padding: 12px 8px;
+        font-size: 0.9rem;
+    }
+    
+    .day-header {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px 10px;
+        border: none;
+    }
+    
+    .period-cell {
+        padding: 8px;
+        vertical-align: top;
+        border: 1px solid #e9ecef;
+        background: #fafbfc;
+        min-width: 180px;
+        transition: all 0.3s ease;
+    }
+    
+    .period-cell:hover {
+        background: #f0f8ff;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .period-content {
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .subject-selector .input-group-text {
+        border: none;
+        font-weight: bold;
+    }
+    
+    .subject-selector .form-select {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .subject-selector .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .teacher-selector .input-group-text {
+        border: none;
+        font-weight: bold;
+    }
+    
+    .teacher-selector .form-select {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .teacher-selector .form-select:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .room-selector .input-group-text {
+        border: none;
+        font-weight: bold;
+    }
+    
+    .room-selector .form-control {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .room-selector .form-control:focus {
+        border-color: #ffc107;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+    
+    .period-features {
+        margin-top: 8px;
+    }
+    
+    .period-features .btn-group .btn {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-size: 0.8rem;
+        padding: 5px 8px;
+    }
+    
+    .period-features .btn-group .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    }
+    
+    .period-features .btn-check:checked + .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+    }
+    
+    .notes-section {
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from { opacity: 0; max-height: 0; }
+        to { opacity: 1; max-height: 100px; }
+    }
+    
+    .break-period {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: #721c24;
+        padding: 15px;
+        text-align: center;
+        border-radius: 10px;
+        font-weight: bold;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .legend {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .legend-item {
+        margin: 5px 0;
+        padding: 5px 10px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 5px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(17, 153, 142, 0.3);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .period-cell {
+            min-width: 150px;
+            padding: 5px;
+        }
+        
+        .period-features .btn-group .btn {
+            font-size: 0.7rem;
+            padding: 3px 5px;
+        }
+    }
+    
+    /* Loading Animation */
+    .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    
+    <div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Class Information -->
+            <div class="class-info">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h3><i class="fas fa-chalkboard-teacher me-2"></i>{{ classroom.name }}</h3>
+                        <p class="mb-0">
+                            <i class="fas fa-users me-2"></i>Capacity: {{ classroom.capacity or 40 }} students
+                            {% if classroom.room %}
+                            <i class="fas fa-door-open ms-3 me-2"></i>Room: {{ classroom.room }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <h5><i class="fas fa-clock me-2"></i>09:00 - 13:30</h5>
+                        <p class="mb-0">8 periods per day</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" id="timetableForm">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Timetable Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="academic_year" class="form-label">Academic Year</label>
+                                <input type="text" class="form-control" id="academic_year" name="academic_year" 
+                                       value="2024-2025" required>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="is_published" name="is_published">
+                                    <label class="form-check-label" for="is_published">
+                                        <i class="fas fa-globe me-1"></i>Publish Timetable
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Instructions:</h6>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #fff3cd;"></span>
+                        Break Periods (Auto-filled)
+                    </div>
+                    <div class="legend-item">
+                        <i class="fas fa-magic me-1"></i>
+                        Fill subjects and teachers for each period
+                    </div>
+                    <div class="legend-item">
+                        <i class="fas fa-save me-1"></i>
+                        Save regularly to avoid data loss
+                    </div>
+                </div>
+
+                <!-- Timetable Grid -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Weekly Timetable</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive timetable-grid">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th class="day-header">Day / Period</th>
+                                        {% for period in [1,2,3,4,5,6,7,8] %}
+                                        <th class="period-header">
+                                            Period {{ period }}<br>
+                                            <small>Period {{ period }}</small>
+                                        </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                                    {% for day in days %}
+                                    <tr>
+                                        <td class="day-header">{{ day }}</td>
+                                        {% for period in [1,2,3,4,5,6,7,8] %}
+                                        <td class="period-cell">
+                                            {% if period == 4 %}
+                                            <div class="break-period">
+                                                <i class="fas fa-coffee me-1"></i>Break
+                                            </div>
+                                            {% else %}
+                                            <div class="period-content">
+                                                <!-- Subject Selection -->
+                                                <div class="mb-3">
+                                                    <label class="form-label">Subject</label>
+                                                    <select class="form-select" 
+                                                            name="subject_{{ loop.index0 }}_{{ period }}"
+                                                            id="subject_{{ loop.index0 }}_{{ period }}"
+                                                            onchange="updateTeacherOptions('{{ loop.index0 }}', '{{ period }}')">
+                                                        <option value="">Select Subject</option>
+                                                        {% for subject in subjects %}
+                                                        <option value="{{ subject.id }}">
+                                                            {{ subject.name }}
+                                                            {% if subject.code %}({{ subject.code }}){% endif %}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+
+                                                <!-- Teacher Selection -->
+                                                <div class="mb-3">
+                                                    <label class="form-label">Teacher</label>
+                                                    <select class="form-select" 
+                                                            name="teacher_{{ loop.index0 }}_{{ period }}"
+                                                            id="teacher_{{ loop.index0 }}_{{ period }}">
+                                                        <option value="">Select Teacher</option>
+                                                        {% for teacher in teachers %}
+                                                        <option value="{{ teacher.id }}">
+                                                            {{ teacher.name }}
+                                                            {% if teacher.subject %}({{ teacher.subject }}){% endif %}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+
+                                                <!-- Room Selection -->
+                                                <div class="mb-3">
+                                                    <label class="form-label">Room/Lab</label>
+                                                    <input type="text" class="form-control" 
+                                                           name="room_{{ loop.index0 }}_{{ period }}"
+                                                           id="room_{{ loop.index0 }}_{{ period }}"
+                                                           placeholder="Room/Lab Number">
+                                                </div>
+
+                                                <!-- Notes Section (Hidden by default) -->
+                                                <div class="notes-section mt-2" id="notes_{{ loop.index0 }}_{{ period }}" style="display: none;">
+                                                    <textarea class="form-control form-control-sm" 
+                                                              name="notes_{{ loop.index0 }}_{{ period }}"
+                                                              rows="2"
+                                                              placeholder="📝 Add period notes..."></textarea>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-primary" onclick="clearForm()">
+                                    <i class="fas fa-eraser me-2"></i>Clear All
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a href="{{ url_for('enhanced_timetable_v2.enhanced_timetable_dashboard') }}" 
+                                   class="btn btn-secondary me-2">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </a>
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-save me-2"></i>Create Timetable
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Keep dropdowns open until manually closed
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prevent dropdowns from closing when clicking outside
+        const dropdowns = document.querySelectorAll('.form-select');
+        
+        dropdowns.forEach(function(dropdown) {
+            dropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            dropdown.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                this.focus();
+                this.click();
+            });
+            
+            // Keep dropdown open when selecting options
+            dropdown.addEventListener('change', function(e) {
+                e.stopPropagation();
+                setTimeout(() => {
+                    this.focus();
+                    this.click();
+                }, 10);
+            });
+        });
+        
+        // Close dropdowns only when pressing Escape or clicking another dropdown
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                dropdowns.forEach(function(dropdown) {
+                    dropdown.blur();
+                });
+            }
+        });
+        
+        // Close dropdown when clicking another dropdown
+        dropdowns.forEach(function(dropdown) {
+            dropdown.addEventListener('click', function() {
+                dropdowns.forEach(function(otherDropdown) {
+                    if (otherDropdown !== dropdown) {
+                        otherDropdown.blur();
+                    }
+                });
+            });
+        });
+    });
+    
+    // Enhanced notification system
+    function showNotification(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; animation: slideInRight 0.3s ease;';
+        alertDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
+                <div class="flex-grow-1">${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => alertDiv.remove(), 300);
+        }, 5000);
+    }
+    
+    function getNotificationIcon(type) {
+        const icons = {
+            'success': 'check-circle',
+            'error': 'exclamation-circle',
+            'warning': 'exclamation-triangle',
+            'info': 'info-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
+    
+    // Clear form with confirmation
+    function clearForm() {
+        if (confirm('Are you sure you want to clear all entries? This action cannot be undone.')) {
+            document.getElementById('timetableForm').reset();
+            showNotification('Form cleared successfully!', 'info');
+        }
+    }
+    
+    // Update teacher options based on selected subject
+    function updateTeacherOptions(dayIndex, period) {
+        const subjectSelect = document.getElementById(`subject_${dayIndex}_${period}`);
+        const teacherSelect = document.getElementById(`teacher_${dayIndex}_${period}`);
+        const selectedSubject = subjectSelect.options[subjectSelect.selectedIndex];
+        
+        // Clear current teacher selection
+        teacherSelect.innerHTML = '<option value="">👨‍🏫 Select Teacher</option>';
+        
+        if (subjectSelect.value) {
+            // Filter teachers by subject expertise
+            const teachers = teacherSelect.querySelectorAll('option');
+            teachers.forEach(teacher => {
+                if (teacher.value) {
+                    const teacherSubject = teacher.getAttribute('data-subject');
+                    const subjectName = selectedSubject.text;
+                    
+                    // Show teachers who can teach this subject
+                    if (teacherSubject && subjectName.toLowerCase().includes(teacherSubject.toLowerCase())) {
+                        teacher.style.display = 'block';
+                        teacher.classList.add('recommended');
+                    } else {
+                        teacher.style.display = 'block';
+                    }
+                }
+            });
+            
+            // Highlight recommended teachers
+            const recommendedTeachers = teacherSelect.querySelectorAll('.recommended');
+            if (recommendedTeachers.length > 0) {
+                recommendedTeachers.forEach(teacher => {
+                    teacher.innerHTML += ' ⭐';
+                });
+            }
+            
+            showNotification(`Teachers filtered for ${selectedSubject.text}`, 'info');
+        }
+    }
+    
+    // Show subject information modal
+    function showSubjectInfo(dayIndex, period) {
+        const subjectSelect = document.getElementById(`subject_${dayIndex}_${period}`);
+        const selectedOption = subjectSelect.options[subjectSelect.selectedIndex];
+        
+        if (!subjectSelect.value) {
+            showNotification('Please select a subject first', 'warning');
+            return;
+        }
+        
+        const subjectName = selectedOption.text;
+        const subjectColor = selectedOption.getAttribute('data-color') || '#6c757d';
+        const subjectType = selectedOption.getAttribute('data-type') || 'regular';
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: ${subjectColor}; color: white;">
+                        <h5 class="modal-title">
+                            <i class="fas fa-book me-2"></i>${subjectName}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Subject Code:</strong> ${subjectName.split('(')[1] ? subjectName.split('(')[1].replace(')', '') : 'N/A'}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Type:</strong> <span class="badge bg-primary">${subjectType}</span>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Subject Description:</h6>
+                        <p>This subject covers fundamental concepts and practical applications.</p>
+                        <h6>Prerequisites:</h6>
+                        <ul>
+                            <li>Basic understanding of core concepts</li>
+                            <li>Previous level completion</li>
+                        </ul>
+                        <h6>Learning Outcomes:</h6>
+                        <ul>
+                            <li>Understand key concepts</li>
+                            <li>Apply theoretical knowledge</li>
+                            <li>Develop practical skills</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        modal.addEventListener('hidden.bs.modal', () => {
+            modal.remove();
+        });
+    }
+    
+    // Show teacher information modal
+    function showTeacherInfo(dayIndex, period) {
+        const teacherSelect = document.getElementById(`teacher_${dayIndex}_${period}`);
+        const selectedOption = teacherSelect.options[teacherSelect.selectedIndex];
+        
+        if (!teacherSelect.value) {
+            showNotification('Please select a teacher first', 'warning');
+            return;
+        }
+        
+        const teacherName = selectedOption.text;
+        const teacherSubject = selectedOption.getAttribute('data-subject') || 'Not specified';
+        const teacherExperience = selectedOption.getAttribute('data-experience') || '0';
+        const teacherStatus = selectedOption.getAttribute('data-status') || 'active';
+        
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-tie me-2"></i>${teacherName}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Subject Expertise:</strong> ${teacherSubject}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Experience:</strong> ${teacherExperience} years
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Status:</strong> <span class="badge bg-${teacherStatus === 'active' ? 'success' : 'warning'}">${teacherStatus}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Rating:</strong> ⭐⭐⭐⭐⭐ (4.8/5.0)
+                            </div>
+                        </div>
+                        <hr>
+                        <h6>Qualifications:</h6>
+                        <ul>
+                            <li>Masters in ${teacherSubject}</li>
+                            <li>B.Ed. Education</li>
+                            <li>Certified Professional Trainer</li>
+                        </ul>
+                        <h6>Specializations:</h6>
+                        <ul>
+                            <li>Interactive Teaching Methods</li>
+                            <li>Student Assessment</li>
+                            <li>Curriculum Development</li>
+                        </ul>
+                        <h6>Availability:</h6>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width: 75%">75% Available</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        modal.addEventListener('hidden.bs.modal', () => {
+            modal.remove();
+        });
+    }
+    
+    // Suggest room based on subject and period
+    function suggestRoom(dayIndex, period) {
+        const subjectSelect = document.getElementById(`subject_${dayIndex}_${period}`);
+        const roomInput = document.getElementById(`room_${dayIndex}_${period}`);
+        const selectedSubject = subjectSelect.options[subjectSelect.selectedIndex].text.toLowerCase();
+        
+        let suggestedRoom = '';
+        
+        // Smart room suggestions based on subject
+        if (selectedSubject.includes('science') || selectedSubject.includes('chemistry') || selectedSubject.includes('physics')) {
+            suggestedRoom = 'Science Lab';
+        } else if (selectedSubject.includes('computer') || selectedSubject.includes('it')) {
+            suggestedRoom = 'Computer Lab';
+        } else if (selectedSubject.includes('math')) {
+            suggestedRoom = 'Room 101';
+        } else if (selectedSubject.includes('english') || selectedSubject.includes('language')) {
+            suggestedRoom = 'Room 102';
+        } else if (selectedSubject.includes('physical') || selectedSubject.includes('sports')) {
+            suggestedRoom = 'Playground';
+        } else if (selectedSubject.includes('library') || selectedSubject.includes('reading')) {
+            suggestedRoom = 'Library';
+        } else {
+            suggestedRoom = 'Room 103';
+        }
+        
+        roomInput.value = suggestedRoom;
+        showNotification(`Suggested room: ${suggestedRoom}`, 'success');
+    }
+    
+    // Validate room input
+    function validateRoom(dayIndex, period) {
+        const roomInput = document.getElementById(`room_${dayIndex}_${period}`);
+        const roomValue = roomInput.value.trim();
+        
+        if (roomValue && !roomValue.match(/^(Room \d+|Lab \d+|Computer Lab|Science Lab|Library|Auditorium|Playground)$/i)) {
+            showNotification('Please enter a valid room name (e.g., Room 101, Lab 1, Computer Lab)', 'warning');
+            roomInput.classList.add('is-invalid');
+        } else {
+            roomInput.classList.remove('is-invalid');
+        }
+    }
+    
+    // Add notes functionality
+    function addNotes(dayIndex, period) {
+        const notesSection = document.getElementById(`notes_${dayIndex}_${period}`);
+        if (notesSection.style.display === 'none') {
+            notesSection.style.display = 'block';
+            notesSection.querySelector('textarea').focus();
+        } else {
+            notesSection.style.display = 'none';
+        }
+    }
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .recommended {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white !important;
+            font-weight: bold;
+        }
+        .is-invalid {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

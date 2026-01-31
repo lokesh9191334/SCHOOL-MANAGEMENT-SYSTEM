@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-lg-8 offset-lg-2">
+      <div class="card shadow-lg">
+        <div class="card-header bg-gradient-primary text-white">
+          <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Options</h4>
+          <small class="text-white-50">Choose your preferred payment method</small>
+        </div>
+        <div class="card-body">
+          <!-- Fee Details -->
+          <div class="card mb-4 border-info">
+            <div class="card-header bg-info text-white">
+              <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Fee Details</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Student:</strong> {{ fee.student.full_name() if fee.student else 'Unknown' }}</p>
+                  <p><strong>Category:</strong> {{ fee.category.title() if fee.category else 'General' }}</p>
+                  <p><strong>Description:</strong> {{ fee.description or 'N/A' }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Amount:</strong> <span class="text-success fw-bold">{{ "%.2f"|format(fee.final_amount) }} INR</span></p>
+                  <p><strong>Due Date:</strong> {{ fee.due_date.strftime('%d %b %Y') if fee.due_date else 'N/A' }}</p>
+                  <p><strong>Status:</strong>
+                    <span class="badge {% if fee.paid %}bg-success{% else %}bg-warning{% endif %}">
+                      {% if fee.paid %}Paid{% else %}Pending{% endif %}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Methods -->
+          <form id="paymentForm" method="post">
+            <div class="row">
+              <!-- Online Payment Gateways -->
+              <div class="col-md-8">
+                <h5 class="mb-3"><i class="fas fa-globe me-2"></i>Online Payment</h5>
+
+                <!-- Razorpay -->
+                <div class="card mb-3 border-primary">
+                  <div class="card-body">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="gateway" id="razorpay" value="razorpay" checked>
+                      <label class="form-check-label d-flex align-items-center" for="razorpay">
+                        <img src="https://cdn.razorpay.com/static/assets/logo/razorpay.svg" alt="Razorpay" height="30" class="me-3">
+                        <div>
+                          <strong>Razorpay</strong>
+                          <br><small class="text-muted">Secure online payments with multiple options</small>
+                        </div>
+                      </label>
+                    </div>
+                    <div class="mt-3 ms-4">
+                      <div class="row g-2">
+                        {% for method in get_payment_methods() %}
+                          {% if method.id != 'bank_transfer' %}
+                          <div class="col-auto">
+                            <div class="form-check form-check-inline">
+                              <input class="form-check-input" type="radio" name="payment_method" id="rzp_{{ method.id }}" value="{{ method.id }}" {% if method.id == 'upi' %}checked{% endif %}>
+                              <label class="form-check-label" for="rzp_{{ method.id }}">
+                                <i class="{{ method.icon }} me-1"></i>{{ method.name }}
+                                <small class="text-muted">({{ payment_config.razorpay.fee_structure.get(method.id, 0) }}% fee)</small>
+                              </label>
+                            </div>
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- PhonePe -->
+                <div class="card mb-3 border-success">
+                  <div class="card-body">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="gateway" id="phonepe" value="phonepe">
+                      <label class="form-check-label d-flex align-items-center" for="phonepe">
+                        <img src="https://cdn.phonepe.com/images/phonepe-logo.svg" alt="PhonePe" height="30" class="me-3">
+                        <div>
+                          <strong>PhonePe</strong>
+                          <br><small class="text-muted">Fast and secure UPI payments</small>
+                        </div>
+                      </label>
+                    </div>
+                    <div class="mt-3 ms-4">
+                      <div class="row g-2">
+                        {% for method in get_payment_methods() %}
+                          {% if method.id != 'bank_transfer' %}
+                          <div class="col-auto">
+                            <div class="form-check form-check-inline">
+                              <input class="form-check-input" type="radio" name="payment_method" id="pp_{{ method.id }}" value="{{ method.id }}" disabled>
+                              <label class="form-check-label" for="pp_{{ method.id }}">
+                                <i class="{{ method.icon }} me-1"></i>{{ method.name }}
+                                <small class="text-muted">({{ payment_config.phonepe.fee_structure.get(method.id, 0) }}% fee)</small>
+                              </label>
+                            </div>
+                          </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bank Transfer & Summary -->
+              <div class="col-md-4">
+                <h5 class="mb-3"><i class="fas fa-exchange-alt me-2"></i>Bank Transfer</h5>
+
+                <div class="card mb-3 border-warning">
+                  <div class="card-body">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="gateway" id="bank_transfer" value="bank_transfer">
+                      <label class="form-check-label" for="bank_transfer">
+                        <strong><i class="fas fa-university me-2"></i>Direct Bank Transfer</strong>
+                        <br><small class="text-muted">No gateway fees - Transfer directly to our account</small>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Payment Summary -->
+                <div class="card border-info">
+                  <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Payment Summary</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                      <span>Fee Amount:</span>
+                      <strong>{{ "%.2f"|format(fee.final_amount) }} INR</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" id="gatewayFee" style="display: none;">
+                      <span>Gateway Fee:</span>
+                      <span id="gatewayFeeAmount">0.00 INR</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                      <strong>Total Amount:</strong>
+                      <strong id="totalAmount">{{ "%.2f"|format(fee.final_amount) }} INR</strong>
+                    </div>
+                    <div class="alert alert-success small mt-3 mb-0">
+                      <i class="fas fa-shield-alt me-1"></i>
+                      <strong>100% Secure</strong><br>
+                      Your payment is protected by bank-level security
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 pt-3 border-top">
+              <a class="btn btn-secondary" href="{{ url_for('fees.list_fees') }}">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-credit-card me-2"></i>Proceed to Pay
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bank Transfer Details Modal -->
+<div class="modal fade" id="bankTransferModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-university me-2"></i>Bank Transfer Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Account Details:</h6>
+            <table class="table table-sm">
+              <tr><td><strong>Account Name:</strong></td><td>{{ bank_details.account_name }}</td></tr>
+              <tr><td><strong>Account Number:</strong></td><td>{{ bank_details.account_number }}</td></tr>
+              <tr><td><strong>IFSC Code:</strong></td><td>{{ bank_details.ifsc_code }}</td></tr>
+              <tr><td><strong>Bank Name:</strong></td><td>{{ bank_details.bank_name }}</td></tr>
+              <tr><td><strong>Branch:</strong></td><td>{{ bank_details.branch }}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6>UPI Details:</h6>
+            <div class="text-center">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa={{ bank_details.upi_id }}&pn={{ bank_details.account_name }}&am={{ fee.final_amount }}&cu=INR" alt="UPI QR Code" class="img-fluid mb-3">
+              <p><strong>UPI ID:</strong> {{ bank_details.upi_id }}</p>
+              <p><strong>Amount:</strong> {{ "%.2f"|format(fee.final_amount) }} INR</p>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Important:</strong> After making the transfer, please submit the transaction details below for verification. Processing may take 24-48 hours.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .card {
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+
+  .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentForm = document.getElementById('paymentForm');
+  const gatewayRadios = document.querySelectorAll('input[name="gateway"]');
+  const methodRadios = document.querySelectorAll('input[name="payment_method"]');
+  const gatewayFeeDiv = document.getElementById('gatewayFee');
+  const gatewayFeeAmount = document.getElementById('gatewayFeeAmount');
+  const totalAmount = document.getElementById('totalAmount');
+
+  const feeAmount = {{ fee.final_amount }};
+  const paymentConfig = {{ payment_config|tojson|safe }};
+
+  function updateFeeCalculation() {
+    const selectedGateway = document.querySelector('input[name="gateway"]:checked').value;
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+
+    if (selectedGateway === 'bank_transfer') {
+      gatewayFeeDiv.style.display = 'none';
+      totalAmount.textContent = feeAmount.toFixed(2) + ' INR';
+      return;
+    }
+
+    if (selectedMethod && paymentConfig[selectedGateway]) {
+      const feeStructure = paymentConfig[selectedGateway].fee_structure;
+      const feePercent = feeStructure[selectedMethod.value] || 0;
+      const gatewayFee = (feeAmount * feePercent) / 100;
+      const total = feeAmount + gatewayFee;
+
+      gatewayFeeAmount.textContent = gatewayFee.toFixed(2) + ' INR';
+      totalAmount.textContent = total.toFixed(2) + ' INR';
+      gatewayFeeDiv.style.display = feePercent > 0 ? 'block' : 'none';
+    }
+  }
+
+  // Update fee calculation when gateway or method changes
+  gatewayRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      // Enable/disable method radios based on gateway
+      const gateway = this.value;
+      methodRadios.forEach(method => {
+        if (gateway === 'phonepe' && method.id.startsWith('pp_')) {
+          method.disabled = false;
+        } else if (gateway === 'razorpay' && method.id.startsWith('rzp_')) {
+          method.disabled = false;
+        } else if (gateway !== 'bank_transfer') {
+          method.disabled = true;
+        }
+      });
+
+      // Auto-select first available method
+      const availableMethods = document.querySelectorAll(`input[name="payment_method"]:not([disabled])`);
+      if (availableMethods.length > 0) {
+        availableMethods[0].checked = true;
+      }
+
+      updateFeeCalculation();
+    });
+  });
+
+  methodRadios.forEach(radio => {
+    radio.addEventListener('change', updateFeeCalculation);
+  });
+
+  // Show bank transfer modal
+  document.getElementById('bank_transfer').addEventListener('change', function() {
+    if (this.checked) {
+      new bootstrap.Modal(document.getElementById('bankTransferModal')).show();
+    }
+  });
+
+  // Initialize calculation
+  updateFeeCalculation();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Leave History{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row g-4">
+    <!-- Left navigation -->
+    <div class="col-lg-4 col-xl-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="mb-3">
+            <i class="fas fa-user-circle me-2 text-primary"></i>Parent Portal
+          </h5>
+          <div class="list-group list-group-flush">
+            <a href="{{ url_for('parents.portal') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </a>
+            <a href="{{ url_for('parents.student_details') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-user-graduate me-2"></i>Student Details
+            </a>
+            <a href="{{ url_for('parents.send_leave') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-calendar-minus me-2"></i>Send Leave
+            </a>
+            <a href="{{ url_for('parents.leave_history') }}" class="list-group-item list-group-item-action active">
+              <i class="fas fa-history me-2"></i>Leave History
+            </a>
+            <a href="{{ url_for('parents.messages') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-envelope-open-text me-2"></i>Messages
+            </a>
+            <a href="{{ url_for('parents.announcements') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-bullhorn me-2"></i>Announcements
+            </a>
+            <a href="{{ url_for('parents.documents') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-file-alt me-2"></i>Documents
+            </a>
+            <a href="{{ url_for('parents.fees') }}" class="list-group-item list-group-item-action">
+              <i class="fas fa-money-bill-wave me-2"></i>Fee Status
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-8 col-xl-9">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="fas fa-history me-2 text-primary"></i>Leave History
+          </h5>
+          <a href="{{ url_for('parents.send_leave') }}" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus me-1"></i>New Leave Request
+          </a>
+        </div>
+        <div class="card-body p-0">
+          {% if not leaves %}
+            <div class="p-3">
+              <p class="mb-0 text-muted">No leave requests submitted yet.</p>
+            </div>
+          {% else %}
+            <div class="table-responsive">
+              <table class="table mb-0">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Reason</th>
+                    <th>Days</th>
+                    <th>Class Teacher</th>
+                    <th>Status</th>
+                    <th>Requested At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for l in leaves %}
+                  <tr>
+                    <td>{{ l.id }}</td>
+                    <td>{{ l.student.full_name() if l.student else 'N/A' }}</td>
+                    <td>
+                      {% if l.reason_type == 'urgent_home' %}
+                        Urgent work at home
+                      {% elif l.reason_type == 'fever_night' %}
+                        Fever / not well
+                      {% elif l.reason_type == 'family_function' %}
+                        Family function / ceremony
+                      {% elif l.reason_type == 'medical_appointment' %}
+                        Doctor appointment / medical checkup
+                      {% elif l.reason_type == 'urgent_many_days' %}
+                        Urgent leave for many days
+                      {% else %}
+                        {{ l.reason_type }}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if l.days %}
+                        {{ l.days }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if l.teacher %}
+                        {{ l.teacher.name }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="badge
+                        {% if l.status == 'pending' %}bg-warning text-dark
+                        {% elif l.status == 'approved' %}bg-success
+                        {% elif l.status == 'rejected' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ l.status|capitalize }}
+                      </span>
+                    </td>
+                    <td>{{ l.created_at }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

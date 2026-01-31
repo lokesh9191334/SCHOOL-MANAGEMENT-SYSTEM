@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Premium Fees Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid fade-in-up">
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-2x mb-2 text-primary"></i>
+                    <h3 id="totalFees">{{ fees|length }}</h3>
+                    <p class="card-text">Total Fees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                    <h3 id="paidFees">{{ fees|selectattr('status', 'equalto', 'paid')|list|length }}</h3>
+                    <p class="card-text">Paid Fees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x mb-2 text-warning"></i>
+                    <h3 id="pendingFees">{{ fees|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
+                    <p class="card-text">Pending Fees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                    <h3 id="totalAmount">₹{{ "%.2f"|format(fees|map(attribute='amount')|map('float')|sum) }}</h3>
+                    <p class="card-text">Total Amount</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-search"></i>
+                Search & Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by student name...">
+                </div>
+                <div class="col-md-2">
+                    <select id="statusFilter" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="paid">Paid</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="feeTypeFilter" class="form-control">
+                        <option value="">All Types</option>
+                        {% for fee_type in fee_types %}
+                        <option value="{{ fee_type.id }}">{{ fee_type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="classFilter" class="form-control">
+                        <option value="">All Classes</option>
+                        {% for classroom in classrooms %}
+                        <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="streamFilter" class="form-control">
+                        <option value="">All Streams</option>
+                        {% for stream_option in streams %}
+                        <option value="{{ stream_option }}">{{ stream_option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" id="dueDateFilter" class="form-control">
+                </div>
+            </div>

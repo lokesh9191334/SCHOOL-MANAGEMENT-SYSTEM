@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>School Management System - Register</title>
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* WORLD-CLASS PREMIUM REGISTER DESIGN */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .premium-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 20%, #6366f1 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, #8b5cf6 0%, transparent 50%),
+                radial-gradient(circle at 40% 60%, #a855f7 0%, transparent 50%),
+                linear-gradient(135deg, #000 0%, #0f0f23 100%);
+            z-index: -1;
+        }
+
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: white;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .notification.danger {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .notification.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .notification.info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .notification-content {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+            padding: 0;
+            margin-left: 10px;
+        }
+
+        .notification-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .notification.hiding {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+        .register-container {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(50px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            padding: 60px;
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                0 50px 100px -20px rgba(99, 102, 241, 0.3),
+                0 0 200px rgba(139, 92, 246, 0.1);
+            animation: slideUp 1s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(60px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .register-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg,
+                #6366f1 0%,
+                #8b5cf6 25%,
+                #a855f7 50%,
+                #ec4899 75%,
+                #6366f1 100%);
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .premium-logo {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            position: relative;
+            box-shadow:
+                0 20px 40px rgba(99, 102, 241, 0.4),
+                0 0 80px rgba(139, 92, 246, 0.2);
+            animation: logoFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+
+        .premium-logo::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6, #a855f7, #ec4899, #6366f1);
+            border-radius: 25px;
+            z-index: -1;
+            animation: borderRotate 3s linear infinite;
+        }
+
+        @keyframes borderRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .premium-logo i {
+            font-size: 50px;
+            color: white;
+            z-index: 2;
+            position: relative;
+        }
+
+        .brand-name {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+            text-shadow: 0 0 40px rgba(255,255,255,0.5);
+        }
+
+        .brand-tagline {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        .register-form {
+            position: relative;
+            z-index: 2;
+        }
+
+        .form-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .form-subtitle {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-wrapper {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .input-wrapper:focus-within {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #6366f1;
+            box-shadow:
+                0 0 0 4px rgba(99, 102, 241, 0.2),
+                0 20px 40px rgba(99, 102, 241, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .input-wrapper:focus-within .input-icon {
+            color: #6366f1;
+            transform: translateY(-50%) scale(1.2);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 18px 18px 18px 55px;
+            background: transparent;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 400;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 18px 18px 18px 55px;
+            background: transparent;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .form-select option {
+            background: rgba(15, 15, 35, 0.95);
+            color: white;
+            padding: 10px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .password-toggle:hover {
+            color: #6366f1;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.6s;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.5);
+        }
+
+        .submit-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .social-login {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .google-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            opacity: 0.8;
+        }
+
+        .login-link-container {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .login-link-container a {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .login-link-container a:hover {
+            color: #8b5cf6;
+            text-decoration: underline;
+        }
+
+        .alert {
+            border-radius: 16px;
+            border: none;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            grid-column: 1 / -1;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .register-container {
+                padding: 40px 30px;
+                margin: 20px;
+            }
+
+            .brand-name {
+                font-size: 1.6rem;
+            }
+
+            .form-title {
+                font-size: 1.4rem;
+            }
+
+            .premium-logo {
+                width: 80px;
+                height: 80px;
+            }
+
+            .premium-logo i {
+                font-size: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .register-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            .brand-name {
+                font-size: 1.4rem;
+            }
+
+            .form-title {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="premium-bg"></div>
+
+    <div class="floating-particles">
+        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+        <div class="particle" style="left: 40%; animation-delay: 6s;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 8s;"></div>
+        <div class="particle" style="left: 60%; animation-delay: 10s;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 12s;"></div>
+        <div class="particle" style="left: 80%; animation-delay: 14s;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 16s;"></div>
+    </div>
+
+    <div class="main-container">
+        <div class="register-container">
+            <div class="logo-section">
+                <div class="premium-logo">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h1 class="brand-name">SCHOOL MANAGEMENT</h1>
+                <p class="brand-tagline">Join Our Educational Community</p>
+            </div>
+
+            <div class="register-form">
+                <h2 class="form-title">Create Your Account</h2>
+                <p class="form-subtitle">Fill in your details to get started</p>
+
+                <!-- Custom Notification Container -->
+                <div id="notification-container" class="notification-container"></div>
+                
+                <!-- Hidden Flash Messages (for JavaScript to read) -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} d-none" style="display: none !important;">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Registration Form -->
+                <form method="POST" enctype="multipart/form-data" id="registerForm">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-user input-icon"></i>
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    class="form-input"
+                                    placeholder="Full Name"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    class="form-input"
+                                    placeholder="Email Address"
+                                    inputmode="email"
+                                    autocomplete="username"
+                                    autocapitalize="none"
+                                    spellcheck="false"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-phone input-icon"></i>
+                                <input
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    class="form-input"
+                                    placeholder="Phone Number"
+                                    inputmode="tel"
+                                    autocomplete="tel"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-user-shield input-icon"></i>
+                                <select id="account_type" name="account_type" class="form-select" required>
+                                    <option value="" disabled selected>Choose your role</option>
+                                    <option value="admin">Administrator</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="parent">Parent</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- School ID field (shown only for teachers) -->
+                        <div class="input-group" id="schoolIdGroup" style="display: none;">
+                            <div class="input-wrapper">
+                                <i class="fas fa-school input-icon"></i>
+                                <input
+                                    type="text"
+                                    id="school_id"
+                                    name="school_id"
+                                    class="form-input"
+                                    placeholder="5-Digit School ID (from administrator)"
+                                    maxlength="5"
+                                    pattern="[0-9]{5}"
+                                    inputmode="numeric"
+                                >
+                                <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; margin-top: 5px;">
+                                    Enter the 5-digit School ID provided by your administrator
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    class="form-input"
+                                    placeholder="Create Password"
+                                    autocomplete="new-password"
+                                    required
+                                >
+                                <i class="fas fa-eye-slash password-toggle" onclick="togglePassword('password')"></i>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input
+                                    type="password"
+                                    id="confirm_password"
+                                    name="confirm_password"
+                                    class="form-input"
+                                    placeholder="Confirm Password"
+                                    autocomplete="new-password"
+                                    required
+                                >
+                                <i class="fas fa-eye-slash password-toggle" onclick="togglePassword('confirm_password')"></i>
+                            </div>
+                        </div>
+
+                        <!-- Parent special key field (shown conditionally) -->
+                        <div class="input-group" id="specialKeyGroup" style="display: none; grid-column: 1 / -1;">
+                            <div class="input-wrapper">
+                                <i class="fas fa-key input-icon"></i>
+                                <input
+                                    type="text"
+                                    id="special_key"
+                                    name="special_key"
+                                    class="form-input"
+                                    placeholder="Enter special registration key"
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; margin-top: 5px;">
+                                Contact school administration for parent registration key
+                            </small>
+                        </div>
+
+                        <!-- Hidden fields for backend compatibility -->
+                        <input type="hidden" name="address" value="">
+                        <input type="hidden" name="confirm_password" value="">
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-user-plus" style="margin-right: 10px;"></i>
+                        CREATE ACCOUNT
+                    </button>
+                </form>
+
+                <div class="social-login">
+                    <a href="{{ url_for('auth.google_login') }}" class="google-btn">
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+
+                <div class="login-link-container">
+                    <p>Already have an account?
+                        <a href="{{ url_for('auth.login') }}">
+                            <i class="fas fa-sign-in-alt" style="margin-right: 5px;"></i>Sign In
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('registerForm');
+            const accountTypeSelect = document.getElementById('account_type');
+            const specialKeyGroup = document.getElementById('specialKeyGroup');
+            const schoolIdGroup = document.getElementById('schoolIdGroup');
+
+            // Show/hide fields based on account type
+            accountTypeSelect.addEventListener('change', function() {
+                const accountType = this.value;
+                
+                // Reset all fields
+                specialKeyGroup.style.display = 'none';
+                schoolIdGroup.style.display = 'none';
+                document.getElementById('special_key').required = false;
+                document.getElementById('school_id').required = false;
+                
+                if (accountType === 'parent') {
+                    specialKeyGroup.style.display = 'block';
+                    document.getElementById('special_key').required = true;
+                } else if (accountType === 'teacher') {
+                    schoolIdGroup.style.display = 'block';
+                    document.getElementById('school_id').required = true;
+                }
+                // Admin doesn't need any additional fields
+            });
+
+            form.addEventListener('submit', function(e) {
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm_password').value;
+                const accountType = accountTypeSelect.value;
+                const specialKey = document.getElementById('special_key').value.trim();
+                const schoolId = document.getElementById('school_id').value.trim();
+
+                // Name validation
+                if (!name) {
+                    e.preventDefault();
+                    showAlert('Please enter your full name', 'danger');
+                    return false;
+                }
+
+                if (name.length < 2) {
+                    e.preventDefault();
+                    showAlert('Name must be at least 2 characters long', 'danger');
+                    return false;
+                }
+
+                // Email validation
+                if (!email) {
+                    e.preventDefault();
+                    showAlert('Please enter your email address', 'danger');
+                    return false;
+                }
+
+                if (!isValidEmail(email)) {
+                    e.preventDefault();
+                    showAlert('Please enter a valid email address', 'danger');
+                    return false;
+                }
+
+                // Phone validation
+                if (!phone) {
+                    e.preventDefault();
+                    showAlert('Please enter your phone number', 'danger');
+                    return false;
+                }
+
+                if (!isValidPhone(phone)) {
+                    e.preventDefault();
+                    showAlert('Please enter a valid phone number', 'warning');
+                    return false;
+                }
+
+                // Account type validation
+                if (!accountType) {
+                    e.preventDefault();
+                    showAlert('Please select your account type', 'danger');
+                    return false;
+                }
+
+                // Special key validation for parents
+                if (accountType === 'parent' && !specialKey) {
+                    e.preventDefault();
+                    showAlert('Special registration key is required for parent accounts', 'danger');
+                    return false;
+                }
+
+                // School ID validation for teachers
+                if (accountType === 'teacher' && !schoolId) {
+                    e.preventDefault();
+                    showAlert('School ID is required for teacher accounts. Please get it from your administrator.', 'danger');
+                    return false;
+                }
+
+                if (accountType === 'teacher' && schoolId) {
+                    if (schoolId.length !== 5 || !/^\d{5}$/.test(schoolId)) {
+                        e.preventDefault();
+                        showAlert('School ID must be exactly 5 digits', 'danger');
+                        return false;
+                    }
+                }
+
+                // Password validation
+                if (!password) {
+                    e.preventDefault();
+                    showAlert('Please create a password', 'danger');
+                    return false;
+                }
+
+                if (password.length < 8) {
+                    e.preventDefault();
+                    showAlert('Password must be at least 8 characters long', 'warning');
+                    return false;
+                }
+
+                if (!isPasswordStrong(password)) {
+                    e.preventDefault();
+                    showAlert('Password must contain uppercase, lowercase, and numbers', 'warning');
+                    return false;
+                }
+
+                // Confirm password validation
+                if (!confirmPassword) {
+                    e.preventDefault();
+                    showAlert('Please confirm your password', 'danger');
+                    return false;
+                }
+
+                if (password !== confirmPassword) {
+                    e.preventDefault();
+                    showAlert('Passwords do not match', 'danger');
+                    return false;
+                }
+
+                return true;
+            });
+
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
+            function isValidPhone(phone) {
+                const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+                return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+            }
+
+            function isPasswordStrong(password) {
+                const hasUpperCase = /[A-Z]/.test(password);
+                const hasLowerCase = /[a-z]/.test(password);
+                const hasNumbers = /\d/.test(password);
+                return hasUpperCase && hasLowerCase && hasNumbers;
+            }
+
+        // Custom Notification System
+class NotificationManager {
+    constructor() {
+        this.container = document.getElementById('notification-container');
+        this.currentNotification = null;
+        this.timeout = null;
+    }
+
+    show(message, type = 'info') {
+        // Clear any existing notification and timeout
+        this.clear();
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">${message}</div>
+            <button class="notification-close">&times;</button>
+        `;
+
+        // Add close button functionality
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => this.clear());
+
+        // Add to container
+        this.container.appendChild(notification);
+        this.currentNotification = notification;
+
+        // Auto-hide after 10 seconds
+        this.timeout = setTimeout(() => {
+            this.hide();
+        }, 10000);
+    }
+
+    hide() {
+        if (this.currentNotification) {
+            this.currentNotification.classList.add('hiding');
+            setTimeout(() => {
+                this.clear();
+            }, 300);
+        }
+    }
+
+    clear() {
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        if (this.currentNotification) {
+            this.currentNotification.remove();
+            this.currentNotification = null;
+        }
+    }
+}
+
+// Initialize notification manager
+const notificationManager = new NotificationManager();
+
+// Show flash messages as notifications
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for flash messages in the page
+    const flashAlerts = document.querySelectorAll('.alert');
+    if (flashAlerts.length > 0) {
+        const firstAlert = flashAlerts[0];
+        const message = firstAlert.textContent.trim();
+        const type = firstAlert.classList.contains('alert-danger') ? 'danger' : 
+                    firstAlert.classList.contains('alert-success') ? 'success' : 
+                    firstAlert.classList.contains('alert-warning') ? 'warning' : 'info';
+        
+        notificationManager.show(message, type);
+        
+        // Hide all original alerts
+        flashAlerts.forEach(alert => alert.style.display = 'none');
+    }
+});
+
+// Override the default showAlert function
+window.showAlert = function(message, type = 'info') {
+    notificationManager.show(message, type);
+};
+
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    }
+}
+    </script>
+</body>
+</html>

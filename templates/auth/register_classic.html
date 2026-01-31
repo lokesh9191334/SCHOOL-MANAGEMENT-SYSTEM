@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Register - School Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mt-5">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4>Register</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="account_type" class="form-label">Account Type</label>
+                                    <select class="form-control" id="account_type" name="account_type" required>
+                                        <option value="">Select Account Type</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="teacher">Teacher</option>
+                                        <option value="parent">Parent</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+                        </div>
+                        
+                        <!-- Special Key Field - Only show for Parent -->
+                        <div class="mb-3" id="special_key_field" style="display: none;">
+                            <label for="special_key" class="form-label">Special Registration Key</label>
+                            <input type="text" class="form-control text-center fw-bold" 
+                                   id="special_key" name="special_key" 
+                                   placeholder="6-DIGIT KEY" maxlength="6"
+                                   style="font-size: 1.2em; letter-spacing: 2px;">
+                            <small class="text-muted">Required for Parent accounts only (6-digit key provided by school)</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">Confirm Password</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">Register</button>
+                        
+                        <div class="text-center mt-3">
+                            <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide special key field based on account type
+document.getElementById('account_type').addEventListener('change', function() {
+    const accountType = this.value;
+    const specialKeyField = document.getElementById('special_key_field');
+    
+    if (accountType === 'parent') {
+        specialKeyField.style.display = 'block';
+        document.getElementById('special_key').setAttribute('required', 'required');
+    } else {
+        specialKeyField.style.display = 'none';
+        document.getElementById('special_key').removeAttribute('required');
+    }
+});
+
+// Validate special key format
+document.getElementById('special_key').addEventListener('input', function(e) {
+    const value = e.target.value.toUpperCase();
+    const keyPattern = /^[A-Z0-9!@#$%&*]{6}$/;  // 6 characters: letters, numbers, special chars
+    
+    if (value.length > 0 && !keyPattern.test(value)) {
+        e.target.setCustomValidity('Invalid key format. Expected: 6 characters (letters, numbers, special chars)');
+    } else {
+        e.target.setCustomValidity('');
+    }
+});
+
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+// Auto-format key to uppercase
+document.getElementById('special_key').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+</script>
+{% endblock %}

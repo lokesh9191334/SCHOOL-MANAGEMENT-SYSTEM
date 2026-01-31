@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ 'Edit Fee Type' if fee_type else 'Add Fee Type' }}</h3>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <div class="mb-3">
+              <label for="name" class="form-label">Fee Type Name *</label>
+              <select class="form-select" id="name" name="name" {% if not fee_type %}required{% endif %}>
+                <option value="">Select Fee Type</option>
+                <option value="Annual Fee" {% if fee_type and fee_type.name == 'Annual Fee' %}selected{% endif %}>Annual Fee</option>
+                <option value="Tuition Fee" {% if fee_type and fee_type.name == 'Tuition Fee' %}selected{% endif %}>Tuition Fee</option>
+                <option value="Admission Fee" {% if fee_type and fee_type.name == 'Admission Fee' %}selected{% endif %}>Admission Fee</option>
+                <option value="Examination Fee" {% if fee_type and fee_type.name == 'Examination Fee' %}selected{% endif %}>Examination Fee</option>
+                <option value="Library Fee" {% if fee_type and fee_type.name == 'Library Fee' %}selected{% endif %}>Library Fee</option>
+                <option value="Sports Fee" {% if fee_type and fee_type.name == 'Sports Fee' %}selected{% endif %}>Sports Fee</option>
+                <option value="Transportation Fee" {% if fee_type and fee_type.name == 'Transportation Fee' %}selected{% endif %}>Transportation Fee</option>
+                <option value="Hostel Fee" {% if fee_type and fee_type.name == 'Hostel Fee' %}selected{% endif %}>Hostel Fee</option>
+                <option value="Development Fee" {% if fee_type and fee_type.name == 'Development Fee' %}selected{% endif %}>Development Fee</option>
+                <option value="Late Fee" {% if fee_type and fee_type.name == 'Late Fee' %}selected{% endif %}>Late Fee</option>
+                <option value="Miscellaneous Fee" {% if fee_type and fee_type.name == 'Miscellaneous Fee' %}selected{% endif %}>Miscellaneous Fee</option>
+              </select>
+              <div class="form-text">Choose from common fee types or enter custom name below if not listed.</div>
+            </div>
+            <div class="mb-3">
+              <label for="custom_name" class="form-label">Or Enter Custom Fee Type Name</label>
+              <input type="text" class="form-control" id="custom_name" name="custom_name" value="{% if fee_type %}{{ fee_type.name }}{% endif %}" placeholder="Enter custom fee type name">
+              <div class="form-text">Use this if the fee type is not in the dropdown above.</div>
+            </div>
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring">
+                <label class="form-check-label" for="is_recurring">
+                  Recurring Fee
+                </label>
+              </div>
+            </div>
+            <div class="mb-3" id="frequency-group" style="display: none;">
+              <label for="frequency" class="form-label">Frequency</label>
+              <select class="form-select" id="frequency" name="frequency">
+                <option value="">Select Frequency</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="semesterly">Semesterly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="default_amount" class="form-label">Default Amount</label>
+              <input type="number" step="0.01" class="form-control" id="default_amount" name="default_amount" placeholder="0.00">
+            </div>
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('fees.fee_types') }}" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">{{ 'Update Fee Type' if fee_type else 'Add Fee Type' }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('is_recurring').addEventListener('change', function() {
+  const frequencyGroup = document.getElementById('frequency-group');
+  if (this.checked) {
+    frequencyGroup.style.display = 'block';
+    document.getElementById('frequency').required = true;
+  } else {
+    frequencyGroup.style.display = 'none';
+    document.getElementById('frequency').required = false;
+  }
+});
+</script>
+{% endblock %}

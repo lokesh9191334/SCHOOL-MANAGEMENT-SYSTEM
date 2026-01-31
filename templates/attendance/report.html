@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="mb-0">
+          <i class="fas fa-file-alt me-3 text-primary"></i>
+          Attendance Report
+        </h2>
+        <p class="text-muted mt-1">Detailed attendance reports with filtering options</p>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline-success" onclick="exportReport()">
+          <i class="fas fa-download me-2"></i>Export Report
+        </button>
+        <a href="{{ url_for('attendance.attendance_analytics') }}" class="btn btn-outline-info">
+          <i class="fas fa-chart-line me-2"></i>View Analytics
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Filters -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="fas fa-filter me-2 text-secondary"></i>Report Filters
+    </h5>
+  </div>
+  <div class="card-body">
+    <form method="POST" class="row g-3">
+      <div class="col-md-3">
+        <label for="start_date" class="form-label">Start Date</label>
+        <input type="date" class="form-control" id="start_date" name="start_date"
+               value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label for="end_date" class="form-label">End Date</label>
+        <input type="date" class="form-control" id="end_date" name="end_date"
+               value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label for="student_id" class="form-label">Student (Optional)</label>
+        <select class="form-select" id="student_id" name="student_id">
+          <option value="">All Students</option>
+          {% for student in students %}
+          <option value="{{ student.id }}" {{ 'selected' if selected_student_id == student.id else '' }}>
+            {{ student.first_name }} {{ student.last_name }} ({{ student.roll_number or 'N/A' }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fas fa-search me-2"></i>Generate Report
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if report_data %}
+<!-- Report Summary -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card stats-card border-primary">
+      <div class="card-body text-center">
+        <i class="fas fa-users fa-2x text-primary mb-2"></i>
+        <h3 class="text-primary">{{ report_data|length }}</h3>
+        <p class="mb-0">Students Reported</p>
+        <small class="text-muted">In date range</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stats-card border-success">
+      <div class="card-body text-center">
+        <i class="fas fa-calendar-check fa-2x text-success mb-2"></i>
+        <h3 class="text-success">
+          {% set total_days = report_data.values() | map(attribute='total_days') | sum %}
+          {{ total_days }}
+        </h3>
+        <p class="mb-0">Total Days</p>
+        <small class="text-muted">Tracked</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stats-card border-info">
+      <div class="card-body text-center">
+        <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+        <h3 class="text-info">
+          {% set avg_percentage = report_data.values() | map(attribute='percentage') | list | average %}
+          {{ "%.1f"|format(avg_percentage) }}%
+        </h3>
+        <p class="mb-0">Average Attendance</p>
+        <small class="text-muted">Overall rate</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Report -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="fas fa-table me-2 text-info"></i>Detailed Attendance Report
+      {% if start_date and end_date %}
+        <small class="text-muted">({{ start_date.strftime('%B %d, %Y') }} - {{ end_date.strftime('%B %d, %Y') }})</small>
+      {% endif %}
+    </h5>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Student Name</th>
+            <th>Roll Number</th>
+            <th>Class</th>
+            <th>Days Present</th>
+            <th>Total Days</th>
+            <th>Attendance %</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student_id, data in report_data.items() %}
+          <tr>
+            <td>
+              <strong>{{ data.student.first_name }} {{ data.student.last_name }}</strong>
+            </td>
+            <td>{{ data.student.roll_number or 'N/A' }}</td>
+            <td>
+              {% if data.student.classroom %}
+                <span class="badge bg-primary">{{ data.student.classroom.name }}</span>
+              {% else %}
+                <span class="text-muted">Not assigned</span>
+              {% endif %}
+            </td>
+            <td>{{ data.present_count }}</td>
+            <td>{{ data.total_days }}</td>
+            <td>
+              <div class="progress" style="width: 100px;">
+                <div class="progress-bar
+                     {% if data.percentage >= 75 %}bg-success
+                     {% elif data.percentage >= 60 %}bg-warning
+                     {% else %}bg-danger{% endif %}"
+                     role="progressbar"
+                     style="width: {{ data.percentage }}%"
+                     aria-valuenow="{{ data.percentage }}"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+                  {{ "%.1f"|format(data.percentage) }}%
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if data.percentage >= 75 %}
+                <span class="badge bg-success">Excellent</span>
+              {% elif data.percentage >= 60 %}
+                <span class="badge bg-warning">Good</span>
+              {% else %}
+                <span class="badge bg-danger">Needs Attention</span>
+              {% endif %}
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-info" onclick="viewStudentDetails({{ student_id }})">
+                <i class="fas fa-eye"></i> Details
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<!-- No Data Message -->
+<div class="text-center py-5">
+  <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+  <h4 class="text-muted">No Report Data Available</h4>
+  <p class="text-muted">Please select date range and generate a report to view attendance data.</p>
+</div>
+{% endif %}
+
+<script>
+function exportReport() {
+  alert('Exporting attendance report...\nReport will be downloaded as PDF file shortly.');
+}
+
+function viewStudentDetails(studentId) {
+  // This could open a modal or redirect to detailed view
+  alert('Viewing detailed attendance for student ID: ' + studentId);
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>My Leave Requests</h3>
+{% if not teacher %}
+  <p>No teacher profile linked to your account.</p>
+{% else %}
+  <table class="table">
+    <thead>
+      <tr><th>ID</th><th>Period</th><th>Status</th><th>Submitted At</th><th>Reason</th></tr>
+    </thead>
+    <tbody>
+    {% for l in leaves %}
+      <tr>
+        <td>{{ l.id }}</td>
+        <td>{{ l.start_date }}{% if l.end_date %} - {{ l.end_date }}{% endif %}</td>
+        <td>{{ l.status }}</td>
+        <td>{{ l.submitted_at }}</td>
+        <td>{{ l.reason }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

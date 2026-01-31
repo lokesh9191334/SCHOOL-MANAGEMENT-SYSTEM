@@ -1,0 +1,835 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <style>
+    /* Neutral hero styles */
+    .hero-section {
+      background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+      min-height: 60vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      color: #2c3e50;
+      text-align: center;
+      overflow: hidden;
+      margin-bottom: 0;
+      padding: 4rem 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 1100px;
+      padding: 3rem 1.5rem;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #eef1f4;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+
+    .hero-content h1 { font-size: 2.8rem; font-weight: 700; color: #2c3e50; margin-bottom: 1rem; }
+    .hero-content p { font-size: 1.05rem; color: #6c757d; margin-bottom: 1.25rem; }
+
+    .hero-button { display:inline-block; padding:0.9rem 1.8rem; background:#3498db; color:#fff; border-radius:8px; text-decoration:none; }
+
+    .about-section {
+      padding: 5rem 0;
+      background: #f8f9fa;
+    }
+    .about-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    .about-content h2 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #333;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .about-content p {
+      font-size: 1.2rem;
+      color: #666;
+      line-height: 1.8;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .services-section {
+      padding: 5rem 0;
+      background: white;
+    }
+    .services-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    .services-content h2 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #333;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .service-card {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      margin-bottom: 2rem;
+    }
+    .service-card:hover {
+      transform: translateY(-10px);
+    }
+    .service-card h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    .service-card p {
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .contact-section {
+      padding: 5rem 0;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    .contact-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      text-align: center;
+    }
+    .contact-content h2 {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 2rem;
+    }
+    .contact-content p {
+      font-size: 1.2rem;
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 3rem;
+    }
+    .contact-button {
+      display: inline-block;
+      padding: 1rem 3rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s ease;
+    }
+    .contact-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+    }
+  </style>
+
+  <!-- Hero Section -->
+  <section class="hero-section premium-hero">
+    <div class="hero-content">
+      <h1>School Management System</h1>
+      <p>Build Education with School Management System</p>
+      <div class="subtitle">Streamline your educational institution with our comprehensive management solution</div>
+      <a href="#contact" class="hero-button">Get Started</a>
+      <a href="{{ url_for('auth.login') }}" class="hero-button">Login</a>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="about-section">
+    <div class="about-content">
+      <h2>About Our System</h2>
+      <p>Our School Management System is designed to simplify and enhance the educational experience for administrators, teachers, students, and parents. With cutting-edge technology and user-friendly interfaces, we provide comprehensive tools for managing all aspects of school operations.</p>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section class="services-section">
+    <div class="services-content">
+      <h2>Our Services</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="service-card premium-card">
+            <h3>Student Management</h3>
+            <p>Complete student information system with enrollment, attendance tracking, and academic performance monitoring.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <h3>Fee Management</h3>
+            <p>Efficient fee collection and management with automated reminders, receipts, and financial reporting.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <h3>Teacher Portal</h3>
+            <p>Dedicated portal for teachers to manage classes, assignments, grades, and communicate with students.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <h3>Attendance System</h3>
+            <p>Automated attendance tracking with real-time updates and comprehensive reporting capabilities.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <h3>Analytics & Reports</h3>
+            <p>Advanced analytics and reporting tools to gain insights into school performance and student progress.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <h3>Parent Portal</h3>
+            <p>Secure portal for parents to monitor their child's progress, fees, and communicate with teachers.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="container">
+      <h2>Advanced Features</h2>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Data Security</h4>
+              <p>Bank-level encryption and security protocols to protect sensitive student and financial data.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-mobile-alt"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Mobile Responsive</h4>
+              <p>Access your school management system from any device with our fully responsive design.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-cloud"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Cloud Storage</h4>
+              <p>Secure cloud storage for documents, images, and backups with automatic synchronization.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Real-time Analytics</h4>
+              <p>Get instant insights with real-time dashboards and customizable reporting tools.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-users-cog"></i>
+            </div>
+            <div class="feature-content">
+              <h4>Role-based Access</h4>
+              <p>Granular permissions and role-based access control for different user types.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <i class="fas fa-headset"></i>
+            </div>
+            <div class="feature-content">
+              <h4>24/7 Support</h4>
+              <p>Round-the-clock technical support and dedicated account management.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <h2>Our Achievements</h2>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="stat-card">
+            <h3>500+</h3>
+            <p>Schools Served</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <h3>50,000+</h3>
+            <p>Students Managed</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <h3>99.9%</h3>
+            <p>Uptime</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <h3>24/7</h3>
+            <p>Support Available</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Partners Section -->
+  <section class="partners-section">
+    <div class="container">
+      <h2>Trusted By Leading Institutions</h2>
+      <div class="partners-logos">
+        <div class="partner-logo">
+          <img src="/static/uploads/partners/partner1.png" alt="Partner 1">
+        </div>
+        <div class="partner-logo">
+          <img src="/static/uploads/partners/partner2.png" alt="Partner 2">
+        </div>
+        <div class="partner-logo">
+          <img src="/static/uploads/partners/partner3.png" alt="Partner 3">
+        </div>
+        <div class="partner-logo">
+          <img src="/static/uploads/partners/partner4.png" alt="Partner 4">
+        </div>
+        <div class="partner-logo">
+          <img src="/static/uploads/partners/partner5.png" alt="Partner 5">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="testimonials-section">
+    <div class="container">
+      <h2>What Our Users Say</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"This system has revolutionized how we manage our school operations. The ease of use and comprehensive features make it indispensable."</p>
+            </div>
+            <div class="testimonial-author">
+              <h5>Sarah Johnson</h5>
+              <p>Principal, Lincoln High School</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"The fee management and attendance tracking features have saved us countless hours. Highly recommended for modern schools."</p>
+            </div>
+            <div class="testimonial-author">
+              <h5>Michael Chen</h5>
+              <p>Administrator, Maple Elementary</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"Outstanding support and regular updates. This platform grows with our school's needs."</p>
+            </div>
+            <div class="testimonial-author">
+              <h5>Dr. Emily Rodriguez</h5>
+              <p>Director, Academy of Excellence</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Team Section -->
+  <section class="team-section">
+    <div class="container">
+      <h2>Meet Our Team</h2>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="team-member">
+            <div class="team-photo">
+              <img src="/static/uploads/users/default-avatar.png" alt="Team Member">
+            </div>
+            <h5>John Smith</h5>
+            <p>CEO & Founder</p>
+            <div class="social-links">
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+              <a href="#"><i class="fab fa-twitter"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="team-member">
+            <div class="team-photo">
+              <img src="/static/uploads/users/default-avatar.png" alt="Team Member">
+            </div>
+            <h5>Jane Doe</h5>
+            <p>CTO</p>
+            <div class="social-links">
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+              <a href="#"><i class="fab fa-github"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="team-member">
+            <div class="team-photo">
+              <img src="/static/uploads/users/default-avatar.png" alt="Team Member">
+            </div>
+            <h5>Bob Wilson</h5>
+            <p>Lead Developer</p>
+            <div class="social-links">
+              <a href="#"><i class="fab fa-github"></i></a>
+              <a href="#"><i class="fab fa-twitter"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="team-member">
+            <div class="team-photo">
+              <img src="/static/uploads/users/default-avatar.png" alt="Team Member">
+            </div>
+            <h5>Alice Brown</h5>
+            <p>Customer Success Manager</p>
+            <div class="social-links">
+              <a href="#"><i class="fab fa-linkedin"></i></a>
+              <a href="#"><i class="fab fa-facebook"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery Section -->
+  <section class="gallery-section">
+    <div class="container">
+      <h2>School Gallery</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="gallery-item">
+            <img src="/static/uploads/students/default-image.jpg" alt="School Activity">
+            <div class="gallery-overlay">
+              <h5>Annual Sports Day</h5>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="gallery-item">
+            <img src="/static/uploads/students/default-image.jpg" alt="School Activity">
+            <div class="gallery-overlay">
+              <h5>Science Fair</h5>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="gallery-item">
+            <img src="/static/uploads/students/default-image.jpg" alt="School Activity">
+            <div class="gallery-overlay">
+              <h5>Graduation Ceremony</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- News Section -->
+  <section class="news-section">
+    <div class="container">
+      <h2>Latest News & Events</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="news-card">
+            <div class="news-date">November 22, 2025</div>
+            <h5>New Features Released</h5>
+            <p>We've added exciting new features to enhance your school management experience.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="news-card">
+            <div class="news-date">November 20, 2025</div>
+            <h5>Education Conference</h5>
+            <p>Join us at the annual education technology conference to learn about the latest trends.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="news-card">
+            <div class="news-date">November 18, 2025</div>
+            <h5>Customer Success Story</h5>
+            <p>Read how Maple Elementary improved their efficiency with our system.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Blog Section -->
+  <section class="blog-section">
+    <div class="container">
+      <h2>From Our Blog</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="blog-card">
+            <div class="blog-image">
+              <img src="/static/uploads/blog/blog1.jpg" alt="Blog Post">
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">November 15, 2025 • Education Technology</div>
+              <h5>Digital Transformation in Education</h5>
+              <p>Explore how technology is reshaping the future of education and learning.</p>
+              <a href="#" class="blog-link">Read Article</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="blog-card">
+            <div class="blog-image">
+              <img src="/static/uploads/blog/blog2.jpg" alt="Blog Post">
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">November 12, 2025 • School Management</div>
+              <h5>Best Practices for School Administration</h5>
+              <p>Learn the essential strategies for effective school management and operations.</p>
+              <a href="#" class="blog-link">Read Article</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="blog-card">
+            <div class="blog-image">
+              <img src="/static/uploads/blog/blog3.jpg" alt="Blog Post">
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">November 10, 2025 • Student Success</div>
+              <h5>Improving Student Engagement</h5>
+              <p>Discover proven methods to increase student participation and academic success.</p>
+              <a href="#" class="blog-link">Read Article</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video Section -->
+  <section class="video-section">
+    <div class="container">
+      <h2>See Our System in Action</h2>
+      <div class="video-wrapper">
+        <div class="video-container">
+          <iframe width="100%" height="500" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen></iframe>
+        </div>
+        <div class="video-content">
+          <h3>Complete School Management Solution</h3>
+          <p>Watch how our comprehensive platform streamlines school operations, enhances communication, and improves educational outcomes.</p>
+          <div class="video-features">
+            <div class="feature-item">
+              <i class="fas fa-check-circle"></i>
+              <span>Easy-to-use interface</span>
+            </div>
+            <div class="feature-item">
+              <i class="fas fa-check-circle"></i>
+              <span>Real-time data updates</span>
+            </div>
+            <div class="feature-item">
+              <i class="fas fa-check-circle"></i>
+              <span>Comprehensive reporting</span>
+            </div>
+            <div class="feature-item">
+              <i class="fas fa-check-circle"></i>
+              <span>24/7 technical support</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Awards Section -->
+  <section class="awards-section">
+    <div class="container">
+      <h2>Recognition & Awards</h2>
+      <div class="awards-grid">
+        <div class="award-item">
+          <div class="award-icon">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <h5>Best Education Software 2025</h5>
+          <p>Educational Technology Awards</p>
+        </div>
+        <div class="award-item">
+          <div class="award-icon">
+            <i class="fas fa-medal"></i>
+          </div>
+          <h5>Innovation Excellence Award</h5>
+          <p>Tech Innovation Summit</p>
+        </div>
+        <div class="award-item">
+          <div class="award-icon">
+            <i class="fas fa-star"></i>
+          </div>
+          <h5>Customer Choice Award</h5>
+          <p>School Management Solutions</p>
+        </div>
+        <div class="award-item">
+          <div class="award-icon">
+            <i class="fas fa-certificate"></i>
+          </div>
+          <h5>ISO 9001 Certified</h5>
+          <p>Quality Management System</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section class="pricing-section">
+    <div class="container">
+      <h2>Choose Your Plan</h2>
+      <p>Select the perfect plan for your educational institution</p>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <h3>Basic</h3>
+              <div class="price">$29<span>/month</span></div>
+            </div>
+            <ul class="features-list">
+              <li>Up to 500 students</li>
+              <li>Student & Teacher Management</li>
+              <li>Basic Attendance Tracking</li>
+              <li>Fee Management</li>
+              <li>Email Support</li>
+            </ul>
+            <a href="#" class="pricing-button">Get Started</a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="pricing-card popular">
+            <div class="popular-badge">Most Popular</div>
+            <div class="pricing-header">
+              <h3>Professional</h3>
+              <div class="price">$59<span>/month</span></div>
+            </div>
+            <ul class="features-list">
+              <li>Up to 2000 students</li>
+              <li>All Basic Features</li>
+              <li>Advanced Analytics</li>
+              <li>Parent Portal</li>
+              <li>Mobile App Access</li>
+              <li>Priority Support</li>
+            </ul>
+            <a href="#" class="pricing-button">Get Started</a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <h3>Enterprise</h3>
+              <div class="price">$99<span>/month</span></div>
+            </div>
+            <ul class="features-list">
+              <li>Unlimited students</li>
+              <li>All Professional Features</li>
+              <li>Custom Integrations</li>
+              <li>Advanced Reporting</li>
+              <li>Dedicated Account Manager</li>
+              <li>24/7 Phone Support</li>
+            </ul>
+            <a href="#" class="pricing-button">Contact Sales</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-container">
+        <div class="faq-item">
+          <div class="faq-question">
+            <h4>How secure is our data?</h4>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <p>We use industry-standard encryption and security measures to protect your data. All information is stored securely and backed up regularly.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            <h4>Can I import existing student data?</h4>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <p>Yes, we support CSV import for student, teacher, and other data. Our support team will help you with the migration process.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            <h4>Is mobile access available?</h4>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <p>Yes, our system is fully responsive and works on all devices. We also offer dedicated mobile apps for iOS and Android.</p>
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            <h4>What kind of support do you provide?</h4>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            <p>We offer email support for all plans, priority support for Professional plans, and 24/7 phone support for Enterprise customers.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Transform Your School?</h2>
+        <p>Join thousands of educational institutions already using our system to streamline operations and improve learning outcomes.</p>
+        <div class="cta-buttons">
+          <a href="{{ url_for('auth.register') }}" class="cta-button primary">Start Free Trial</a>
+          <a href="{{ url_for('dashboard.index') }}" class="cta-button secondary">Schedule Demo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact-section" id="contact">
+    <div class="contact-content">
+      <h2>Ready to Get Started?</h2>
+      <p>Contact us today to learn more about how our School Management System can transform your educational institution.</p>
+      <a href="{{ url_for('dashboard.index') }}" class="contact-button">Contact Us</a>
+    </div>
+  </section>
+
+  <!-- Blog Section -->
+  <section class="blog-section">
+    <div class="container">
+      <h2>From Our Blog</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="blog-card">
+            <div class="blog-image">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">November 15, 2025 • Education Technology</div>
+              <h5>Digital Transformation in Education</h5>
+              <p>Explore how technology is reshaping the future of education and learning.</p>
+              <a href="#" class="blog-link">Read Article</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="blog-card">
+            <div class="blog-image">
+              <i class="fas fa-school"></i>
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">November 12, 2025 • School Management</div>
+              <h5>Best Practices for School Administration</h5>
+              <p>Learn the essential strategies for effective school management and operations.</p>
+              <a href="#" class="blog-link">Read Article</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="blog-card">
+            <div class="blog-image">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="blog-content">
+              <div class="blog-meta">November 10, 2025 • Student Success</div>
+              <h5>Improving Student Engagement</h5>
+              <p>Discover proven methods to increase student participation and academic success.</p>
+              <a href="#" class="blog-link">Read Article</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4">
+          <h5>School Management System</h5>
+          <p>Empowering education through innovative technology solutions.</p>
+          <div class="social-links">
+            <a href="#"><i class="fab fa-facebook"></i></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-linkedin"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <h5>Quick Links</h5>
+          <ul>
+            <li><a href="#about">About Us</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h5>Contact Info</h5>
+          <p><i class="fas fa-map-marker-alt"></i> 123 Education Street, Learning City</p>
+          <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
+          <p><i class="fas fa-envelope"></i> info@schoolmanagementsystem.com</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 School Management System. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+{% endblock %}

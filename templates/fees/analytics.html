@@ -1,0 +1,233 @@
+*{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Fees Analytics Dashboard</h3>
+          <div>
+            <select class="form-select d-inline-block w-auto" id="timeRange">
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Key Metrics -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                  <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                  <h4>₹{{ "%.2f"|format(total_collected) }}</h4>
+                  <p class="mb-0">Total Collected</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                  <i class="fas fa-chart-line fa-2x mb-2"></i>
+                  <h4>₹{{ "%.2f"|format(monthly_revenue) }}</h4>
+                  <p class="mb-0">Monthly Revenue</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                  <i class="fas fa-clock fa-2x mb-2"></i>
+                  <h4>₹{{ "%.2f"|format(pending_amount) }}</h4>
+                  <p class="mb-0">Pending Amount</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                  <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                  <h4>₹{{ "%.2f"|format(overdue_amount) }}</h4>
+                  <p class="mb-0">Overdue Amount</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5>Payment Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                  <canvas id="paymentStatusChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5>Monthly Revenue Trend</h5>
+                </div>
+                <div class="card-body">
+                  <canvas id="revenueChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fee Types Analysis -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5>Fee Types Performance</h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Fee Type</th>
+                          <th>Total Amount</th>
+                          <th>Collected</th>
+                          <th>Pending</th>
+                          <th>Collection Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for type_data in fee_types_data %}
+                        <tr>
+                          <td>{{ type_data.name }}</td>
+                          <td>₹{{ "%.2f"|format(type_data.total) }}</td>
+                          <td>₹{{ "%.2f"|format(type_data.collected) }}</td>
+                          <td>₹{{ "%.2f"|format(type_data.pending) }}</td>
+                          <td>
+                            <div class="progress">
+                              <div class="progress-bar" role="progressbar" style="width: {{ type_data.rate }}%">
+                                {{ "%.1f"|format(type_data.rate) }}%
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Performers -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5>Top Paying Students</h5>
+                </div>
+                <div class="card-body">
+                  <ol class="list-group list-group-numbered">
+                    {% for student in top_students %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="ms-2 me-auto">
+                        <div class="fw-bold">{{ student.name }}</div>
+                        Roll No: {{ student.roll_number }}
+                      </div>
+                      <span class="badge bg-primary rounded-pill">₹{{ "%.2f"|format(student.total_paid) }}</span>
+                    </li>
+                    {% endfor %}
+                  </ol>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h5>Students with Highest Pending Fees</h5>
+                </div>
+                <div class="card-body">
+                  <ol class="list-group list-group-numbered">
+                    {% for student in pending_students %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="ms-2 me-auto">
+                        <div class="fw-bold">{{ student.name }}</div>
+                        Roll No: {{ student.roll_number }}
+                      </div>
+                      <span class="badge bg-warning rounded-pill">₹{{ "%.2f"|format(student.pending_amount) }}</span>
+                    </li>
+                    {% endfor %}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Payment Status Chart
+const paymentStatusCtx = document.getElementById('paymentStatusChart').getContext('2d');
+new Chart(paymentStatusCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Paid', 'Pending', 'Overdue'],
+    datasets: [{
+      data: [1, 2, 3], // Placeholder data
+      backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      }
+    }
+  }
+});
+
+// Revenue Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+new Chart(revenueCtx, {
+  type: 'line',
+  data: {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], // Placeholder labels
+    datasets: [{
+      label: 'Monthly Revenue',
+      data: [1000, 1200, 800, 1500, 1100, 1300], // Placeholder data
+      borderColor: '#007bff',
+      backgroundColor: 'rgba(0, 123, 255, 0.1)',
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: function(value) {
+            return '₹' + value;
+          }
+        }
+      }
+    }
+  }
+});
+
+// Update charts when time range changes
+document.getElementById('timeRange').addEventListener('change', function() {
+  // This would typically make an AJAX call to update the data
+  console.log('Time range changed to:', this.value);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Create Account - SCHOOL MANAGEMENT SYSTEM</title>
+    <meta name="theme-color" content="#007bff">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/premium.css') }}" rel="stylesheet">
+    <style>
+        :root {
+            --auth-bg: #030303;
+            --auth-surface: rgba(18, 18, 18, 0.7);
+            --auth-border: rgba(255, 255, 255, 0.08);
+            --auth-accent: #6366f1;
+            --auth-accent-glow: rgba(99, 102, 241, 0.4);
+            --auth-text: #ffffff;
+            --auth-text-dim: rgba(255, 255, 255, 0.5);
+            --auth-input-bg: rgba(255, 255, 255, 0.03);
+            --auth-input-focus: rgba(99, 102, 241, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--auth-bg);
+            color: var(--auth-text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .premium-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
+            z-index: -1;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            z-index: 1;
+            animation: authFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes authFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .register-card {
+            background: var(--auth-surface);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--auth-border);
+            border-radius: 28px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .register-header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .register-header p {
+            color: var(--auth-text-dim);
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .input-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--auth-text-dim);
+            font-size: 16px;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--auth-input-bg);
+            border: 1px solid var(--auth-border);
+            border-radius: 14px;
+            padding: 14px 14px 14px 48px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--auth-accent);
+            background: var(--auth-input-focus);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--auth-accent);
+        }
+
+        /* Custom Dropdown Styling */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .dropdown-selected {
+            width: 100%;
+            background: var(--auth-input-bg);
+            border: 1px solid var(--auth-border);
+            border-radius: 14px;
+            padding: 14px 14px 14px 48px;
+            color: var(--auth-text);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-selected:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .dropdown-selected.active {
+            border-color: var(--auth-accent);
+            background: var(--auth-input-focus);
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #121212;
+            border: 1px solid var(--auth-border);
+            border-radius: 16px;
+            padding: 8px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .dropdown-options.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-option {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-option:last-child {
+            margin-bottom: 0;
+        }
+
+        .dropdown-option:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .option-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 12px;
+        }
+
+        .admin-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .teacher-icon { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+        .parent-icon { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+
+        .option-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .option-desc {
+            font-size: 12px;
+            color: var(--auth-text-dim);
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: var(--auth-text-dim);
+            margin-top: 6px;
+            margin-left: 4px;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 16px;
+            background: var(--auth-accent);
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            background: #4f46e5;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--auth-text-dim);
+        }
+
+        .login-link a {
+            color: var(--auth-accent);
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            border: 1px solid transparent;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        @media (max-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .register-card {
+                padding: 30px 20px;
+            }
+            .register-header h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="premium-bg"></div>
+    
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <h1>Create Account</h1>
+                <p>Join the School Management System</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Registration Form -->
+            <form method="POST" enctype="multipart/form-data" id="registerForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                class="form-input"
+                                placeholder="Full Name"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-input"
+                                placeholder="Email Address"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                class="form-input"
+                                placeholder="Phone Number"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-map-marker-alt input-icon"></i>
+                            <input
+                                type="text"
+                                id="address"
+                                name="address"
+                                class="form-input"
+                                placeholder="Address"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <div class="input-wrapper">
+                            <i class="fas fa-user-shield input-icon"></i>
+                            <div class="custom-dropdown">
+                                <div class="dropdown-selected" id="accountTypeDropdown">
+                                    <span id="selectedText">Choose your role</span>
+                                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                </div>
+                                <div class="dropdown-options" id="dropdownOptions">
+                                    <div class="dropdown-option" data-value="admin">
+                                        <div class="option-icon admin-icon">👑</div>
+                                        <div class="option-text">
+                                            <div class="option-title">Administrator</div>
+                                            <div class="option-desc">System Administrator</div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-option" data-value="teacher">
+                                        <div class="option-icon teacher-icon">👨‍🏫</div>
+                                        <div class="option-text">
+                                            <div class="option-title">Teacher</div>
+                                            <div class="option-desc">Educational Staff</div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-option" data-value="parent">
+                                        <div class="option-icon parent-icon">👨‍👩‍👧‍👦</div>
+                                        <div class="option-text">
+                                            <div class="option-title">Parent</div>
+                                            <div class="option-desc">Guardian Access</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="account_type" name="account_type" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- School ID field (shown only for teachers) -->
+                    <div class="input-group full-width" id="schoolIdGroup" style="display: none;">
+                        <div class="input-wrapper">
+                            <i class="fas fa-school input-icon"></i>
+                            <input
+                                type="text"
+                                id="school_id"
+                                name="school_id"
+                                class="form-input"
+                                placeholder="5-Digit School ID (from administrator)"
+                                maxlength="5"
+                                pattern="[0-9]{5}"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div class="help-text">Enter the 5-digit School ID provided by your administrator</div>
+                    </div>
+
+                    <!-- Teacher Secret Key (for pre-added teachers) -->
+                    <div class="input-group full-width" id="teacherSecretGroup" style="display: none;">
+                        <div class="input-wrapper">
+                            <i class="fas fa-key input-icon"></i>
+                            <input
+                                type="text"
+                                id="teacher_secret_key"
+                                name="teacher_secret_key"
+                                class="form-input"
+                                placeholder="5-Digit Secret Key (from admin)"
+                                maxlength="5"
+                                pattern="[0-9]{5}"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div class="help-text">Enter the 5-digit secret key provided by your administrator</div>
+                    </div>
+
+                    <!-- Special Key field (shown only for parents) -->
+                    <div class="input-group full-width" id="specialKeyGroup" style="display: none;">
+                        <div class="input-wrapper">
+                            <i class="fas fa-key input-icon"></i>
+                            <input
+                                type="text"
+                                id="special_key"
+                                name="special_key"
+                                class="form-input"
+                                placeholder="Registration Key"
+                                style="text-transform: uppercase;"
+                            >
+                        </div>
+                        <div class="help-text">Contact school administration for parent registration key</div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Create Password"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                class="form-input"
+                                placeholder="Confirm Password"
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-register">
+                    <i class="fas fa-user-plus me-2"></i> Create Account
+                </button>
+            </form>
+
+            <div class="login-link">
+                Already have an account? <a href="{{ url_for('auth.login') }}">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Custom Notification System
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">${message}</div>
+            `;
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Custom Dropdown Functionality
+        const dropdownSelected = document.getElementById('accountTypeDropdown');
+        const dropdownOptions = document.getElementById('dropdownOptions');
+        const selectedText = document.getElementById('selectedText');
+        const accountTypeInput = document.getElementById('account_type');
+        const dropdownOptionElements = document.querySelectorAll('.dropdown-option');
+
+        dropdownSelected.addEventListener('click', function() {
+            dropdownSelected.classList.toggle('active');
+            dropdownOptions.classList.toggle('show');
+        });
+
+        dropdownOptionElements.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.dataset.value;
+                const title = this.querySelector('.option-title').textContent;
+                
+                accountTypeInput.value = value;
+                selectedText.textContent = title;
+                
+                dropdownSelected.classList.remove('active');
+                dropdownOptions.classList.remove('show');
+                
+                // Trigger change event for existing functionality
+                const event = new Event('change', { bubbles: true });
+                accountTypeInput.dispatchEvent(event);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.custom-dropdown')) {
+                dropdownSelected.classList.remove('active');
+                dropdownOptions.classList.remove('show');
+            }
+        });
+
+        // Account type change handler (updated for custom dropdown)
+        accountTypeInput.addEventListener('change', function() {
+            const accountType = this.value;
+            const schoolIdGroup = document.getElementById('schoolIdGroup');
+            const teacherSecretGroup = document.getElementById('teacherSecretGroup');
+            const specialKeyGroup = document.getElementById('specialKeyGroup');
+            
+            // Hide all additional fields first
+            schoolIdGroup.style.display = 'none';
+            teacherSecretGroup.style.display = 'none';
+            specialKeyGroup.style.display = 'none';
+            document.getElementById('school_id').required = false;
+            document.getElementById('teacher_secret_key').required = false;
+            document.getElementById('special_key').required = false;
+            
+            if (accountType === 'parent') {
+                specialKeyGroup.style.display = 'block';
+                document.getElementById('special_key').required = true;
+            } else if (accountType === 'teacher') {
+                schoolIdGroup.style.display = 'block';
+                document.getElementById('school_id').required = true;
+                document.getElementById('teacherSecretGroup').style.display = 'block';
+                document.getElementById('teacher_secret_key').required = true;
+            }
+        });
+
+        // Autofill teacher details when school_id + teacher_secret_key entered
+        (function() {
+            const secretEl = document.getElementById('teacher_secret_key');
+            const schoolEl = document.getElementById('school_id');
+            const nameEl = document.getElementById('name');
+            const emailEl = document.getElementById('email');
+            const phoneEl = document.getElementById('phone');
+            const addressEl = document.getElementById('address');
+
+            if (!secretEl || !schoolEl) return;
+            let timer = null;
+            function debounceLookup() {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const secret = (secretEl.value || '').trim();
+                    const school = (schoolEl.value || '').trim();
+                    if (!/^[0-9]{5}$/.test(secret) || !/^[0-9]{5}$/.test(school)) return;
+                    const url = `/auth/teacher-lookup?school_id=${encodeURIComponent(school)}&secret_key=${encodeURIComponent(secret)}`;
+                    fetch(url, { credentials: 'same-origin' })
+                        .then(r => r.json().then(b => ({status: r.status, body: b})))
+                        .then(({status, body}) => {
+                            if (status === 200 && body.found) {
+                                if (!nameEl.value) nameEl.value = body.name || '';
+                                if (!emailEl.value) emailEl.value = body.email || '';
+                                if (!phoneEl.value) phoneEl.value = body.phone || '';
+                                if (!addressEl.value && body.address) addressEl.value = body.address || '';
+                            }
+                        })
+                        .catch(() => {});
+                }, 400);
+            }
+
+            secretEl.addEventListener('input', debounceLookup);
+            schoolEl.addEventListener('input', debounceLookup);
+        })();
+
+        // Form validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const accountType = document.getElementById('account_type').value;
+            const specialKey = document.getElementById('special_key').value.trim();
+            const schoolId = document.getElementById('school_id').value.trim();
+            
+            // Name validation
+            if (!name) {
+                e.preventDefault();
+                showAlert('Please enter your full name', 'danger');
+                return false;
+            }
+
+            if (name.length < 2) {
+                e.preventDefault();
+                showAlert('Name must be at least 2 characters long', 'danger');
+                return false;
+            }
+
+            // Email validation
+            if (!email) {
+                e.preventDefault();
+                showAlert('Please enter your email address', 'danger');
+                return false;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                e.preventDefault();
+                showAlert('Please enter a valid email address', 'danger');
+                return false;
+            }
+
+            // Phone validation
+            if (!phone) {
+                e.preventDefault();
+                showAlert('Please enter your phone number', 'danger');
+                return false;
+            }
+
+            // Account type validation
+            if (!accountType) {
+                e.preventDefault();
+                showAlert('Please select your account type', 'danger');
+                return false;
+            }
+
+            // Password validation
+            if (!password) {
+                e.preventDefault();
+                showAlert('Please create a password', 'danger');
+                return false;
+            }
+
+            if (password.length < 6) {
+                e.preventDefault();
+                showAlert('Password must be at least 6 characters long', 'warning');
+                return false;
+            }
+
+            // Confirm password validation
+            if (!confirmPassword) {
+                e.preventDefault();
+                showAlert('Please confirm your password', 'danger');
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                showAlert('Passwords do not match', 'danger');
+                return false;
+            }
+
+            // Special key validation for parents
+            if (accountType === 'parent' && !specialKey) {
+                e.preventDefault();
+                showAlert('Special registration key is required for parent accounts', 'danger');
+                return false;
+            }
+
+            // School ID validation for teachers
+            if (accountType === 'teacher' && schoolId) {
+                if (schoolId.length !== 5 || !/^\d{5}$/.test(schoolId)) {
+                    e.preventDefault();
+                    showAlert('School ID must be exactly 5 digits', 'danger');
+                    return false;
+                }
+            }
+
+            // Teacher secret key validation for pre-added teachers
+            const teacherSecret = document.getElementById('teacher_secret_key').value.trim();
+            if (accountType === 'teacher' && teacherSecret) {
+                if (!/^\d{5}$/.test(teacherSecret)) {
+                    e.preventDefault();
+                    showAlert('Secret key must be exactly 5 digits', 'danger');
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    </script>
+</body>
+</html>

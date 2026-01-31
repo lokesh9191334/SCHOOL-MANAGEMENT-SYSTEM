@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-lg-9">
+      <div class="card shadow-lg">
+        <div class="card-header bg-gradient-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Advanced Fee Management System</h5>
+          <small class="text-white-50">Professional fee creation with premium features</small>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                  <i class="fas fa-graduation-cap me-2"></i>Basic Information
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab">
+                  <i class="fas fa-credit-card me-2"></i>Payment Settings
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="premium-tab" data-bs-toggle="tab" data-bs-target="#premium" type="button" role="tab">
+                  <i class="fas fa-star me-2"></i>Premium Features
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab">
+                  <i class="fas fa-briefcase me-2"></i>Professional
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab">
+                  <i class="fas fa-cogs me-2"></i>Advanced
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content">
+              <!-- Basic Information Tab -->
+              <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                <div class="card mb-3 border-info">
+                  <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-user-check me-2"></i>Student & Fee Details</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="student_id" class="form-label fw-bold">Student <span class="badge bg-danger">Required</span></label>
+                        <select class="form-select form-select-lg" id="student_id" name="student_id" required>
+                          <option value="">-- Select Student --</option>
+                          {% for s in students %}
+                            <option value="{{ s.id }}">{{ s.full_name() if s.full_name else s.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="amount" class="form-label fw-bold">Amount <span class="badge bg-danger">Required</span></label>
+                        <div class="input-group input-group-lg">
+                          <span class="input-group-text">$</span>
+                          <input type="number" class="form-control" id="amount" name="amount" step="0.01" placeholder="0.00" required />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="fee_type_id" class="form-label fw-bold">Fee Type <span class="badge bg-danger">Required</span></label>
+                        <select class="form-select form-select-lg" id="fee_type_id" name="fee_type_id" required>
+                          <option value="">-- Select Fee Type --</option>
+                          {% for ft in fee_types %}
+                            <option value="{{ ft.id }}">{{ ft.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="due_date" class="form-label fw-bold">Due Date</label>
+                        <input type="date" class="form-control form-control-lg" id="due_date" name="due_date" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Payment Settings Tab -->
+              <div class="tab-pane fade" id="payment" role="tabpanel">
+                <div class="card mb-3 border-success">
+                  <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Installment & Payment Options</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_discount" name="enable_discount">
+                          <label class="form-check-label" for="enable_discount">
+                            <strong>Apply Early Payment Discount</strong>
+                            <br><small class="text-muted">Reward early payers</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="discount_percentage" class="form-label fw-bold">Discount Percentage (%)</label>
+                        <input type="number" class="form-control form-control-lg" id="discount_percentage" name="discount_percentage" step="0.01" placeholder="0.00" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Premium Features Tab -->
+              <div class="tab-pane fade" id="premium" role="tabpanel">
+                <div class="card mb-3 border-warning">
+                  <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-star me-2"></i>Premium Features</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="auto_reminder" name="auto_reminder" checked>
+                          <label class="form-check-label" for="auto_reminder">
+                            <strong>Automatic Payment Reminders</strong>
+                            <br><small class="text-muted">Send SMS/Email reminders before due date</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="payment_gateway" name="payment_gateway" checked>
+                          <label class="form-check-label" for="payment_gateway">
+                            <strong>Online Payment Gateway</strong>
+                            <br><small class="text-muted">Accept credit card, debit card, UPI</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="payment_receipt" name="payment_receipt" checked>
+                          <label class="form-check-label" for="payment_receipt">
+                            <strong>Digital Receipt Generation</strong>
+                            <br><small class="text-muted">Auto-generate and email receipts</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="payment_tracking" name="payment_tracking" checked>
+                          <label class="form-check-label" for="payment_tracking">
+                            <strong>Real-time Payment Tracking</strong>
+                            <br><small class="text-muted">Live payment status updates</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="payment_plan_wizard" name="payment_plan_wizard">
+                          <label class="form-check-label" for="payment_plan_wizard">
+                            <strong>Smart Payment Plan Wizard</strong>
+                            <br><small class="text-muted">AI-recommended payment schedules</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="multi_currency" name="multi_currency">
+                          <label class="form-check-label" for="multi_currency">
+                            <strong>Multi-Currency Support</strong>
+                            <br><small class="text-muted">Support international payments</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Professional Tab -->
+              <div class="tab-pane fade" id="professional" role="tabpanel">
+                <div class="card mb-3 border-primary">
+                  <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-briefcase me-2"></i>Professional Management Tools</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="bulk_fee_generation" name="bulk_fee_generation">
+                          <label class="form-check-label" for="bulk_fee_generation">
+                            <strong>Bulk Fee Generation</strong>
+                            <br><small class="text-muted">Create fees for multiple students at once</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="fee_templates" name="fee_templates" checked>
+                          <label class="form-check-label" for="fee_templates">
+                            <strong>Fee Templates</strong>
+                            <br><small class="text-muted">Save and reuse fee configurations</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="dunning_management" name="dunning_management" checked>
+                          <label class="form-check-label" for="dunning_management">
+                            <strong>Dunning Management</strong>
+                            <br><small class="text-muted">Automated collection & followup</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="audit_trail" name="audit_trail" checked>
+                          <label class="form-check-label" for="audit_trail">
+                            <strong>Complete Audit Trail</strong>
+                            <br><small class="text-muted">Track all fee modifications and payments</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="financial_reports" name="financial_reports" checked>
+                          <label class="form-check-label" for="financial_reports">
+                            <strong>Advanced Financial Reports</strong>
+                            <br><small class="text-muted">Detailed revenue & collection analytics</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="webhook_integration" name="webhook_integration">
+                          <label class="form-check-label" for="webhook_integration">
+                            <strong>Webhook Integration</strong>
+                            <br><small class="text-muted">Connect with external billing systems</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Advanced Tab -->
+              <div class="tab-pane fade" id="advanced" role="tabpanel">
+                <div class="card mb-3 border-danger">
+                  <div class="card-header bg-danger text-white">
+                    <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Advanced Configuration</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-3">
+                      <label for="description" class="form-label fw-bold">Fee Description & Notes</label>
+                      <textarea class="form-control" id="description" name="description" rows="4" placeholder="Enter detailed notes, terms & conditions..."></textarea>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="priority" class="form-label fw-bold">Priority Level</label>
+                        <select class="form-select form-select-lg" id="priority" name="priority">
+                          <option value="low">Low</option>
+                          <option value="medium" selected>Medium</option>
+                          <option value="high">High</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="fee_category" class="form-label fw-bold">Fee Category</label>
+                        <select class="form-select form-select-lg" id="fee_category" name="fee_category">
+                          <option value="">-- Select Category --</option>
+                          <option value="tuition">Tuition</option>
+                          <option value="transport">Transport</option>
+                          <option value="meals">Meals</option>
+                          <option value="uniform">Uniform</option>
+                          <option value="activities">Activities</option>
+                          <option value="examination">Examination</option>
+                          <option value="library">Library</option>
+                          <option value="sports">Sports</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                      <i class="fas fa-info-circle me-2"></i>
+                      <strong>Pro Tip:</strong> Use the "Fee Category" dropdown to organize and filter fees by type.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+              <a class="btn btn-secondary btn-lg" href="{{ url_for('fees.list_fees') }}">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save me-2"></i>Create Advanced Fee
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Overview Panel -->
+    <div class="col-lg-3">
+      <div class="card shadow-lg mb-3 sticky-top" style="top: 20px;">
+        <div class="card-header bg-dark text-white">
+          <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Feature Overview</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>Basic</h6>
+            <p class="small text-muted">Standard fee creation with student and amount</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="text-info"><i class="fas fa-check-circle me-2"></i>Payment</h6>
+            <p class="small text-muted">Installments, late fees, early discounts</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="text-warning"><i class="fas fa-star me-2"></i>Premium</h6>
+            <p class="small text-muted">Auto-reminders, online payments, receipts, AI planning</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="text-primary"><i class="fas fa-briefcase me-2"></i>Professional</h6>
+            <p class="small text-muted">Bulk creation, templates, dunning, analytics, webhooks</p>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="text-danger"><i class="fas fa-cogs me-2"></i>Advanced</h6>
+            <p class="small text-muted">Tax settings, priority levels, categories, custom notes</p>
+          </div>
+
+          <hr>
+          <div class="alert alert-success small mb-0">
+            <strong>✓ All Features Enabled</strong><br>
+            Your institution has access to all premium and professional features.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .nav-link {
+    color: #495057;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+  }
+  
+  .nav-link:hover {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+  }
+  
+  .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+  }
+  
+  .form-check-lg .form-check-input {
+    width: 1.5em;
+    height: 1.5em;
+    margin-top: 0.25em;
+  }
+  
+  .form-check-lg .form-check-label {
+    padding-left: 0.5em;
+  }
+  
+  .sticky-top {
+    top: 20px;
+  }
+</style>
+{% endblock %}

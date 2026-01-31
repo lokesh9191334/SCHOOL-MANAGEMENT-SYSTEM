@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Teachers to Classes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Assign Teachers to Classes</h3>
+                </div>
+                <div class="card-body">
+                    <form id="classTeacherForm" method="POST" action="{{ url_for('classes.assign_teachers') }}">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="class_name">Class</label>
+                                    <select class="form-control select2" id="class_name" name="class_name" required>
+                                        <option value="">Select Class</option>
+                                        {% for class in classes %}
+                                            <option value="{{ class.name }}">{{ class.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="section">Section</label>
+                                    <select class="form-control select2" id="section" name="section" required>
+                                        <option value="">Select Section</option>
+                                        {% for section in sections %}
+                                            <option value="{{ section }}">{{ section }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" id="loadTeachersBtn" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Load Teachers
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="teacherAssignmentSection" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h4 class="card-title">Available Teachers</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-group">
+                                                <input type="text" class="form-control mb-3" id="teacherSearch" placeholder="Search teachers...">
+                                            </div>
+                                            <div id="availableTeachers" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                                                <!-- Available teachers will be loaded here -->
+                                                <div class="text-center text-muted p-3">
+                                                    Select class and section to see available teachers
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h4 class="card-title">Assigned Teachers</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="assignedTeachers" class="list-group" style="min-height: 100px;">
+                                                <!-- Assigned teachers will be shown here -->
+                                                <div class="text-center text-muted p-3">
+                                                    No teachers assigned yet
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <button type="submit" class="btn btn-success" id="saveBtn" disabled>
+                                                    <i class="fas fa-save"></i> Save Assignments
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teacher Item Template (Hidden) -->
+<template id="teacherItemTemplate">
+    <div class="list-group-item d-flex justify-content-between align-items-center teacher-item">
+        <div>
+            <h6 class="mb-0 teacher-name"></h6>
+            <small class="text-muted teacher-subject"></small>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary assign-btn">
+            <i class="fas fa-arrow-right"></i> Assign
+        </button>
+    </div>
+</template>
+
+<!-- Assigned Teacher Item Template (Hidden) -->
+<template id="assignedTeacherTemplate">
+    <div class="list-group-item d-flex justify-content-between align-items-center assigned-teacher">
+        <div>
+            <h6 class="mb-0 teacher-name"></h6>
+            <small class="text-muted teacher-subject"></small>
+        </div>
+        <input type="hidden" name="teacher_ids" value="">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-btn">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Handle load teachers button click
+    $('#loadTeachersBtn').click(function() {
+        const className = $('#class_name').val();
+        const section = $('#section').val();
+        
+        if (!className || !section) {
+            alert('Please select both class and section');
+            return;
+        }
+        
+        // Show loading state
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Loading...');
+        
+        // Fetch teachers for the selected class and section
+        $.get(`/classes/get_teachers_by_class_section?class_name=${encodeURIComponent(className)}&section=${encodeURIComponent(section)}`)
+            .done(function(response) {
+                const availableTeachers = $('#availableTeachers');
+                const assignedTeachers = $('#assignedTeachers');
+                const teacherTemplate = $('#teacherItemTemplate').html();
+                const assignedTemplate = $('#assignedTeacherTemplate').html();
+                
+                // Clear previous results
+                availableTeachers.empty();
+                assignedTeachers.empty();
+                
+                if (response.available && response.available.length > 0) {
+                    // Add available teachers
+                    response.available.forEach(function(teacher) {
+                        const $teacher = $(teacherTemplate);
+                        $teacher.find('.teacher-name').text(teacher.name);
+                        $teacher.find('.teacher-subject').text(teacher.subject || 'No subject specified');
+                        $teacher.data('teacher-id', teacher.id);
+                        availableTeachers.append($teacher);
+                    });
+                } else {
+                    availableTeachers.html('<div class="text-center text-muted p-3">No teachers available</div>');
+                }
+                
+                if (response.assigned && response.assigned.length > 0) {
+                    // Add assigned teachers
+                    response.assigned.forEach(function(teacher) {
+                        const $assigned = $(assignedTemplate);
+                        $assigned.find('.teacher-name').text(teacher.name);
+                        $assigned.find('.teacher-subject').text(teacher.subject || 'No subject specified');
+                        $assigned.find('input').val(teacher.id);
+                        $assigned.data('teacher-id', teacher.id);
+                        assignedTeachers.append($assigned);
+                    });
+                    $('#saveBtn').prop('disabled', false);
+                } else {
+                    assignedTeachers.html('<div class="text-center text-muted p-3">No teachers assigned yet</div>');
+                }
+                
+                // Show the assignment section
+                $('#teacherAssignmentSection').show();
+            })
+            .fail(function() {
+                alert('Error loading teachers. Please try again.');
+            })
+            .always(function() {
+                $btn.prop('disabled', false).html('<i class="fas fa-search"></i> Load Teachers');
+            });
+    });
+    
+    // Handle teacher search
+    $('#teacherSearch').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        $('.teacher-item').each(function() {
+            const $item = $(this);
+            const name = $item.find('.teacher-name').text().toLowerCase();
+            const subject = $item.find('.teacher-subject').text().toLowerCase();
+            
+            if (name.includes(searchTerm) || subject.includes(searchTerm)) {
+                $item.show();
+            } else {
+                $item.hide();
+            }
+        });
+    });
+    
+    // Handle assign teacher
+    $(document).on('click', '.assign-btn', function() {
+        const $teacherItem = $(this).closest('.teacher-item');
+        const teacherId = $teacherItem.data('teacher-id');
+        const teacherName = $teacherItem.find('.teacher-name').text();
+        const teacherSubject = $teacherItem.find('.teacher-subject').text();
+        
+        // Check if already assigned
+        if ($(`.assigned-teacher[data-teacher-id="${teacherId}"]`).length > 0) {
+            return;
+        }
+        
+        // Create assigned teacher item
+        const assignedTemplate = $('#assignedTeacherTemplate').html();
+        const $assigned = $(assignedTemplate);
+        $assigned.find('.teacher-name').text(teacherName);
+        $assigned.find('.teacher-subject').text(teacherSubject);
+        $assigned.find('input').val(teacherId);
+        $assigned.data('teacher-id', teacherId);
+        
+        // Add to assigned list
+        const $assignedTeachers = $('#assignedTeachers');
+        if ($assignedTeachers.find('.text-muted').length > 0) {
+            $assignedTeachers.empty();
+        }
+        $assignedTeachers.append($assigned);
+        
+        // Remove from available
+        $teacherItem.remove();
+        
+        // Enable save button
+        $('#saveBtn').prop('disabled', false);
+    });
+    
+    // Handle remove assigned teacher
+    $(document).on('click', '.remove-btn', function() {
+        const $assignedTeacher = $(this).closest('.assigned-teacher');
+        const teacherId = $assignedTeacher.data('teacher-id');
+        const teacherName = $assignedTeacher.find('.teacher-name').text();
+        const teacherSubject = $assignedTeacher.find('.teacher-subject').text();
+        
+        // Add back to available teachers
+        const teacherTemplate = $('#teacherItemTemplate').html();
+        const $teacher = $(teacherTemplate);
+        $teacher.find('.teacher-name').text(teacherName);
+        $teacher.find('.teacher-subject').text(teacherSubject);
+        $teacher.data('teacher-id', teacherId);
+        
+        const $availableTeachers = $('#availableTeachers');
+        if ($availableTeachers.find('.text-muted').length > 0) {
+            $availableTeachers.empty();
+        }
+        $availableTeachers.prepend($teacher);
+        
+        // Remove from assigned
+        $assignedTeacher.remove();
+        
+        // If no more assigned teachers, show message
+        if ($('#assignedTeachers .assigned-teacher').length === 0) {
+            $('#assignedTeachers').html('<div class="text-center text-muted p-3">No teachers assigned yet</div>');
+            $('#saveBtn').prop('disabled', true);
+        }
+    });
+    
+    // Handle form submission
+    $('#classTeacherForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const $form = $(this);
+        const $btn = $('#saveBtn');
+        
+        // Show loading state
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+        
+        // Submit form via AJAX
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: $form.serialize(),
+            success: function(response) {
+                // Show success message
+                const $alert = $(`
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        Teachers assigned successfully!
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                `);
+                $('.card-body').prepend($alert);
+                
+                // Auto-hide alert after 3 seconds
+                setTimeout(function() {
+                    $alert.alert('close');
+                }, 3000);
+            },
+            error: function() {
+                alert('Error saving assignments. Please try again.');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('<i class="fas fa-save"></i> Save Assignments');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

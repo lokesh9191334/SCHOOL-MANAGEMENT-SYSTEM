@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working QR Code Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Working QR Code Test</h1>
+        <p>Enter amount and click "Generate QR Code" to create a working UPI payment QR code.</p>
+
+        <div>
+            <label for="amount">Amount (₹):</label>
+            <input type="number" id="amount" placeholder="Enter amount" value="100">
+        </div>
+
+        <button class="btn" onclick="generateQRCode()">Generate QR Code</button>
+
+        <div class="qr-container" id="qrContainer">
+            <p>QR Code will appear here</p>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function generateQRCode() {
+            const amount = document.getElementById('amount').value;
+            const upiId = 'lk5278127-1@okicici';
+            const merchantName = 'Bank of Baroda';
+
+            // Create UPI URL
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR`;
+
+            // Use Google Charts API for reliable QR code generation
+            const qrImageUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(upiUrl)}&choe=UTF-8`;
+
+            const qrContainer = document.getElementById('qrContainer');
+            const statusDiv = document.getElementById('status');
+
+            // Clear previous content
+            qrContainer.innerHTML = '';
+
+            // Create and display QR code image
+            const img = document.createElement('img');
+            img.src = qrImageUrl;
+            img.alt = 'UPI Payment QR Code';
+            img.style.cssText = 'max-width: 100%; height: auto; border: 2px solid #007bff; border-radius: 10px;';
+
+            img.onload = function() {
+                qrContainer.appendChild(img);
+                statusDiv.innerHTML = '<p style="color: green; text-align: center;">✅ QR Code Generated Successfully!<br>Scan with any UPI app to pay ₹' + amount + '</p>';
+            };
+
+            img.onerror = function() {
+                qrContainer.innerHTML = '<p style="color: red;">❌ Failed to generate QR code. Please try again.</p>';
+            };
+        }
+    </script>
+</body>
+</html>

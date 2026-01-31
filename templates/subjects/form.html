@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-lg-9">
+      <div class="card shadow-lg border-0">
+        <div class="card-header bg-dark text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="fas fa-crown me-2 text-warning"></i>Premium Subject Management</h4>
+            <span class="badge bg-warning text-dark">PRO</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs nav-fill mb-4" role="tablist">
+              <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#basic" type="button">
+                  <i class="fas fa-info-circle me-2"></i>Basic Info
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#advanced" type="button">
+                  <i class="fas fa-rocket me-2"></i>Advanced
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content">
+              <!-- Basic Information Tab -->
+              <div class="tab-pane fade show active" id="basic">
+                <div class="card mb-3 border-info">
+                  <div class="card-body">
+                    <h6 class="card-title text-info"><i class="fas fa-book me-2"></i>Subject Details</h6>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label fw-bold">Subject Name <span class="badge bg-danger">Required</span></label>
+                        <input type="text" class="form-control form-control-lg" id="name" name="name" placeholder="e.g., Advanced Mathematics" required />
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="stream" class="form-label fw-bold">Stream (For 11th & 12th)</label>
+                        <select class="form-select form-select-lg" id="stream" name="stream">
+                          <option value="">-- Select Stream (Optional) --</option>
+                          <option value="Medical">Medical</option>
+                          <option value="Non-Medical">Non-Medical</option>
+                          <option value="Arts">Arts</option>
+                          <option value="Commerce">Commerce</option>
+                          <option value="Arts with Math">Arts with Math</option>
+                          <option value="Commerce with Math">Commerce with Math</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="description" class="form-label fw-bold">Comprehensive Description</label>
+                      <textarea class="form-control" id="description" name="description" rows="4" placeholder="Detailed overview of the subject, including scope, objectives, and target audience..."></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card mb-3 border-success">
+                  <div class="card-body">
+                    <h6 class="card-title text-success"><i class="fas fa-users me-2"></i>Assignment</h6>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="teacher_id" class="form-label fw-bold">Lead Instructor <span class="badge bg-danger">Required</span></label>
+                        <select class="form-select form-select-lg" id="teacher_id" name="teacher_id" required>
+                          <option value="">-- Select Teacher --</option>
+                          {% for t in teachers %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="classroom_id" class="form-label fw-bold">Target Class/Grade <span class="badge bg-danger">Required</span></label>
+                        <select class="form-select form-select-lg" id="classroom_id" name="classroom_id" required>
+                          <option value="">-- Select Class --</option>
+                          {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="co_instructors" class="form-label fw-bold">Co-Instructors (Optional)</label>
+                      <input type="text" class="form-control" id="co_instructors" name="co_instructors" placeholder="Names of supporting instructors, comma-separated" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Existing Subjects List -->
+                <div class="card mb-3 border-secondary">
+                  <div class="card-body">
+                    <h6 class="card-title text-secondary"><i class="fas fa-list me-2"></i>Existing Subjects</h6>
+                    <div class="table-responsive">
+                      <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Subject Name</th>
+                            <th>Stream</th>
+                            <th>Teacher</th>
+                            <th>Class</th>
+                            <th class="text-center">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% if subjects %}
+                            {% for subject in subjects %}
+                            <tr>
+                              <td><strong>{{ subject.name }}</strong></td>
+                              <td>{% if subject.stream %}<span class="badge bg-info">{{ subject.stream }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                              <td>{{ subject.teacher.name if subject.teacher else 'N/A' }}</td>
+                              <td>{{ subject.classroom.name if subject.classroom else 'N/A' }}</td>
+                              <td class="text-center">
+                                <a href="{{ url_for('subjects.edit_subject', subject_id=subject.id) }}" class="btn btn-sm btn-primary" title="Edit">
+                                  <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('subjects.delete_subject', subject_id=subject.id) }}" style="display:inline;" onsubmit="return confirm('Delete this subject?')">
+                                  <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                            {% endfor %}
+                          {% else %}
+                            <tr>
+                              <td colspan="5" class="text-center text-muted py-3">
+                                <i class="fas fa-inbox"></i> No subjects added yet. Create your first one!
+                              </td>
+                            </tr>
+                          {% endif %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Advanced Features Tab -->
+              <div class="tab-pane fade" id="advanced">
+                <div class="card mb-3 border-warning">
+                  <div class="card-body">
+                    <h6 class="card-title text-warning"><i class="fas fa-tools me-2"></i>Subject Settings</h6>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="is_mandatory" name="is_mandatory">
+                          <label class="form-check-label" for="is_mandatory">
+                            <strong>Mandatory Subject</strong>
+                            <br><small class="text-muted">Required for all students</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                          <label class="form-check-label" for="is_active">
+                            <strong>Active Subject</strong>
+                            <br><small class="text-muted">Currently available</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_attendance" name="enable_attendance" checked>
+                          <label class="form-check-label" for="enable_attendance">
+                            <strong>Attendance Tracking</strong>
+                            <br><small class="text-muted">Monitor student attendance</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_assignments" name="enable_assignments" checked>
+                          <label class="form-check-label" for="enable_assignments">
+                            <strong>Assignments Module</strong>
+                            <br><small class="text-muted">Enable assignment tracking</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_projects" name="enable_projects">
+                          <label class="form-check-label" for="enable_projects">
+                            <strong>Project-Based Learning</strong>
+                            <br><small class="text-muted">Enable project submissions</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_peer_review" name="enable_peer_review">
+                          <label class="form-check-label" for="enable_peer_review">
+                            <strong>Peer Review</strong>
+                            <br><small class="text-muted">Enable peer assessment</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card mb-3 border-danger">
+                  <div class="card-body">
+                    <h6 class="card-title text-danger"><i class="fas fa-rocket me-2"></i>Premium Features</h6>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_ai_grading" name="enable_ai_grading">
+                          <label class="form-check-label" for="enable_ai_grading">
+                            <strong><i class="fas fa-brain text-primary"></i> AI-Powered Grading</strong>
+                            <br><small class="text-muted">Auto-grade with AI assistance</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_adaptive_learning" name="enable_adaptive_learning">
+                          <label class="form-check-label" for="enable_adaptive_learning">
+                            <strong><i class="fas fa-adjust text-info"></i> Adaptive Learning</strong>
+                            <br><small class="text-muted">Personalized learning paths</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_analytics" name="enable_analytics">
+                          <label class="form-check-label" for="enable_analytics">
+                            <strong><i class="fas fa-chart-line text-success"></i> Advanced Analytics</strong>
+                            <br><small class="text-muted">Detailed performance metrics</small>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="enable_gamification" name="enable_gamification">
+                          <label class="form-check-label" for="enable_gamification">
+                            <strong><i class="fas fa-trophy text-warning"></i> Gamification</strong>
+                            <br><small class="text-muted">Badges, points, leaderboards</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card mb-3 border-info">
+                  <div class="card-body">
+                    <h6 class="card-title text-info"><i class="fas fa-level-up-alt me-2"></i>Difficulty & Classification</h6>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="difficulty_level" class="form-label fw-bold">Difficulty Level</label>
+                        <select class="form-select" id="difficulty_level" name="difficulty_level">
+                          <option value="">-- Select --</option>
+                          <option value="foundational">Foundational</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                          <option value="expert">Expert/Specialized</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="subject_category" class="form-label fw-bold">Subject Category</label>
+                        <select class="form-select" id="subject_category" name="subject_category">
+                          <option value="">-- Select --</option>
+                          <option value="stem">STEM</option>
+                          <option value="humanities">Humanities</option>
+                          <option value="social_sciences">Social Sciences</option>
+                          <option value="arts">Arts & Design</option>
+                          <option value="commerce">Commerce & Business</option>
+                          <option value="professional">Professional Development</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between mt-4 pt-4 border-top">
+              <a href="{{ url_for('subjects.list_subjects') }}" class="btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Back to Subjects
+              </a>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-check me-2"></i>Create Premium Subject
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Professional Sidebar -->
+    <div class="col-lg-3">
+      <div class="card shadow-lg mb-3 border-0 bg-gradient-primary text-white">
+        <div class="card-body">
+          <h6 class="card-title mb-3"><i class="fas fa-star me-2"></i>Premium Benefits</h6>
+          <ul class="list-unstyled small">
+            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>AI-Powered Grading</li>
+            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Adaptive Learning Paths</li>
+            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced Analytics</li>
+            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Gamification System</li>
+            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Peer Review Tools</li>
+            <li class="mb-2"><i class="fas fa-check text-success me-2"></i>ILO Alignment</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card shadow-lg mb-3 border-0">
+        <div class="card-header bg-dark text-white">
+          <h6 class="mb-0"><i class="fas fa-book me-2"></i>Required Fields</h6>
+        </div>
+        <div class="card-body small">
+          <p class="mb-2"><span class="badge bg-danger">Required</span></p>
+          <ul class="list-unstyled">
+            <li>• Subject Name</li>
+            <li>• Subject Code</li>
+            <li>• Lead Instructor</li>
+            <li>• Target Class</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card shadow-lg mb-3 border-0 bg-light">
+        <div class="card-header bg-success text-white">
+          <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Expert Tips</h6>
+        </div>
+        <div class="card-body small">
+          <div class="mb-3">
+            <strong>ILOs:</strong> Define clear, measurable learning outcomes aligned with Bloom's taxonomy.
+          </div>
+          <div class="mb-3">
+            <strong>Assessment:</strong> Ensure assessment breakdown totals 100% for proper weighting.
+          </div>
+          <div class="mb-3">
+            <strong>Resources:</strong> Include diverse, updated reference materials.
+          </div>
+          <div>
+            <strong>Premium:</strong> Enable AI and analytics for enhanced learning experiences.
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-lg border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Quality Score</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="small">Completeness</span>
+              <span class="small fw-bold">0%</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar" role="progressbar" style="width: 0%" id="completenessBar"></div>
+            </div>
+          </div>
+          <small class="text-muted">Fill in more fields to improve quality score</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+  }
+
+  .card {
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+  }
+
+  .form-control-lg, .form-select-lg {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .nav-tabs .nav-link {
+    border: none;
+    border-radius: 0.5rem 0.5rem 0 0;
+    background: #f8f9fa;
+    margin-right: 0.5rem;
+  }
+
+  .nav-tabs .nav-link.active {
+    background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+    color: white;
+  }
+
+  .form-check-lg .form-check-input {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+  }
+</style>
+
+<script>
+  // Calculate completeness
+  function updateCompleteness() {
+    const requiredFields = ['name', 'code', 'teacher_id', 'classroom_id'];
+    const filled = requiredFields.filter(field => document.getElementById(field).value).length;
+    const percentage = (filled / requiredFields.length) * 100;
+    document.getElementById('completenessBar').style.width = percentage + '%';
+  }
+
+  document.querySelectorAll('#name, #code, #teacher_id, #classroom_id').forEach(field => {
+    field.addEventListener('input', updateCompleteness);
+    field.addEventListener('change', updateCompleteness);
+  });
+
+  // Form validation
+  (function() {
+    'use strict';
+    window.addEventListener('load', function() {
+      var forms = document.querySelectorAll('.needs-validation');
+      Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    }, false);
+  })();
+</script>
+{% endblock %}

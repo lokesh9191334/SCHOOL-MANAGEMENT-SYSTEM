@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2><i class="fas fa-bell"></i> Communication System</h2>
+            <p class="text-muted">Manage notifications, SMS, and Email alerts</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Send New Notification</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('notifications.send_custom') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Recipient Type</label>
+                            <select class="form-select" name="recipient_type">
+                                <option value="all_parents">All Parents</option>
+                                <option value="all_teachers">All Teachers</option>
+                                <option value="specific_class">Specific Class</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Channel</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="channels" value="email" checked>
+                                <label class="form-check-label">Email</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="channels" value="sms">
+                                <label class="form-check-label">SMS</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="channels" value="push">
+                                <label class="form-check-label">App Notification</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <input type="text" class="form-control" name="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message</label>
+                            <textarea class="form-control" name="message" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Send Notification</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Notifications History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Subject</th>
+                                    <th>Recipients</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Mock Data for Preview -->
+                                <tr>
+                                    <td>2023-10-25</td>
+                                    <td><span class="badge bg-info">Email</span></td>
+                                    <td>Parent-Teacher Meeting Reminder</td>
+                                    <td>Class 10 Parents</td>
+                                    <td><span class="badge bg-success">Sent</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2023-10-24</td>
+                                    <td><span class="badge bg-warning text-dark">SMS</span></td>
+                                    <td>School Closed Tomorrow</td>
+                                    <td>All Parents</td>
+                                    <td><span class="badge bg-success">Sent</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2023-10-22</td>
+                                    <td><span class="badge bg-primary">App</span></td>
+                                    <td>Exam Schedule Released</td>
+                                    <td>All Students</td>
+                                    <td><span class="badge bg-success">Sent</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

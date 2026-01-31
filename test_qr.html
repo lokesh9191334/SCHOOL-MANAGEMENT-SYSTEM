@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>QR Code Test</h1>
+    <div id="qrCode" style="width: 300px; height: 300px; margin: 20px; background: #f0f0f0; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center;">
+        <div>QR Code will appear here</div>
+    </div>
+    <button onclick="generateQR()">Generate QR Code</button>
+
+    <script>
+        function generateQR() {
+            const qrContainer = document.getElementById('qrCode');
+            const upiUrl = 'upi://pay?pa=lk5278127-1@okicici&pn=Bank%20of%20Baroda&am=100&cu=INR&tn=Test%20Payment';
+
+            console.log('Generating QR for:', upiUrl);
+
+            try {
+                QRCode.toCanvas(qrContainer, upiUrl, {
+                    width: 250,
+                    height: 250,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                console.log('QR Code generated successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                qrContainer.innerHTML = '<div style="color: red;">Error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

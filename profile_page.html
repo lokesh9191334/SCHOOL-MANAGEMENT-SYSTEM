@@ -1,0 +1,1322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SCHOOL MANAGEMENT SYSTEM</title>
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SchoolMS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" sizes="152x152" href="/static/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/icon-192x192.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/mobile-pwa.css" rel="stylesheet">
+    <link href="/static/css/settings.css" rel="stylesheet">
+    <link href="/static/css/premium.css" rel="stylesheet">
+    <link href="/static/css/sidebar.css?v=1.2" rel="stylesheet">
+    <link href="/static/css/dashboard_desktop.css" rel="stylesheet">
+    
+  </head>
+  <body>
+    
+    
+        <div class="container mt-3">
+            
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    Logged in as admin!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            
+        </div>
+    
+    
+
+    
+    <div class="wrapper">
+        <nav id="sidebar" class="sidebar">
+    <!-- User Profile Section -->
+    <div class="user-profile px-4 py-3 bg-white bg-opacity-10 rounded mx-3 my-2">
+        <div class="d-flex align-items-center">
+            <div class="profile-pic me-3">
+                
+                <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle" 
+                     style="width: 45px; height: 45px; font-size: 1.2rem; font-weight: bold;">
+                    T
+                </div>
+                
+            </div>
+            <div class="profile-info">
+                <h4 class="mb-0 text-sm font-weight-semibold">Test User</h4>
+                <p class="text-xs text-muted mb-0">Admin</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <ul class="list-unstyled components py-2">
+        <!-- Dashboard Section -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Dashboard</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/events">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Events</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Student Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Student Management</div>
+            <ul class="list-unstyled menu-items">
+                
+                <li>
+                    <a href="/students/add">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Student Registration</span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="/students/">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Students</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Academic Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Academic Management</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/teachers/">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Teachers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/classes/">
+                        <i class="fas fa-users"></i>
+                        <span>Classes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/subjects/">
+                        <i class="fas fa-book"></i>
+                        <span>Subjects</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/attendance/">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Finance Section -->
+        
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Finance</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/fees/">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Fees</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/salaries/">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Salaries</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        
+
+        <!-- System Section -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">System</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/profile">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/authorized_activity">
+                        <i class="fas fa-bell"></i>
+                        <span>Activity Log</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/help">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Logout -->
+        <li class="logout-section">
+            <a href="/auth/logout" class="logout-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+        <div id="content">
+    
+            
+<div class="container-fluid py-5 bg-gradient-to-br from-gray-50 to-gray-100">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Profile Header Card -->
+      <div class="card premium-card shadow-xl border-0 overflow-hidden mb-5">
+        <!-- Gradient Background Header -->
+        <div class="bg-gradient-primary to-secondary position-relative">
+          <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10">
+            <div class="bg-pattern"></div>
+          </div>
+          <div class="card-body relative z-10">
+            <div class="row align-items-center">
+              <!-- Avatar Section -->
+              <div class="col-md-3 text-center">
+                <div class="profile-avatar mb-3">
+                  <div class="avatar-wrapper position-relative">
+                    <div class="avatar-circle mx-auto overflow-hidden">
+                      
+                      <div class="d-flex align-items-center justify-content-center w-100 h-100 bg-white bg-opacity-20">
+                        <i class="fas fa-user fa-4x text-white"></i>
+                      </div>
+                      
+                    </div>
+                    <!-- Edit Avatar Button -->
+                    <button class="btn btn-white btn-sm rounded-circle shadow-lg position-absolute bottom-0 end-50 translate-middle-y bg-opacity-90 hover:bg-opacity-100 transition-all duration-300" 
+                            onclick="changeAvatar()" title="Change Photo">
+                      <i class="fas fa-camera text-primary fs-6"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Profile Information -->
+              <div class="col-md-9">
+                <div class="text-white">
+                  <h2 class="display-5 fw-bold mb-1" id="displayName">Test User</h2>
+                  <p class="fs-5 text-white text-opacity-90 mb-3" id="displayTitle">Admin</p>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div class="row g-3 mb-4">
+                  <div class="col-sm-3">
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-3">
+                      <div class="text-white text-opacity-80 small">Email</div>
+                      <div class="text-white fw-semibold" id="displayEmail">test@school.com</div>
+                    </div>
+                  </div>
+                  <div class="col-sm-3">
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-3">
+                      <div class="text-white text-opacity-80 small">Phone</div>
+                      <div class="text-white fw-semibold" id="displayPhone">9876543210</div>
+                    </div>
+                  </div>
+                  <div class="col-sm-3">
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-3">
+                      <div class="text-white text-opacity-80 small">Role</div>
+                      <div class="text-white fw-semibold" id="displayDepartment">Admin</div>
+                    </div>
+                  </div>
+                  <div class="col-sm-3">
+                    <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-3">
+                      <div class="text-white text-opacity-80 small">Status</div>
+                      <div class="d-flex align-items-center">
+                        <span class="badge bg-white bg-opacity-20 text-white px-3 py-1 rounded-full">Active</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="d-flex gap-3">
+                  <button type="button" class="btn btn-white bg-opacity-20 hover:bg-opacity-30 text-white fw-semibold py-2 px-5 rounded-lg shadow-lg transition-all duration-300" 
+                          data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <i class="fas fa-edit me-2"></i>Edit Profile
+                  </button>
+                  <button type="button" class="btn btn-outline-white hover:bg-white hover:text-primary fw-semibold py-2 px-5 rounded-lg shadow-lg transition-all duration-300" 
+                          onclick="changePassword()">
+                    <i class="fas fa-key me-2"></i>Change Password
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile Details Cards -->
+      <div class="row g-5" style="display: flex; flex-wrap: wrap;">
+        <!-- Personal Information -->
+        <div class="col-lg-6" style="display: flex; flex-direction: column;">
+          <div class="card shadow-lg border-0 rounded-xl overflow-hidden hover-lift transition-all duration-300" style="height: 100%;">
+            <div class="card-header bg-white border-bottom border-light">
+              <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-user-shield text-primary me-2"></i>Personal Information</h5>
+            </div>
+            <div class="card-body p-5">
+              <div class="space-y-4">
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-user-tag text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Full Name</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6" id="displayFullName">Test User</p>
+                </div>
+                
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-briefcase text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Role</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6" id="displayRole">Admin</p>
+                </div>
+                
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-calendar-plus text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Join Date</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6" id="displayJoinDate">January 18, 2026</p>
+                </div>
+                
+                
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-building text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Department</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6">Admin</p>
+                </div>
+                
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="col-lg-6" style="display: flex; flex-direction: column;">
+          <div class="card shadow-lg border-0 rounded-xl overflow-hidden hover-lift transition-all duration-300" style="height: 100%;">
+            <div class="card-header bg-white border-bottom border-light">
+              <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-envelope-open-text text-primary me-2"></i>Contact Information</h5>
+            </div>
+            <div class="card-body p-5">
+              <div class="space-y-4">
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-envelope text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Email Address</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6">test@school.com</p>
+                </div>
+                
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-phone-alt text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Phone Number</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6">9876543210</p>
+                </div>
+                
+                <div class="profile-detail-item">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-map-marker-alt text-primary fs-5 me-3"></i>
+                    <label class="form-label fw-semibold text-gray-700">Address</label>
+                  </div>
+                  <p class="text-gray-900 ms-8 fs-6" id="displayAddress">Test Address</p>
+                </div>
+                
+                <!-- Add placeholder items to match height with personal info box -->
+                
+                <!-- Admin has 4 items in personal info, add 1 placeholder here -->
+                <div class="profile-detail-item" style="min-height: 56px;"></div>
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content border-0 rounded-2xl shadow-xxl overflow-hidden">
+      <!-- Modal Header with Gradient -->
+      <div class="modal-header bg-gradient-primary to-secondary text-white">
+        <h1 class="modal-title fs-4 fw-bold" id="editProfileModalLabel">
+          <i class="fas fa-user-edit me-2"></i>Edit Profile Information
+        </h1>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="modal-body p-6">
+        <form class="profile-edit-form">
+          <div class="row g-5">
+            <!-- Personal Details Column -->
+            <div class="col-md-6">
+              <h3 class="h6 fw-semibold text-gray-700 mb-4">Personal Details</h3>
+              
+              <div class="space-y-4">
+                <div class="form-group">
+                  <label for="fullName" class="form-label fw-semibold text-gray-700">Full Name <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-user text-primary"></i>
+                    </span>
+                    <input type="text" class="form-control border-primary focus-ring focus-ring-primary" id="fullName" value="Test User" required>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="email" class="form-label fw-semibold text-gray-700">Email Address <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-envelope text-primary"></i>
+                    </span>
+                    <input type="email" class="form-control border-primary focus-ring focus-ring-primary" id="email" value="test@school.com" required>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="phone" class="form-label fw-semibold text-gray-700">Phone Number</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-phone text-primary"></i>
+                    </span>
+                    <input type="tel" class="form-control border-primary focus-ring focus-ring-primary" id="phone" value="9876543210">
+                  </div>
+                </div>
+                
+                
+                <div class="form-group">
+                  <label for="department" class="form-label fw-semibold text-gray-700">Department</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-building text-primary"></i>
+                    </span>
+                    <input type="text" class="form-control border-primary focus-ring focus-ring-primary" id="department" value="Admin" readonly>
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+            
+            <!-- Additional Information Column -->
+            <div class="col-md-6">
+              <h3 class="h6 fw-semibold text-gray-700 mb-4">Additional Information</h3>
+              
+              <div class="space-y-4">
+                <div class="form-group">
+                  <label for="address" class="form-label fw-semibold text-gray-700">Address</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary" style="height: auto; padding: 12px;">
+                      <i class="fas fa-map-marker-alt text-primary"></i>
+                    </span>
+                    <textarea class="form-control border-primary focus-ring focus-ring-primary" id="address" rows="4">Test Address</textarea>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="bankSearch" class="form-label fw-semibold text-gray-700">Bank (search)</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-university text-primary"></i>
+                    </span>
+                    <input type="text" id="bankSearch" class="form-control border-primary focus-ring focus-ring-primary" placeholder="Search bank name...">
+                  </div>
+                  <small class="text-muted">Type to filter banks, then select from the list below.</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="bankSelect" class="form-label fw-semibold text-gray-700">Bank</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-credit-card text-primary"></i>
+                    </span>
+                    <select id="bankSelect" class="form-select border-primary" aria-label="Select bank">
+                      <option value="">-- Select Bank --</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="branchSelect" class="form-label fw-semibold text-gray-700">Branch</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                      <i class="fas fa-code-branch text-primary"></i>
+                    </span>
+                    <select id="branchSelect" class="form-select border-primary" aria-label="Select branch" disabled>
+                      <option value="">-- Select Branch --</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="profilePhoto" class="form-label fw-semibold text-gray-700">Profile Photo</label>
+                  <div class="d-flex align-items-center gap-4">
+                    <div class="avatar-preview">
+                      
+                      <div class="rounded-lg shadow-md d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-user fa-3x text-white"></i>
+                      </div>
+                      
+                    </div>
+                    <div class="flex-grow-1">
+                      <input type="file" class="form-control border-primary focus-ring focus-ring-primary" id="profilePhoto" accept="image/*">
+                      <small class="text-muted d-block mt-1">Allowed formats: JPG, PNG, GIF. Max size: 5MB</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="modal-footer bg-light border-top border-light p-6">
+        <button type="button" class="btn btn-outline-gray-600 hover:bg-gray-100 fw-semibold py-2 px-6 rounded-lg transition-all duration-300" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary fw-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300" onclick="saveProfile()">
+          <i class="fas fa-save me-2"></i>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 rounded-2xl shadow-xxl overflow-hidden">
+      <div class="modal-header bg-gradient-primary to-secondary text-white">
+        <h1 class="modal-title fs-4 fw-bold" id="changePasswordModalLabel">
+          <i class="fas fa-key me-2"></i>Change Password
+        </h1>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-6">
+        <div class="row">
+          <div class="col-12">
+            <div class="alert alert-info" role="alert">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Password Requirements:</strong> Minimum 8 characters, at least one uppercase, one lowercase, and one number.
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 mb-4">
+            <label for="currentPassword" class="form-label fw-bold">Current Password</label>
+            <input type="password" class="form-control form-control-lg" id="currentPassword" placeholder="Enter your current password">
+            <div class="form-text">We need your current password to confirm the change</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 mb-4">
+            <label for="newPassword" class="form-label fw-bold">New Password</label>
+            <input type="password" class="form-control form-control-lg" id="newPassword" placeholder="Enter your new password">
+            <div id="passwordStrength" class="form-text mt-2"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 mb-4">
+            <label for="confirmPassword" class="form-label fw-bold">Confirm New Password</label>
+            <input type="password" class="form-control form-control-lg" id="confirmPassword" placeholder="Confirm your new password">
+            <div id="passwordMatch" class="form-text mt-2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light border-top border-light p-6">
+        <button type="button" class="btn btn-outline-gray-600 hover:bg-gray-100 fw-semibold py-2 px-6 rounded-lg transition-all duration-300" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary fw-semibold py-2 px-6 rounded-lg shadow-lg transition-all duration-300" onclick="submitPasswordChange()">
+          <i class="fas fa-check me-2"></i>Update Password
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Premium Profile Styles */
+.premium-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+}
+
+.bg-gradient-primary.to-secondary {
+  background: linear-gradient(135deg, #4299e1 0%, #38b2ac 100%);
+}
+
+.bg-pattern {
+  background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  background-size: 20px 20px;
+}
+
+/* Avatar Styles */
+.avatar-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar-circle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Card Styling */
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  border-radius: 12px 12px 0 0 !important;
+  border: none;
+  font-weight: 700;
+  padding: 1.5rem 2.5rem;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.03) 0%, rgba(56, 178, 172, 0.03) 100%);
+  border-bottom: 2px solid rgba(66, 153, 225, 0.1);
+}
+
+.card-header h5 {
+  font-size: 1.25rem;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-header i {
+  font-size: 1.5rem;
+  color: #4299e1;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.1) 0%, rgba(56, 178, 172, 0.1) 100%);
+  padding: 0.75rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.card:hover .card-header i {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.15) 0%, rgba(56, 178, 172, 0.15) 100%);
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+/* Profile Detail Items */
+.profile-detail-item {
+  padding: 1rem 0;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.profile-detail-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.profile-detail-item:hover {
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.05) 0%, rgba(56, 178, 172, 0.05) 100%);
+  border-radius: 12px;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+/* Profile Detail Labels */
+.profile-detail-item label.form-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.3rem;
+}
+
+/* Profile Detail Values */
+.profile-detail-item p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #1a202c;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Icon Styling */
+.profile-detail-item i {
+  font-size: 1.2rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4299e1;
+  background: rgba(66, 153, 225, 0.1);
+  border-radius: 50%;
+  padding: 0.5rem;
+  margin-right: 1rem;
+  transition: all 0.3s ease;
+}
+
+.profile-detail-item:hover i {
+  background: rgba(66, 153, 225, 0.2);
+  transform: scale(1.1);
+}
+
+/* Card Body Padding Adjustment */
+.card-body {
+  padding: 2.5rem;
+}
+
+/* Form Styling */
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.form-control:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  outline: none;
+}
+
+.focus-ring {
+  transition: box-shadow 0.3s ease;
+}
+
+.focus-ring:focus {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* Button Styling */
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%);
+}
+
+/* Input Group Styling */
+.input-group {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.input-group-text {
+  background: rgba(66, 153, 225, 0.1);
+  border: 2px solid #4299e1;
+  border-right: none;
+  color: #4299e1;
+  font-weight: 600;
+  min-width: 45px;
+  justify-content: center;
+}
+
+.input-group .form-control {
+  border-left: none;
+  border: 2px solid #4299e1;
+}
+
+/* Modal Styling */
+.modal-content {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  border-bottom: none;
+  padding: 1.5rem 2rem;
+  border-radius: 16px 16px 0 0;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #e2e8f0;
+  padding: 1.5rem 2rem;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Utility Classes */
+.text-gray-700 {
+  color: #4a5568;
+}
+
+.text-gray-900 {
+  color: #1a202c;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .avatar-circle {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 1rem;
+  }
+  
+  .card-body {
+    padding: 1.25rem;
+  }
+  
+  .row {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+  }
+  
+  .avatar-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+  }
+}
+</style>
+
+<script>
+// Profile data management
+let profileData = {
+  fullName: 'Test User',
+  email: 'test@school.com',
+  phone: '9876543210',
+  address: 'Test Address'
+};
+
+// Simple banks + branches dataset (can be replaced by server data)
+const banks = [
+  { id: 'sbi', name: 'State Bank of India', branches: ['Connaught Place', 'Karol Bagh', 'Rajinder Nagar'] },
+  { id: 'icici', name: 'ICICI Bank', branches: ['MG Road', 'Sector 18', 'Shivaji Nagar'] },
+  { id: 'hdfc', name: 'HDFC Bank', branches: ['Bandra', 'Andheri', 'Dadar'] },
+  { id: 'axis', name: 'Axis Bank', branches: ['Jayanagar', 'Koramangala', 'Whitefield'] },
+  { id: 'pnbi', name: 'Punjab National Bank', branches: ['Model Town', 'Lajpat Nagar', 'Karol Bagh'] }
+];
+
+function populateBankOptions(list) {
+  const sel = document.getElementById('bankSelect');
+  if (!sel) return;
+  // Clear except placeholder
+  sel.innerHTML = '<option value="">-- Select Bank --</option>';
+  list.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.name;
+    sel.appendChild(opt);
+  });
+}
+
+function filterBanks(query) {
+  const q = (query || '').toLowerCase();
+  if (!q) return banks;
+  return banks.filter(b => b.name.toLowerCase().includes(q));
+}
+
+function onBankChange() {
+  const sel = document.getElementById('bankSelect');
+  const branchSel = document.getElementById('branchSelect');
+  if (!sel || !branchSel) return;
+  const bankId = sel.value;
+  branchSel.innerHTML = '<option value="">-- Select Branch --</option>';
+  if (!bankId) {
+    branchSel.disabled = true;
+    return;
+  }
+  const bank = banks.find(b => b.id === bankId);
+  if (!bank) {
+    branchSel.disabled = true;
+    return;
+  }
+  bank.branches.forEach(br => {
+    const o = document.createElement('option');
+    o.value = br;
+    o.textContent = br;
+    branchSel.appendChild(o);
+  });
+  branchSel.disabled = false;
+}
+
+
+// Update display with server data
+document.addEventListener('DOMContentLoaded', function() {
+  updateDisplay();
+  // Initialize bank controls
+  populateBankOptions(banks);
+  const bankSearch = document.getElementById('bankSearch');
+  const bankSelect = document.getElementById('bankSelect');
+  if (bankSearch) {
+    bankSearch.addEventListener('input', function(e) {
+      const list = filterBanks(e.target.value);
+      populateBankOptions(list);
+    });
+  }
+  if (bankSelect) {
+    bankSelect.addEventListener('change', onBankChange);
+  }
+});
+
+function updateDisplay() {
+  // Update all display elements
+  document.getElementById('displayName').textContent = profileData.fullName;
+  document.getElementById('displayFullName').textContent = profileData.fullName;
+  document.getElementById('displayEmail').textContent = profileData.email;
+  document.getElementById('displayPhone').textContent = profileData.phone || 'Not available';
+  document.getElementById('displayAddress').textContent = profileData.address || 'Not available';
+
+  // Update form fields
+  document.getElementById('fullName').value = profileData.fullName;
+  document.getElementById('email').value = profileData.email;
+  document.getElementById('phone').value = profileData.phone;
+  document.getElementById('address').value = profileData.address;
+  // Set bank/branch if available
+  const bankSel = document.getElementById('bankSelect');
+  const branchSel = document.getElementById('branchSelect');
+  const bankSearchInput = document.getElementById('bankSearch');
+  if (bankSearchInput && profileData.bank_name) bankSearchInput.value = profileData.bank_name;
+  if (bankSel) {
+    if (profileData.bank_id) {
+      bankSel.value = profileData.bank_id;
+      onBankChange();
+    }
+  }
+  if (branchSel && profileData.branch) {
+    // try to set branch
+    try { branchSel.value = profileData.branch; } catch(e){}
+  }
+}
+
+async function saveProfile() {
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const profilePhoto = document.getElementById('profilePhoto').files[0];
+
+  // Validation
+  if (!fullName || !email) {
+    showToast('Please fill in all required fields (Full Name and Email)', 'danger');
+    return;
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('Please enter a valid email address', 'danger');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('fullName', fullName);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('address', address);
+    
+    // Only add department if the field exists (admin users)
+    const departmentField = document.getElementById('department');
+    if (departmentField) {
+      formData.append('department', departmentField.value.trim());
+    }
+    
+    if (profilePhoto) {
+      formData.append('profilePhoto', profilePhoto);
+    }
+    // include bank/branch values
+    const bankVal = document.getElementById('bankSelect') ? document.getElementById('bankSelect').value : '';
+    const branchVal = document.getElementById('branchSelect') ? document.getElementById('branchSelect').value : '';
+    formData.append('bank', bankVal);
+    formData.append('branch', branchVal);
+
+    // Send data to server
+    const response = await fetch('/profile/update', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      // Update profile data
+      profileData.fullName = fullName;
+      profileData.email = email;
+      profileData.phone = phone;
+      profileData.address = address;
+      // update bank info locally
+      profileData.bank_id = document.getElementById('bankSelect') ? document.getElementById('bankSelect').value : '';
+      profileData.branch = document.getElementById('branchSelect') ? document.getElementById('branchSelect').value : '';
+      // store readable bank name
+      const bsel = banks.find(b=>b.id===profileData.bank_id);
+      profileData.bank_name = bsel ? bsel.name : '';
+
+      // Update display
+      updateDisplay();
+
+      // If photo was updated, reload the page to show new photo
+      if (profilePhoto) {
+        window.location.reload();
+      }
+
+      // Show success message and close modal
+      showToast('Profile updated successfully!', 'success');
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+      modal.hide();
+    } else {
+      showToast('Error updating profile: ' + (result.message || 'Unknown error'), 'danger');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('An error occurred while updating the profile. Please try again.', 'danger');
+  }
+}
+
+// Toast notification function
+function showToast(message, type = 'info') {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed bottom-5 end-5 z-50 shadow-lg`;
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">
+        ${message}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  `;
+  
+  // Add to body
+  document.body.appendChild(toast);
+  
+  // Initialize and show toast
+  const bootstrapToast = new bootstrap.Toast(toast, {
+    autohide: true,
+    delay: 3000
+  });
+  bootstrapToast.show();
+  
+  // Remove toast after it's hidden
+  toast.addEventListener('hidden.bs.toast', () => {
+    toast.remove();
+  });
+}
+
+function changeAvatar() {
+  document.getElementById('profilePhoto').click();
+}
+
+function changePassword() {
+  // Reset form fields
+  document.getElementById('currentPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  document.getElementById('passwordStrength').innerHTML = '';
+  document.getElementById('passwordMatch').innerHTML = '';
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+  modal.show();
+}
+
+// Check password strength
+document.addEventListener('DOMContentLoaded', function() {
+  const newPasswordInput = document.getElementById('newPassword');
+  const confirmPasswordInput = document.getElementById('confirmPassword');
+  
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener('input', function() {
+      const password = this.value;
+      const strengthDiv = document.getElementById('passwordStrength');
+      
+      if (!password) {
+        strengthDiv.innerHTML = '';
+        return;
+      }
+      
+      let strength = 0;
+      let feedback = '';
+      
+      if (password.length >= 8) strength++;
+      else feedback += '❌ At least 8 characters. ';
+      
+      if (/[A-Z]/.test(password)) strength++;
+      else feedback += '❌ At least one uppercase letter. ';
+      
+      if (/[a-z]/.test(password)) strength++;
+      else feedback += '❌ At least one lowercase letter. ';
+      
+      if (/[0-9]/.test(password)) strength++;
+      else feedback += '❌ At least one number. ';
+      
+      let color = 'danger';
+      let text = 'Weak';
+      if (strength >= 4) {
+        color = 'success';
+        text = 'Strong';
+        feedback = '✅ Password is strong!';
+      } else if (strength >= 3) {
+        color = 'warning';
+        text = 'Medium';
+      }
+      
+      strengthDiv.innerHTML = `<span class="text-${color}"><strong>${text}:</strong> ${feedback}</span>`;
+    });
+  }
+  
+  if (confirmPasswordInput) {
+    confirmPasswordInput.addEventListener('input', function() {
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = this.value;
+      const matchDiv = document.getElementById('passwordMatch');
+      
+      if (!confirmPassword) {
+        matchDiv.innerHTML = '';
+        return;
+      }
+      
+      if (newPassword === confirmPassword) {
+        matchDiv.innerHTML = '<span class="text-success"><strong>✅ Passwords match!</strong></span>';
+      } else {
+        matchDiv.innerHTML = '<span class="text-danger"><strong>❌ Passwords do not match</strong></span>';
+      }
+    });
+  }
+});
+
+async function submitPasswordChange() {
+  const currentPassword = document.getElementById('currentPassword').value.trim();
+  const newPassword = document.getElementById('newPassword').value.trim();
+  const confirmPassword = document.getElementById('confirmPassword').value.trim();
+  
+  // Validate inputs
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showToast('All fields are required', 'danger');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showToast('New passwords do not match', 'danger');
+    return;
+  }
+  
+  if (newPassword.length < 8) {
+    showToast('New password must be at least 8 characters long', 'danger');
+    return;
+  }
+  
+  if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    showToast('Password must contain uppercase, lowercase, and numbers', 'danger');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/settings/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        old_password: currentPassword,
+        new_password: newPassword
+      })
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      showToast('Password changed successfully!', 'success');
+      const modal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+      modal.hide();
+      
+      // Log out user for security
+      setTimeout(() => {
+        window.location.href = '/auth/logout';
+      }, 2000);
+    } else {
+      showToast('Error: ' + (result.message || 'Failed to change password'), 'danger');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('An error occurred. Please try again.', 'danger');
+  }
+}
+</script>
+
+    
+        </div>
+    </div>
+    
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+
+
+
+
+
+
+  
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+      window.schoolRoutes = {
+        students: "/students/",
+        fees: "/fees/",
+        subjects: "/subjects/",
+        classes: "/classes/",
+        parents: "/parents/",
+        dashboard: "/"
+      };
+    </script>
+    
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/mobile-detection.js"></script>
+    
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/static/sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

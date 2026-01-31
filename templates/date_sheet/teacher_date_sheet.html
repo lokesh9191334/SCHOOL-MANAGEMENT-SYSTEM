@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Date Schedule - {{ teacher.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>Date Schedule
+                    </h2>
+                    <p class="text-muted mb-0">{{ teacher.name }} - {{ teacher.subject.name if teacher.subject else 'Teacher' }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ date_sheets|length }}</h4>
+                            <p class="mb-0">Exam Schedules</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ date_sheets|selectattr('is_published')|list|length }}</h4>
+                            <p class="mb-0">Published</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ teacher.subjects|length if teacher.subjects else 0 }}</h4>
+                            <p class="mb-0">My Subjects</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-book fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">Upcoming</h4>
+                            <p class="mb-0">Exams</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Sheets List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Exam Schedules
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if date_sheets %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Exam Title</th>
+                                <th>Exam Type</th>
+                                <th>Class</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for date_sheet in date_sheets %}
+                            <tr>
+                                <td>
+                                    <strong>{{ date_sheet.title }}</strong>
+                                    {% if date_sheet.description %}
+                                        <br><small class="text-muted">{{ date_sheet.description[:50] }}{% if date_sheet.description|length > 50 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ date_sheet.exam_type.title() }}</span>
+                                </td>
+                                <td>
+                                    {% if date_sheet.classroom %}
+                                        {{ date_sheet.classroom.name }}
+                                    {% else %}
+                                        <span class="text-muted">All Classes</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set days = (date_sheet.end_date - date_sheet.start_date).days + 1 %}
+                                    {{ days }} day{% if days > 1 %}s{% endif %}
+                                </td>
+                                <td>
+                                    {% if date_sheet.is_published %}
+                                        <span class="badge bg-success">Published</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Draft</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ date_sheet.start_date.strftime('%d-%m-%Y') }}</td>
+                                <td>{{ date_sheet.end_date.strftime('%d-%m-%Y') }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('date_sheet.view_teacher_date_sheet', date_sheet_id=date_sheet.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="View Schedule">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="printDateSheet({{ date_sheet.id }})" title="Print">
+                                            <i class="fas fa-print"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Exam Schedules Available</h5>
+                    <p class="text-muted">No exam schedules have been published yet. Please check back later.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Exams -->
+    {% if date_sheets %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-clock me-2"></i>Upcoming Exams
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="timeline">
+                {% set upcoming_found = false %}
+                {% for date_sheet in date_sheets %}
+                    {% for entry in date_sheet.entries %}
+                        {% if entry.subject in teacher.subjects %}
+                            {% if entry.exam_date >= now().date() %}
+                                {% set upcoming_found = true %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary"></div>
+                                    <div class="timeline-content">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    {{ entry.exam_date.strftime('%d-%m-%Y') }}
+                                                    <span class="badge bg-info ms-2">{{ entry.subject.name }}</span>
+                                                </h6>
+                                                <p class="mb-1">
+                                                    <strong>{{ date_sheet.title }}</strong>
+                                                </p>
+                                                <p class="mb-1 text-muted">
+                                                    {{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}
+                                                    {% if entry.classroom %} • {{ entry.classroom.name }}{% endif %}
+                                                    {% if entry.exam_venue %} • {{ entry.exam_venue }}{% endif %}
+                                                </p>
+                                                {% if entry.max_marks %}
+                                                    <p class="mb-1">
+                                                        <span class="badge bg-success">Max Marks: {{ entry.max_marks }}</span>
+                                                    </p>
+                                                {% endif %}
+                                                {% if entry.special_instructions %}
+                                                    <small class="text-muted">{{ entry.special_instructions }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+                
+                {% if not upcoming_found %}
+                <div class="text-center py-3">
+                                            <i class="fas fa-calendar-check fa-3x text-muted mb-2"></i>
+                                            <p class="text-muted">No upcoming exams found for your subjects.</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid #007bff;
+}
+</style>
+
+<script>
+function printDateSheet(dateSheetId) {
+    const url = `/date-sheet/teacher/date-sheet/${dateSheetId}/print`;
+    window.open(url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+}
+</script>
+{% endblock %}

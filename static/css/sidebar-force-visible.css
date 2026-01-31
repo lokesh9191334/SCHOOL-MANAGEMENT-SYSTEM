@@ -1,0 +1,167 @@
+/* FORCE SIDEBAR VISIBILITY - Override all hiding rules */
+#sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    z-index: 99999 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    display: block !important;
+    background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%) !important;
+    color: #ffffff !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15) !important;
+    overflow-y: auto;
+    padding-top: 0 !important;
+}
+
+/* Override any active class that hides sidebar */
+#sidebar.active {
+    margin-left: 0 !important;
+    transform: none !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: block !important;
+}
+
+/* Override content area */
+#content {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+    padding: 25px !important;
+    min-height: 100vh !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: #f7fafc !important;
+}
+
+/* Override wrapper */
+.wrapper {
+    display: flex !important;
+    width: 100% !important;
+    align-items: stretch !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Override main wrapper */
+.main-wrapper {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+}
+
+/* Mobile overrides */
+@media (max-width: 992px) {
+    #sidebar {
+        min-width: 280px !important;
+        max-width: 280px !important;
+        margin-left: 0 !important;
+        position: fixed !important;
+        z-index: 99999 !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: none !important;
+        display: block !important;
+    }
+    
+    #sidebar.active {
+        margin-left: 0 !important;
+        transform: none !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        display: block !important;
+    }
+    
+    #content {
+        margin-left: 280px !important;
+        width: calc(100% - 280px) !important;
+        padding: 20px !important;
+    }
+    
+    .main-wrapper {
+        margin-left: 280px !important;
+        width: calc(100% - 280px) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    #sidebar {
+        min-width: 280px !important;
+        max-width: 280px !important;
+        margin-left: 0 !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: none !important;
+        display: block !important;
+    }
+    
+    #sidebar.active {
+        margin-left: 0 !important;
+        transform: none !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        display: block !important;
+    }
+    
+    #content.active {
+        margin-left: 280px !important;
+    }
+    
+    .main-wrapper {
+        margin-left: 280px !important;
+        width: calc(100% - 280px) !important;
+    }
+}
+
+/* Universal override - highest priority */
+* #sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    display: block !important;
+}

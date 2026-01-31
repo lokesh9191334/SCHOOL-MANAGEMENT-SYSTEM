@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable Entries - {{ timetable.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="fas fa-th me-2"></i>{{ timetable.name }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {{ timetable.classroom.name if timetable.classroom else 'General' }} - 
+                        {{ timetable.academic_year }}
+                        {% if timetable.semester %} - {{ timetable.semester }}{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEntryModal">
+                        <i class="fas fa-plus me-2"></i>Add Entry
+                    </button>
+                    <a href="{{ url_for('timetable.admin_timetable') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Timetables
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Timetable Grid -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-week me-2"></i>Weekly Schedule
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered timetable-grid">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="80">Period</th>
+                            <th width="120">Time</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th>Saturday</th>
+                            <th>Sunday</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set max_periods = 8 %}
+                        {% for period in range(1, max_periods + 1) %}
+                        <tr>
+                            <td class="text-center">
+                                <strong>Period {{ period }}</strong>
+                            </td>
+                            <td class="text-center">
+                                {% set period_times = {
+                                    1: ('08:00', '08:45'),
+                                    2: ('08:50', '09:35'),
+                                    3: ('09:55', '10:40'),
+                                    4: ('10:45', '11:30'),
+                                    5: ('11:35', '12:20'),
+                                    6: ('13:00', '13:45'),
+                                    7: ('13:50', '14:35'),
+                                    8: ('14:40', '15:25')
+                                } %}
+                                {% if period_times[period] %}
+                                    <small>{{ period_times[period][0] }} - {{ period_times[period][1] }}</small>
+                                {% endif %}
+                            </td>
+                            {% for day in range(0, 7) %}
+                            <td class="timetable-cell" data-day="{{ day }}" data-period="{{ period }}">
+                                {% set day_entries = entries|selectattr('day_of_week', 'equalto', day)|list %}
+                                {% set period_entry = day_entries|selectattr('period_number', 'equalto', period)|first %}
+                                {% if period_entry %}
+                                    <div class="entry-card {{ 'lab-period' if period_entry.is_lab_period else '' }} {{ 'break-period' if period_entry.is_break_period else '' }}">
+                                        <div class="entry-header">
+                                            <strong>{{ period_entry.subject.name }}</strong>
+                                            <div class="entry-actions">
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        onclick="deleteEntry({{ period_entry.id }})" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="entry-body">
+                                            <small class="text-muted">{{ period_entry.teacher.name }}</small><br>
+                                            <small>{{ period_entry.classroom.name if period_entry.classroom else 'N/A' }}</small>
+                                            {% if period_entry.room_number %}
+                                                <br><small class="text-info">Room: {{ period_entry.room_number }}</small>
+                                            {% endif %}
+                                            {% if period_entry.is_lab_period %}
+                                                <br><span class="badge bg-info">Lab</span>
+                                            {% endif %}
+                                            {% if period_entry.is_break_period %}
+                                                <br><span class="badge bg-warning">Break</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="empty-cell" onclick="addEntryToCell({{ day }}, {{ period }})">
+                                        <i class="fas fa-plus text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entries List -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>All Entries
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if entries %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Period</th>
+                                <th>Time</th>
+                                <th>Subject</th>
+                                <th>Teacher</th>
+                                <th>Class</th>
+                                <th>Room</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in entries %}
+                            <tr>
+                                <td>{{ ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][entry.day_of_week] }}</td>
+                                <td>{{ entry.period_number }}</td>
+                                <td>{{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}</td>
+                                <td>{{ entry.subject.name }}</td>
+                                <td>{{ entry.teacher.name }}</td>
+                                <td>{{ entry.classroom.name if entry.classroom else 'N/A' }}</td>
+                                <td>{{ entry.room_number or 'N/A' }}</td>
+                                <td>
+                                    {% if entry.is_lab_period %}
+                                        <span class="badge bg-info">Lab</span>
+                                    {% endif %}
+                                    {% if entry.is_break_period %}
+                                        <span class="badge bg-warning">Break</span>
+                                    {% endif %}
+                                    {% if not entry.is_lab_period and not entry.is_break_period %}
+                                        <span class="badge bg-success">Regular</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('timetable.delete_timetable_entry', entry_id=entry.id) }}" 
+                                          style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this entry?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Entries Added</h5>
+                    <p class="text-muted">Click on any empty cell or use the "Add Entry" button to get started.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Entry Modal -->
+<div class="modal fade" id="addEntryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Add Timetable Entry
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('timetable.add_timetable_entry', timetable_id=timetable.id) }}">
+                <div class="modal-body">
+                    <input type="hidden" id="selected_day" name="day_of_week">
+                    <input type="hidden" id="selected_period" name="period_number">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="day_of_week_select" class="form-label">Day *</label>
+                                <select class="form-select" id="day_of_week_select" name="day_of_week_select" required>
+                                    <option value="">Select Day</option>
+                                    <option value="0">Monday</option>
+                                    <option value="1">Tuesday</option>
+                                    <option value="2">Wednesday</option>
+                                    <option value="3">Thursday</option>
+                                    <option value="4">Friday</option>
+                                    <option value="5">Saturday</option>
+                                    <option value="6">Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="period_number" class="form-label">Period *</label>
+                                <select class="form-select" id="period_number_select" name="period_number_select" required>
+                                    <option value="">Select Period</option>
+                                    {% for period in range(1, 9) %}
+                                    <option value="{{ period }}">Period {{ period }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_time" class="form-label">Start Time *</label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_time" class="form-label">End Time *</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subject_id" class="form-label">Subject *</label>
+                                <select class="form-select" id="subject_id" name="subject_id" required>
+                                    <option value="">Select Subject</option>
+                                    {% for subject in subjects %}
+                                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="teacher_id" class="form-label">Teacher *</label>
+                                <select class="form-select" id="teacher_id" name="teacher_id" required>
+                                    <option value="">Select Teacher</option>
+                                    {% for teacher in teachers %}
+                                    <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="classroom_id" class="form-label">Classroom</label>
+                                <select class="form-select" id="classroom_id" name="classroom_id">
+                                    <option value="">Select Classroom</option>
+                                    {% for classroom in classrooms %}
+                                    <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="room_number" class="form-label">Room Number</label>
+                                <input type="text" class="form-control" id="room_number" name="room_number" 
+                                       placeholder="e.g., Room 101">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_lab_period" name="is_lab_period">
+                                    <label class="form-check-label" for="is_lab_period">
+                                        Lab Period
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_break_period" name="is_break_period">
+                                    <label class="form-check-label" for="is_break_period">
+                                        Break Period
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Add Entry
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.timetable-grid {
+    font-size: 0.9em;
+}
+
+.timetable-cell {
+    min-width: 150px;
+    vertical-align: top;
+    padding: 5px !important;
+}
+
+.entry-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 4px;
+    background: #f8f9fa;
+    position: relative;
+}
+
+.entry-card.lab-period {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.entry-card.break-period {
+    background: #fff3cd;
+    border-color: #ffc107;
+}
+
+.entry-header {
+    display: flex;
+    justify-content: between;
+    align-items: start;
+    margin-bottom: 4px;
+}
+
+.entry-actions {
+    margin-left: auto;
+}
+
+.empty-cell {
+    min-height: 60px;
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.empty-cell:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+</style>
+
+<script>
+function addEntryToCell(day, period) {
+    document.getElementById('selected_day').value = day;
+    document.getElementById('selected_period').value = period;
+    document.getElementById('day_of_week_select').value = day;
+    document.getElementById('period_number_select').value = period;
+    
+    // Set default time based on period
+    const periodTimes = {
+        1: ['08:00', '08:45'],
+        2: ['08:50', '09:35'],
+        3: ['09:55', '10:40'],
+        4: ['10:45', '11:30'],
+        5: ['11:35', '12:20'],
+        6: ['13:00', '13:45'],
+        7: ['13:50', '14:35'],
+        8: ['14:40', '15:25']
+    };
+    
+    if (periodTimes[period]) {
+        document.getElementById('start_time').value = periodTimes[period][0];
+        document.getElementById('end_time').value = periodTimes[period][1];
+    }
+    
+    new bootstrap.Modal(document.getElementById('addEntryModal')).show();
+}
+
+function deleteEntry(entryId) {
+    if (confirm('Are you sure you want to delete this entry?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/timetable/admin/timetable/entry/${entryId}/delete`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Sync form fields
+document.getElementById('day_of_week_select').addEventListener('change', function() {
+    document.getElementById('selected_day').value = this.value;
+});
+
+document.getElementById('period_number_select').addEventListener('change', function() {
+    document.getElementById('selected_period').value = this.value;
+});
+</script>
+{% endblock %}

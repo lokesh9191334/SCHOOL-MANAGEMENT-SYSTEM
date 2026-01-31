@@ -1,0 +1,749 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block content %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+.extreme-premium-login {
+    background: 
+        radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at top right, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom left, rgba(34, 197, 94, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(251, 146, 60, 0.15) 0%, transparent 50%),
+        linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+.extreme-premium-login::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.08) 0%, transparent 50%);
+    animation: extremeBackgroundShift 20s ease-in-out infinite;
+}
+
+@keyframes extremeBackgroundShift {
+    0%, 100% { 
+        transform: translate(0, 0) rotate(0deg) scale(1); 
+        filter: hue-rotate(0deg) brightness(1);
+    }
+    25% { 
+        transform: translate(-40px, -30px) rotate(90deg) scale(1.1); 
+        filter: hue-rotate(45deg) brightness(1.1);
+    }
+    50% { 
+        transform: translate(30px, -40px) rotate(180deg) scale(0.95); 
+        filter: hue-rotate(90deg) brightness(0.9);
+    }
+    75% { 
+        transform: translate(-30px, 30px) rotate(270deg) scale(1.05); 
+        filter: hue-rotate(135deg) brightness(1.05);
+    }
+}
+
+.extreme-premium-card {
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 50%, rgba(241, 245, 249, 0.94) 100%);
+    backdrop-filter: blur(50px) saturate(300%) contrast(1.2);
+    border-radius: 48px;
+    box-shadow: 
+        0 80px 160px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.6),
+        inset 0 0 80px rgba(255, 255, 255, 0.4),
+        0 0 300px rgba(59, 130, 246, 0.25),
+        0 0 200px rgba(236, 72, 153, 0.2),
+        inset 0 0 50px rgba(168, 85, 247, 0.15);
+    overflow: hidden;
+    max-width: 580px;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+    transform: perspective(2500px) rotateX(6deg) rotateY(-5deg);
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 4px solid rgba(255, 255, 255, 0.7);
+}
+
+.extreme-premium-card:hover {
+    transform: perspective(2500px) rotateX(0deg) rotateY(0deg) translateY(-20px) scale(1.08);
+    box-shadow: 
+        0 100px 200px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.8),
+        inset 0 0 100px rgba(255, 255, 255, 0.5),
+        0 0 400px rgba(59, 130, 246, 0.35),
+        0 0 300px rgba(236, 72, 153, 0.3),
+        inset 0 0 70px rgba(168, 85, 247, 0.25);
+}
+
+.extreme-premium-header {
+    background: 
+        linear-gradient(135deg, #3b82f6 0%, #06b6d4 20%, #22c55e 40%, #eab308 60%, #f97316 80%, #ef4444 100%);
+    color: white;
+    padding: 80px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.extreme-premium-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="extremeGrain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="3" fill="rgba(255,255,255,0.3)"/></pattern></defs><rect width="100" height="100" fill="url(%23extremeGrain)"/></svg>'),
+        linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.25) 50%, transparent 75%),
+        linear-gradient(-45deg, transparent 35%, rgba(255,255,255,0.2) 65%, transparent 85%);
+    opacity: 0.9;
+    animation: extremeGrain 20s linear infinite;
+}
+
+@keyframes extremeGrain {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-20%, -30%) rotate(36deg); }
+    20% { transform: translate(30%, -20%) rotate(72deg); }
+    30% { transform: translate(-30%, 30%) rotate(108deg); }
+    40% { transform: translate(20%, 30%) rotate(144deg); }
+    50% { transform: translate(30%, -30%) rotate(180deg); }
+    60% { transform: translate(-30%, 20%) rotate(216deg); }
+    70% { transform: translate(20%, -30%) rotate(252deg); }
+    80% { transform: translate(-20%, 30%) rotate(288deg); }
+    90% { transform: translate(30%, 20%) rotate(324deg); }
+}
+
+.extreme-premium-header h3 {
+    margin: 0;
+    font-size: 56px;
+    font-weight: 950;
+    position: relative;
+    z-index: 1;
+    text-shadow: 
+        0 12px 24px rgba(0, 0, 0, 0.5),
+        0 0 60px rgba(255, 255, 255, 0.6),
+        0 0 120px rgba(255, 255, 255, 0.4);
+    letter-spacing: -3px;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+.extreme-premium-header p {
+    margin: 24px 0 0 0;
+    opacity: 0.95;
+    font-size: 22px;
+    position: relative;
+    z-index: 1;
+    font-weight: 800;
+    text-shadow: 
+        0 6px 12px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(255, 255, 255, 0.4);
+    letter-spacing: 1px;
+}
+
+.extreme-premium-body {
+    padding: 80px 60px;
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.998) 0%, rgba(248, 250, 252, 0.99) 50%, rgba(241, 245, 249, 0.98) 100%);
+    position: relative;
+}
+
+.extreme-premium-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.07) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(251, 146, 60, 0.07) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.extreme-premium-form .form-group {
+    margin-bottom: 35px;
+    position: relative;
+    z-index: 1;
+}
+
+.extreme-premium-form .form-label {
+    color: #0f172a;
+    font-weight: 900;
+    margin-bottom: 18px;
+    font-size: 18px;
+    display: block;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
+}
+
+.extreme-premium-form .form-label::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 40px;
+    height: 4px;
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #22c55e 100%);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.extreme-premium-form .form-group:hover .form-label::after {
+    width: 80px;
+}
+
+.extreme-premium-form .form-control,
+.extreme-premium-form .form-select {
+    border: 4px solid #e2e8f0;
+    border-radius: 30px;
+    padding: 28px 40px;
+    font-size: 19px;
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    background: 
+        linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    box-shadow: 
+        0 12px 30px rgba(0, 0, 0, 0.1),
+        inset 0 6px 12px rgba(255, 255, 255, 0.98),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    position: relative;
+}
+
+.extreme-premium-form .form-control:focus,
+.extreme-premium-form .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 
+        0 0 0 12px rgba(59, 130, 246, 0.25),
+        0 30px 70px rgba(59, 130, 246, 0.5),
+        inset 0 6px 12px rgba(255, 255, 255, 0.98),
+        0 0 0 1px rgba(255, 255, 255, 0.95);
+    background: white;
+    transform: translateY(-8px) scale(1.04);
+}
+
+.extreme-premium-form .input-icon {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    font-size: 32px;
+    transition: all 0.8s ease;
+    z-index: 5;
+}
+
+.extreme-premium-form .form-control:focus + .input-icon {
+    color: #3b82f6;
+    transform: translateY(-50%) scale(1.3);
+    filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.8));
+}
+
+.extreme-premium-btn {
+    background: 
+        linear-gradient(135deg, #3b82f6 0%, #06b6d4 20%, #22c55e 40%, #eab308 60%, #f97316 80%, #ef4444 100%);
+    border: none;
+    border-radius: 30px;
+    padding: 30px;
+    font-size: 22px;
+    font-weight: 950;
+    color: white;
+    width: 100%;
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-top: 30px;
+    box-shadow: 
+        0 35px 70px rgba(59, 130, 246, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.5),
+        inset 0 6px 12px rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.extreme-premium-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.4) 50%, transparent 75%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.extreme-premium-btn:hover::before {
+    opacity: 1;
+}
+
+.extreme-premium-btn:hover {
+    transform: translateY(-12px) scale(1.08);
+    box-shadow: 
+        0 50px 100px rgba(59, 130, 246, 0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.6),
+        inset 0 6px 12px rgba(255, 255, 255, 0.6);
+}
+
+.extreme-premium-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+    transition: left 1.5s ease;
+}
+
+.extreme-premium-btn:hover::after {
+    left: 100%;
+}
+
+.extreme-premium-btn:active {
+    transform: translateY(-6px) scale(1.04);
+}
+
+.extreme-premium-links {
+    text-align: center;
+    margin-top: 50px;
+    padding-top: 40px;
+    border-top: 3px solid #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.extreme-premium-links a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 800;
+    transition: all 0.5s ease;
+    position: relative;
+}
+
+.extreme-premium-links a:hover {
+    color: #22c55e;
+    transform: translateY(-3px);
+}
+
+.extreme-google-signin-section {
+    margin-top: 60px;
+    position: relative;
+    z-index: 1;
+}
+
+.extreme-divider {
+    display: flex;
+    align-items: center;
+    margin: 45px 0;
+    color: #64748b;
+    font-weight: 800;
+}
+
+.extreme-divider::before,
+.extreme-divider::after {
+    content: '';
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+.extreme-divider span {
+    padding: 0 40px;
+    font-size: 19px;
+    font-weight: 900;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.998) 0%, rgba(248, 250, 252, 0.99) 50%, rgba(241, 245, 249, 0.98) 100%);
+    position: relative;
+    letter-spacing: 1.5px;
+}
+
+.extreme-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 25px 40px;
+    background: white;
+    border: 4px solid #e2e8f0;
+    border-radius: 26px;
+    color: #0f172a;
+    font-size: 19px;
+    font-weight: 900;
+    text-decoration: none;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 12px 30px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.8);
+    position: relative;
+    overflow: hidden;
+}
+
+.extreme-google-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 35%, rgba(59, 130, 246, 0.08) 50%, transparent 65%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.extreme-google-btn:hover::before {
+    opacity: 1;
+}
+
+.extreme-google-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: 
+        0 18px 45px rgba(0, 0, 0, 0.22),
+        0 0 0 1px rgba(255, 255, 255, 0.95);
+    transform: translateY(-6px);
+    color: #0f172a;
+}
+
+.extreme-google-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 25px;
+    transition: transform 0.4s ease;
+}
+
+.extreme-google-btn:hover .extreme-google-icon {
+    transform: scale(1.15);
+}
+
+.extreme-floating-shapes {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.extreme-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    animation: extremeFloat 15s ease-in-out infinite;
+}
+
+.extreme-shape1 {
+    width: 180px;
+    height: 180px;
+    top: 5%;
+    left: 2%;
+    animation-delay: 0s;
+}
+
+.extreme-shape2 {
+    width: 140px;
+    height: 140px;
+    top: 80%;
+    right: 3%;
+    animation-delay: 4s;
+}
+
+.extreme-shape3 {
+    width: 120px;
+    height: 120px;
+    bottom: 10%;
+    left: 15%;
+    animation-delay: 8s;
+}
+
+.extreme-shape4 {
+    width: 160px;
+    height: 160px;
+    top: 20%;
+    right: 12%;
+    animation-delay: 2s;
+}
+
+.extreme-shape5 {
+    width: 100px;
+    height: 100px;
+    bottom: 5%;
+    right: 8%;
+    animation-delay: 6s;
+}
+
+.extreme-shape6 {
+    width: 130px;
+    height: 130px;
+    top: 50%;
+    left: 5%;
+    animation-delay: 10s;
+}
+
+.extreme-shape7 {
+    width: 110px;
+    height: 110px;
+    top: 65%;
+    left: 30%;
+    animation-delay: 3s;
+}
+
+.extreme-shape8 {
+    width: 90px;
+    height: 90px;
+    top: 35%;
+    right: 25%;
+    animation-delay: 7s;
+}
+
+@keyframes extremeFloat {
+    0%, 100% { 
+        transform: translateY(0px) rotate(0deg) scale(1); 
+        opacity: 0.8;
+    }
+    12.5% { 
+        transform: translateY(-70px) rotate(45deg) scale(1.2); 
+        opacity: 0.6;
+    }
+    25% { 
+        transform: translateY(-35px) rotate(90deg) scale(0.9); 
+        opacity: 0.9;
+    }
+    37.5% { 
+        transform: translateY(-60px) rotate(135deg) scale(1.15); 
+        opacity: 0.7;
+    }
+    50% { 
+        transform: translateY(-45px) rotate(180deg) scale(1.05); 
+        opacity: 0.85;
+    }
+    62.5% { 
+        transform: translateY(-55px) rotate(225deg) scale(0.95); 
+        opacity: 0.75;
+    }
+    75% { 
+        transform: translateY(-40px) rotate(270deg) scale(1.1); 
+        opacity: 0.65;
+    }
+    87.5% { 
+        transform: translateY(-25px) rotate(315deg) scale(0.85); 
+        opacity: 0.95;
+    }
+}
+
+.alert {
+    border-radius: 20px;
+    border: none;
+    margin-bottom: 35px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.form-select {
+    border: 4px solid #e2e8f0;
+    border-radius: 30px;
+    padding: 28px 40px;
+    font-size: 19px;
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+}
+
+.form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0.25);
+    background: white;
+    transform: translateY(-8px) scale(1.04);
+}
+
+@media (max-width: 768px) {
+    .extreme-premium-card {
+        margin: 20px;
+        border-radius: 32px;
+    }
+    
+    .extreme-premium-body {
+        padding: 50px 30px;
+    }
+    
+    .extreme-premium-header {
+        padding: 50px 30px;
+    }
+    
+    .extreme-premium-header h3 {
+        font-size: 36px;
+    }
+    
+    .extreme-premium-form .form-control,
+    .extreme-premium-form .form-select {
+        padding: 20px 25px;
+        font-size: 16px;
+    }
+}
+</style>
+
+<div class="extreme-premium-login">
+    <div class="extreme-floating-shapes">
+        <div class="extreme-shape extreme-shape1"></div>
+        <div class="extreme-shape extreme-shape2"></div>
+        <div class="extreme-shape extreme-shape3"></div>
+        <div class="extreme-shape extreme-shape4"></div>
+        <div class="extreme-shape extreme-shape5"></div>
+        <div class="extreme-shape extreme-shape6"></div>
+        <div class="extreme-shape extreme-shape7"></div>
+        <div class="extreme-shape extreme-shape8"></div>
+    </div>
+    
+    <div class="extreme-premium-card">
+        <div class="extreme-premium-header">
+            <h3>Welcome Back</h3>
+            <p>Access Your Advanced School Management Portal</p>
+        </div>
+        
+        <div class="extreme-premium-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('auth.login') }}" class="extreme-premium-form">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           placeholder="Enter your professional email address" required>
+                    <i class="fas fa-envelope input-icon"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Secure Password</label>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           placeholder="Enter your secure password" required>
+                    <i class="fas fa-lock input-icon"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="account_type" class="form-label">Account Type</label>
+                    <select class="form-select" id="account_type" name="account_type" required>
+                        <option value="">Select Your Account Type</option>
+                        <option value="admin">System Administrator</option>
+                        <option value="teacher">Educational Faculty</option>
+                        <option value="parent">Parent/Guardian</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="extreme-premium-btn">
+                    <i class="fas fa-sign-in-alt me-3"></i>Sign In Securely
+                </button>
+            </form>
+            
+            <div class="extreme-premium-links">
+                <p>
+                    <small>New to our advanced platform?</small>
+                    <a href="{{ url_for('auth.register') }}">Create Premium Account</a>
+                </p>
+                
+                <p style="margin-top: 20px;">
+                    <small>Forgot your password?</small>
+                    <a href="{{ url_for('auth.forgot_password') }}" style="color: #ef4444;">Reset Password</a>
+                </p>
+                
+                <!-- Google Sign-In Section -->
+                <div class="extreme-google-signin-section">
+                    <div class="extreme-divider">
+                        <span>OR CONTINUE WITH</span>
+                    </div>
+                    <a href="{{ url_for('auth.google_login') }}" class="extreme-google-btn">
+                        <svg class="extreme-google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enhanced floating animation
+document.addEventListener('DOMContentLoaded', function() {
+    const shapes = document.querySelectorAll('.extreme-shape');
+    shapes.forEach((shape, index) => {
+        shape.style.animation = `extremeFloat ${12 + index * 3}s ease-in-out infinite`;
+        shape.style.animationDelay = `${index * 2.5}s`;
+    });
+});
+
+// Extreme ripple effect
+document.querySelector('.extreme-premium-btn').addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('extreme-ripple');
+    
+    this.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 1500);
+});
+
+// Parallax effect on mouse move
+document.addEventListener('mousemove', function(e) {
+    const card = document.querySelector('.extreme-premium-card');
+    const x = (e.clientX / window.innerWidth - 0.5) * 20;
+    const y = (e.clientY / window.innerHeight - 0.5) * 20;
+    
+    card.style.transform = `perspective(2500px) rotateX(${-y}deg) rotateY(${x}deg)`;
+});
+</script>
+
+<style>
+.extreme-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    transform: scale(0);
+    animation: extreme-ripple-animation 1.5s ease-out;
+    pointer-events: none;
+}
+
+@keyframes extreme-ripple-animation {
+    to {
+        transform: scale(6);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}

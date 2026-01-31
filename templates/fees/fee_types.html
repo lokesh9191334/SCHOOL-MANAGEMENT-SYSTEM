@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Fee Types Management</h3>
+          <a href="{{ url_for('fees.add_fee_type') }}" class="btn btn-primary">Add Fee Type</a>
+        </div>
+        <div class="card-body">
+          {% if fee_types %}
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Recurring</th>
+                  <th>Frequency</th>
+                  <th>Default Amount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for fee_type in fee_types %}
+                <tr>
+                  <td>{{ fee_type.id }}</td>
+                  <td><strong>{{ fee_type.name }}</strong></td>
+                  <td>{{ fee_type.description or '-' }}</td>
+                  <td>
+                    {% if fee_type.is_recurring %}
+                      <span class="badge bg-success">Yes</span>
+                    {% else %}
+                      <span class="badge bg-secondary">No</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ fee_type.frequency or '-' }}</td>
+                  <td>
+                    {% if fee_type.default_amount %}
+                      ₹{{ "%.2f"|format(fee_type.default_amount) }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if fee_type.is_active %}
+                      <span class="badge bg-success">Active</span>
+                    {% else %}
+                      <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group" role="group">
+                      <a href="{{ url_for('fees.edit_fee_type', id=fee_type.id) }}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                      </a>
+                      {% if fee_type.is_active %}
+                        <form method="POST" action="{{ url_for('fees.toggle_fee_type', id=fee_type.id) }}" style="display: inline;">
+                          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to deactivate this fee type?')">
+                            <i class="fas fa-ban"></i> Deactivate
+                          </button>
+                        </form>
+                      {% else %}
+                        <form method="POST" action="{{ url_for('fees.toggle_fee_type', id=fee_type.id) }}" style="display: inline;">
+                          <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure you want to activate this fee type?')">
+                            <i class="fas fa-check"></i> Activate
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-tags fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Fee Types Found</h4>
+            <p class="text-muted">Create your first fee type to categorize fees.</p>
+            <a href="{{ url_for('fees.add_fee_type') }}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Add First Fee Type
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

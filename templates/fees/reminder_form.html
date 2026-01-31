@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Send Payment Reminder</h3>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <div class="mb-3">
+              <label for="student_id" class="form-label">Student *</label>
+              <select class="form-select" id="student_id" name="student_id" required>
+                <option value="">Select Student</option>
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.full_name() }} ({{ student.roll_number or 'No Roll' }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="fee_id" class="form-label">Related Fee *</label>
+              <select class="form-select" id="fee_id" name="fee_id" required>
+                <option value="">Select Fee</option>
+                {% for fee in fees %}
+                <option value="{{ fee.id }}">Fee #{{ fee.id }} - ${{ "%.2f"|format(fee.amount) }} ({{ fee.student.full_name() if fee.student else 'Unknown' }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="reminder_type" class="form-label">Reminder Type *</label>
+              <select class="form-select" id="reminder_type" name="reminder_type" required>
+                <option value="">Select Type</option>
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+                <option value="notification">In-App Notification</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="message" class="form-label">Message *</label>
+              <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+              <small class="form-text text-muted">Customize the reminder message. Use placeholders like {student_name}, {amount}, {due_date}.</small>
+            </div>
+            <div class="mb-3">
+              <label for="scheduled_date" class="form-label">Send Date/Time</label>
+              <input type="datetime-local" class="form-control" id="scheduled_date" name="scheduled_date">
+              <small class="form-text text-muted">Leave empty to send immediately.</small>
+            </div>
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('fees.list_reminders') }}" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Send Reminder</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-populate message based on selected fee
+document.getElementById('fee_id').addEventListener('change', function() {
+  const feeId = this.value;
+  if (feeId) {
+    // This would typically fetch fee details via AJAX
+    // For now, we'll use a template message
+    const templateMessage = `Dear {student_name},
+
+This is a reminder that your fee payment of ${fee_amount} is due on {due_date}.
+
+Please make the payment at your earliest convenience to avoid any late fees.
+
+Thank you,
+School Management Team`;
+
+    document.getElementById('message').value = templateMessage;
+  }
+});
+
+// Update fee options based on selected student
+document.getElementById('student_id').addEventListener('change', function() {
+  const studentId = this.value;
+  const feeSelect = document.getElementById('fee_id');
+  const feeOptions = feeSelect.querySelectorAll('option');
+
+  // Reset fee options
+  feeSelect.innerHTML = '<option value="">Select Fee</option>';
+
+  if (studentId) {
+    // Filter fees for selected student
+    feeOptions.forEach(option => {
+      if (option.value && option.getAttribute('data-student-id') === studentId) {
+        feeSelect.appendChild(option.cloneNode(true));
+      }
+    });
+  } else {
+    // Show all fees if no student selected
+    feeOptions.forEach(option => {
+      if (option.value) {
+        feeSelect.appendChild(option.cloneNode(true));
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

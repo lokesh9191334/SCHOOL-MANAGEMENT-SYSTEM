@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/auth_premium.css') }}" rel="stylesheet">
+<style>
+/* Custom Notification System */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+}
+
+.notification {
+    background: white;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid #007bff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.notification.success {
+    border-left-color: #28a745;
+    background: #d4edda;
+    color: #155724;
+}
+
+.notification.danger {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.notification.warning {
+    border-left-color: #ffc107;
+    background: #fff3cd;
+    color: #856404;
+}
+
+.notification.info {
+    border-left-color: #17a2b8;
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.notification-content {
+    flex: 1;
+    font-weight: 500;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    padding: 0;
+    margin-left: 10px;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification.hiding {
+    animation: slideOut 0.3s ease-out forwards;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100">
+    <div class="row h-100">
+        <div class="col-lg-6 mx-auto align-self-center">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </h4>
+                </div>
+                <div class="card-body p-5">
+                    <!-- Custom Notification Container -->
+                    <div id="notification-container" class="notification-container"></div>
+                    
+                    <!-- Hidden Flash Messages (for JavaScript to read) -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} d-none" style="display: none !important;">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-bold">
+                                <i class="fas fa-envelope me-2"></i>Email Address
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-envelope text-primary"></i>
+                                </span>
+                                <input type="email" class="form-control border-primary" 
+                                       id="email" name="email" placeholder="Enter your email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-2"></i>Password
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-lock text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-primary" 
+                                       id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="account_type" class="form-label fw-bold">
+                                <i class="fas fa-user-tag me-2"></i>Account Type
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-user-tag text-primary"></i>
+                                </span>
+                                <select class="form-control border-primary" id="account_type" name="account_type" required>
+                                    <option value="">Select Account Type</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="parent">Parent</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    Don't have an account? 
+                                    <a href="{{ url_for('auth.register') }}" class="text-primary">Register here</a>
+                                </small>
+                            </div>
+                            <div>
+                                <small class="text-primary fw-bold">
+                                    <i class="fas fa-key me-1"></i>
+                                    Parent Registration: 
+                                    <a href="{{ url_for('auth.parent_register') }}" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="fas fa-user-plus me-1"></i>Register with Key
+                                    </a>
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Custom Notification System
+class NotificationManager {
+    constructor() {
+        this.container = document.getElementById('notification-container');
+        this.currentNotification = null;
+        this.timeout = null;
+    }
+
+    show(message, type = 'info') {
+        // Clear any existing notification and timeout
+        this.clear();
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">${message}</div>
+            <button class="notification-close">&times;</button>
+        `;
+
+        // Add close button functionality
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => this.clear());
+
+        // Add to container
+        this.container.appendChild(notification);
+        this.currentNotification = notification;
+
+        // Auto-hide after 10 seconds
+        this.timeout = setTimeout(() => {
+            this.hide();
+        }, 10000);
+    }
+
+    hide() {
+        if (this.currentNotification) {
+            this.currentNotification.classList.add('hiding');
+            setTimeout(() => {
+                this.clear();
+            }, 300);
+        }
+    }
+
+    clear() {
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        if (this.currentNotification) {
+            this.currentNotification.remove();
+            this.currentNotification = null;
+        }
+    }
+}
+
+// Initialize notification manager
+const notificationManager = new NotificationManager();
+
+// Show flash messages as notifications
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for flash messages in the page
+    const flashAlerts = document.querySelectorAll('.alert');
+    if (flashAlerts.length > 0) {
+        const firstAlert = flashAlerts[0];
+        const message = firstAlert.textContent.trim();
+        const type = firstAlert.classList.contains('alert-danger') ? 'danger' : 
+                    firstAlert.classList.contains('alert-success') ? 'success' : 
+                    firstAlert.classList.contains('alert-warning') ? 'warning' : 'info';
+        
+        notificationManager.show(message, type);
+        
+        // Hide all original alerts
+        flashAlerts.forEach(alert => alert.style.display = 'none');
+    }
+
+    // Auto-select parent account type if coming from parent registration
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountType = urlParams.get('type');
+    if (accountType === 'parent') {
+        const accountTypeSelect = document.getElementById('account_type');
+        if (accountTypeSelect) {
+            accountTypeSelect.value = 'parent';
+        }
+    }
+});
+
+// Override the default showAlert function if it exists
+window.showAlert = function(message, type = 'info') {
+    notificationManager.show(message, type);
+};
+</script>
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Classes Management</h3>
+                    <div class="card-tools">
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('classes.incharges') }}">
+                            <i class="fas fa-user-check"></i> Class Incharge
+                        </a>
+                        <a class="btn btn-success btn-sm" href="{{ url_for('classes.classes_analytics') }}">
+                            <i class="fas fa-chart-bar"></i> Analytics
+                        </a>
+                        <a class="btn btn-info btn-sm" href="{{ url_for('classes.classes_report') }}">
+                            <i class="fas fa-file-alt"></i> Report
+                        </a>
+                        <a class="btn btn-primary btn-sm" href="{{ url_for('classes.add_class') }}">
+                            <i class="fas fa-plus"></i> Add Class
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Total Classes</h5>
+                                    <h2>{{ total_classes }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Total Students</h5>
+                                    <h2>{{ total_students }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Total Subjects</h5>
+                                    <h2>{{ total_subjects }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Avg Class Size</h5>
+                                    <h2>{{ "%.1f"|format(avg_class_size) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search classes...">
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-control" id="gradeFilter">
+                                <option value="">All Grades</option>
+                                {% for classroom in classes %}
+                                    {% if classroom.grade %}
+                                        <option value="{{ classroom.grade }}">{{ classroom.grade }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Classes Table -->
+                    {% if classes %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="classesTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Grade/Year</th>
+                                    <th>Class Teacher</th>
+                                    <th>Room</th>
+                                    <th>Capacity</th>
+                                    <th>Students</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in classes %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <strong class="text-dark mb-1">{{ c.name }}</strong>
+                                            {% if c.academic_year %}
+                                            <small class="text-primary font-weight-bold">{{ c.academic_year }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if c.grade %}
+                                            <span class="badge badge-primary">{{ c.grade }}</span>
+                                        {% elif c.year %}
+                                            <span class="badge badge-secondary">{{ c.year }}</span>
+                                        {% else %}
+                                            <span class="badge badge-light">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if c.class_teacher %}
+                                            {{ c.class_teacher.name }}
+                                        {% else %}
+                                            <span class="text-muted">Not assigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if c.room %}
+                                            {{ c.room }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if c.capacity %}
+                                            {{ c.capacity }}
+                                            {% set utilization = (c.students|length / c.capacity * 100)|round %}
+                                            <div class="progress mt-1" style="height: 6px;">
+                                                <div class="progress-bar {% if utilization > 90 %}bg-danger{% elif utilization > 75 %}bg-warning{% else %}bg-success{% endif %}"
+                                                     style="width: {{ utilization }}%"></div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Unlimited</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-success">{{ c.students|length }} students</span>
+                                    </td>
+                                    <td>
+                                        {% if c.class_type == 'regular' %}
+                                            <span class="badge badge-primary">Regular</span>
+                                        {% elif c.class_type == 'special' %}
+                                            <span class="badge badge-warning">Special Ed</span>
+                                        {% elif c.class_type == 'remedial' %}
+                                            <span class="badge badge-info">Remedial</span>
+                                        {% elif c.class_type == 'advanced' %}
+                                            <span class="badge badge-success">Advanced</span>
+                                        {% elif c.class_type == 'elective' %}
+                                            <span class="badge badge-secondary">Elective</span>
+                                        {% else %}
+                                            <span class="badge badge-light">Regular</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if c.status == 'active' %}
+                                            <span class="badge badge-success">Active</span>
+                                        {% elif c.status == 'inactive' %}
+                                            <span class="badge badge-warning">Inactive</span>
+                                        {% elif c.status == 'archived' %}
+                                            <span class="badge badge-secondary">Archived</span>
+                                        {% else %}
+                                            <span class="badge badge-success">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('classes.edit_class', class_id=c.id) }}"
+                                               class="btn btn-sm btn-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ url_for('classes.view_class', class_id=c.id) }}"
+                                               class="btn btn-sm btn-info" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <form method="post" action="{{ url_for('classes.delete_class', class_id=c.id) }}"
+                                                  style="display: inline;"
+                                                  onsubmit="return confirm('Are you sure you want to delete this class?')">
+                                                <button class="btn btn-sm btn-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h4>No classes found</h4>
+                        <p>Get started by adding your first class.</p>
+                        <a class="btn btn-primary" href="{{ url_for('classes.add_class') }}">Add Class</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const filter = this.value.toLowerCase();
+    const gradeFilter = document.getElementById('gradeFilter').value.toLowerCase();
+    const rows = document.querySelectorAll('#classesTable tbody tr');
+
+    rows.forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const grade = row.cells[1].textContent.toLowerCase();
+        const matchesSearch = name.includes(filter);
+        const matchesGrade = !gradeFilter || grade.includes(gradeFilter);
+
+        row.style.display = matchesSearch && matchesGrade ? '' : 'none';
+    });
+});
+
+// Grade filter
+document.getElementById('gradeFilter').addEventListener('change', function() {
+    const filter = this.value.toLowerCase();
+    const searchFilter = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#classesTable tbody tr');
+
+    rows.forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const grade = row.cells[1].textContent.toLowerCase();
+        const matchesSearch = !searchFilter || name.includes(searchFilter);
+        const matchesGrade = !filter || grade.includes(filter);
+
+        row.style.display = matchesSearch && matchesGrade ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

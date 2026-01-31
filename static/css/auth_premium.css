@@ -1,0 +1,49 @@
+/* Premium login styling - glass card, refined inputs, gradients, subtle animations */
+:root{
+  --accent-1: #6a7dff;
+  --accent-2: #7e57ff;
+  --muted: #7a7f86;
+  --bg-1: linear-gradient(135deg,#0f172a 0%,#0b1220 100%);
+  --card-bg: rgba(255,255,255,0.06);
+}
+html,body{
+  height:100%;
+  background: radial-gradient(circle at 10% 20%, rgba(124,77,255,0.12), transparent 10%),
+              radial-gradient(circle at 90% 80%, rgba(106,125,255,0.08), transparent 10%),
+              linear-gradient(180deg,#081026 0%, #0d1530 100%);
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, 'Helvetica Neue', Arial;
+  color: #e6eef8;
+}
+.login-container{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:30px}
+.login-card{width:100%;max-width:520px;border-radius:16px;overflow:hidden;position:relative;backdrop-filter: blur(8px) saturate(120%);box-shadow:0 10px 40px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.06);background:linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%);}
+.login-header{padding:34px 36px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:white}
+.login-header h2{margin:0;font-weight:700;letter-spacing:0.6px;font-size:1.3rem}
+.login-header p{margin:4px 0 0;font-size:0.85rem;opacity:0.95}
+.card-body{padding:30px 36px;background:linear-gradient(180deg, rgba(10,15,30,0.2), rgba(3,8,18,0.12));}
+.input-group .input-group-text{background:transparent;border:none;color:var(--accent-1);}
+.form-control{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);color:#e6eef8;padding:12px 14px;border-radius:10px;box-shadow:none}
+.form-control::placeholder{color:rgba(230,238,248,0.45)}
+.form-control:focus{outline:none;border-color:rgba(124,77,255,0.7);box-shadow:0 6px 20px rgba(106,125,255,0.08);background:rgba(255,255,255,0.03)}
+.select-custom{appearance:none;background-image:none}
+.btn-primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;border-radius:10px;padding:12px 18px;font-weight:600}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(124,77,255,0.12)}
+.text-muted{color:var(--muted)!important}
+.footer-links{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:0.9rem}
+.alert{border-radius:10px}
+@media (max-width:767px){.login-card{max-width:420px;padding:0 12px}.login-header{padding:22px}.card-body{padding:20px}}
+
+/* subtle float animation for background */
+@keyframes floaty{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+.login-card::before{content:"";position:absolute;inset:-30% -10%;background:linear-gradient(120deg,rgba(124,77,255,0.06),rgba(106,125,255,0.04),transparent 40%);filter:blur(40px);transform:rotate(-12deg);animation:floaty 9s ease-in-out infinite}
+
+/* small helper for focus ring on inputs' icons */
+.input-group-text{border-radius:10px 0 0 10px;border-right:1px solid rgba(255,255,255,0.03);padding:10px 12px}
+
+/* make account-type select visually same as input */
+select.form-control{background:rgba(255,255,255,0.02);}
+
+/* remember checkbox */
+.form-check-label{color:rgba(230,238,248,0.9)}
+
+/* link styles */
+a.text-decoration-none{color:rgba(230,238,248,0.95);text-decoration:underline rgba(230,238,248,0.06)}

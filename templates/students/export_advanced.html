@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0">
+          <i class="fas fa-download me-2 text-success"></i>
+          Advanced Student Export
+        </h4>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Export Options:</strong>
+          <ul class="mb-0 mt-2">
+            <li>Select specific classes or export all students</li>
+            <li>Filter by student status (active/inactive)</li>
+            <li>Choose what information to include in the export</li>
+            <li>Download filtered data as CSV file</li>
+          </ul>
+        </div>
+
+        <form method="POST" id="export-form">
+          <!-- Export Type Selection -->
+          <div class="mb-4">
+            <h5 class="mb-3">Export Scope</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="export_type" id="export_all" value="all" checked>
+                  <label class="form-check-label" for="export_all">
+                    <strong>Export All Students</strong>
+                    <br><small class="text-muted">Export all students in the system</small>
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="export_type" id="export_selected" value="selected_classes">
+                  <label class="form-check-label" for="export_selected">
+                    <strong>Export Selected Classes</strong>
+                    <br><small class="text-muted">Choose specific classes to export</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Class Selection (shown when selected_classes is chosen) -->
+          <div id="class-selection" class="mb-4" style="display: none;">
+            <h5 class="mb-3">Select Classes</h5>
+            <div class="row">
+              {% for class in classes %}
+              <div class="col-md-4 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input class-checkbox" type="checkbox" name="classes" value="{{ class.id }}" id="class_{{ class.id }}">
+                  <label class="form-check-label" for="class_{{ class.id }}">
+                    {{ class.name }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="mt-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="select-all-classes">
+                <i class="fas fa-check-square me-1"></i>Select All Classes
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all-classes">
+                <i class="fas fa-square me-1"></i>Deselect All
+              </button>
+            </div>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="mb-4">
+            <h5 class="mb-3">Student Status</h5>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="status_filter" id="status_all" value="all" checked>
+                  <label class="form-check-label" for="status_all">
+                    All Students
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="status_filter" id="status_active" value="active">
+                  <label class="form-check-label" for="status_active">
+                    Active Students Only
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="status_filter" id="status_inactive" value="inactive">
+                  <label class="form-check-label" for="status_inactive">
+                    Inactive Students Only
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Inclusion Options -->
+          <div class="mb-4">
+            <h5 class="mb-3">Data to Include</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="include_parent_info" name="include_parent_info" checked>
+                  <label class="form-check-label" for="include_parent_info">
+                    <strong>Parent Information</strong>
+                    <br><small class="text-muted">Father name, mother name, parent contact details</small>
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="include_contact_info" name="include_contact_info" checked>
+                  <label class="form-check-label" for="include_contact_info">
+                    <strong>Contact Information</strong>
+                    <br><small class="text-muted">Student email and phone number</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Section -->
+          <div id="preview-section" class="mb-4" style="display: none;">
+            <h5 class="mb-3">Export Preview</h5>
+            <div class="alert alert-light">
+              <strong>Estimated Records:</strong> <span id="record-count">Calculating...</span><br>
+              <strong>Selected Filters:</strong> <span id="filter-summary">None</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex justify-content-between">
+            <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-2"></i>Back to Students
+            </a>
+            <div>
+              <button type="button" class="btn btn-outline-info me-2" id="preview-btn">
+                <i class="fas fa-eye me-2"></i>Preview Export
+              </button>
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-download me-2"></i>Export to CSV
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Toggle class selection visibility
+document.querySelectorAll('input[name="export_type"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const classSelection = document.getElementById('class-selection');
+    if (this.value === 'selected_classes') {
+      classSelection.style.display = 'block';
+    } else {
+      classSelection.style.display = 'none';
+      // Uncheck all class checkboxes when switching to 'all'
+      document.querySelectorAll('.class-checkbox').forEach(cb => cb.checked = false);
+    }
+  });
+});
+
+// Select/Deselect all classes
+document.getElementById('select-all-classes').addEventListener('click', function() {
+  document.querySelectorAll('.class-checkbox').forEach(cb => cb.checked = true);
+});
+
+document.getElementById('deselect-all-classes').addEventListener('click', function() {
+  document.querySelectorAll('.class-checkbox').forEach(cb => cb.checked = false);
+});
+
+// Preview functionality
+document.getElementById('preview-btn').addEventListener('click', function() {
+  const form = document.getElementById('export-form');
+  const formData = new FormData(form);
+
+  // Count selected classes
+  const selectedClasses = formData.getAll('classes').length;
+  const exportType = formData.get('export_type');
+  const statusFilter = formData.get('status_filter');
+
+  let filterSummary = [];
+  if (exportType === 'selected_classes') {
+    filterSummary.push(`${selectedClasses} classes selected`);
+  } else {
+    filterSummary.push('All classes');
+  }
+
+  if (statusFilter !== 'all') {
+    filterSummary.push(`${statusFilter} students only`);
+  }
+
+  document.getElementById('record-count').textContent = 'Preview not available (will be calculated on export)';
+  document.getElementById('filter-summary').textContent = filterSummary.join(', ');
+  document.getElementById('preview-section').style.display = 'block';
+
+  // Scroll to preview
+  document.getElementById('preview-section').scrollIntoView({ behavior: 'smooth' });
+});
+
+// Form validation
+document.getElementById('export-form').addEventListener('submit', function(e) {
+  const exportType = document.querySelector('input[name="export_type"]:checked').value;
+
+  if (exportType === 'selected_classes') {
+    const selectedClasses = document.querySelectorAll('.class-checkbox:checked');
+    if (selectedClasses.length === 0) {
+      e.preventDefault();
+      alert('Please select at least one class to export.');
+      return false;
+    }
+  }
+
+  // Show loading state
+  const submitBtn = document.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating CSV...';
+
+  return true;
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Teacher Attendance</h3>
+          <a href="{{ url_for('attendance.view_attendance') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Student Attendance
+          </a>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('attendance.mark_teacher_attendance') }}">
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" class="form-control" value="{{ date.strftime('%Y-%m-%d') }}" required>
+              </div>
+              <div class="col-md-9 d-flex align-items-end justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-1"></i> Mark Attendance
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Teacher</th>
+                    <th>Status</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for t in teachers %}
+                  {% set rec = attendance_map.get(t.id) %}
+                  <tr>
+                    <td>
+                      <strong>{{ t.name }}</strong><br>
+                      <small class="text-muted">{{ t.subject or '—' }}</small>
+                    </td>
+                    <td style="min-width: 160px;">
+                      <select name="status_{{ t.id }}" class="form-select">
+                        {% set s = rec.status if rec else 'present' %}
+                        <option value="present" {{ 'selected' if s == 'present' else '' }}>Present</option>
+                        <option value="absent" {{ 'selected' if s == 'absent' else '' }}>Absent</option>
+                        <option value="late" {{ 'selected' if s == 'late' else '' }}>Late</option>
+                        <option value="half-day" {{ 'selected' if s == 'half-day' else '' }}>Half Day</option>
+                        <option value="leave" {{ 'selected' if s == 'leave' else '' }}>Leave</option>
+                      </select>
+                    </td>
+                    <td style="min-width: 140px;">
+                      <input type="time" name="check_in_{{ t.id }}" class="form-control"
+                             value="{{ rec.check_in.strftime('%H:%M') if rec and rec.check_in else '' }}">
+                    </td>
+                    <td style="min-width: 140px;">
+                      <input type="time" name="check_out_{{ t.id }}" class="form-control"
+                             value="{{ rec.check_out.strftime('%H:%M') if rec and rec.check_out else '' }}">
+                    </td>
+                    <td>
+                      <input type="text" name="notes_{{ t.id }}" class="form-control"
+                             value="{{ rec.notes if rec and rec.notes else '' }}" placeholder="Optional notes">
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

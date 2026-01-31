@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Select Account Type - School Management System</title>
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth_new.css') }}?v=2">
+</head>
+<body>
+    <div class="auth-split-container">
+        <div class="left-panel">
+            <div class="content">
+                <h1>SCHOOL MANAGEMENT SYSTEM</h1>
+                <p>Select your account type to continue</p>
+            </div>
+            <div class="abstract-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+                <div class="shape shape-4"></div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="login-card">
+                <div class="form-header">
+                    <h2 class="form-title">SELECT ACCOUNT TYPE</h2>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="account_type" class="form-label">Choose Account Type</label>
+                        <select class="form-input" id="account_type" name="account_type" required>
+                            <option value="" disabled selected>Select Account Type</option>
+                            <option value="admin">Admin</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="parent">Parent</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-input" id="phone" name="phone" placeholder="Enter your phone number" required>
+                    </div>
+
+                    <button type="submit" class="submit-btn">CONTINUE</button>
+                </form>
+
+                <div class="register-link-container">
+                    <a href="{{ url_for('auth.login') }}" class="register-link">
+                        Back to Login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

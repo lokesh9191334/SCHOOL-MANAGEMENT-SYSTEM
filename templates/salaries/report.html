@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Salaries Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Salaries Report</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('salaries.export_salaries') }}" class="btn btn-success btn-sm">
+                            <i class="fas fa-download"></i> Export CSV
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h6>Total Amount</h6>
+                                    <h4>${{ "%.2f"|format(total_amount) }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h6>Paid Salaries</h6>
+                                    <h4>{{ paid_count }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h6>Pending Salaries</h6>
+                                    <h4>{{ pending_count }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body">
+                                    <h6>Total Records</h6>
+                                    <h4>{{ salaries|length }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <form method="GET" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="teacher">Filter by Teacher:</label>
+                                <select class="form-control" id="teacher" name="teacher">
+                                    <option value="">All Teachers</option>
+                                    {% for teacher in teachers %}
+                                    <option value="{{ teacher.name }}" {% if teacher_filter == teacher.name %}selected{% endif %}>
+                                        {{ teacher.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="status">Filter by Status:</label>
+                                <select class="form-control" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="date_from">Date From:</label>
+                                <input type="date" class="form-control" id="date_from" name="date_from"
+                                       value="{{ date_from }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="date_to">Date To:</label>
+                                <input type="date" class="form-control" id="date_to" name="date_to"
+                                       value="{{ date_to }}">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                                <a href="{{ url_for('salaries.salaries_report') }}" class="btn btn-secondary">Clear</a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Bulk Actions Form -->
+                    <form method="POST" action="{{ url_for('salaries.bulk_process_salaries') }}" id="bulkForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                    <label class="form-check-label" for="selectAll">
+                                        Select All
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <div class="btn-group" role="group">
+                                    <button type="submit" name="action" value="mark_paid" class="btn btn-success btn-sm"
+                                            onclick="return confirm('Mark selected salaries as paid?')">
+                                        Mark as Paid
+                                    </button>
+                                    <button type="submit" name="action" value="mark_pending" class="btn btn-warning btn-sm"
+                                            onclick="return confirm('Mark selected salaries as pending?')">
+                                        Mark as Pending
+                                    </button>
+                                    <button type="submit" name="action" value="delete" class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Delete selected salaries?')">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results Table -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th><input type="checkbox" id="selectAllTop"></th>
+                                        <th>ID</th>
+                                        <th>Teacher</th>
+                                        <th>Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for salary in salaries %}
+                                    <tr>
+                                        <td><input type="checkbox" name="salary_ids[]" value="{{ salary.id }}" class="salary-checkbox"></td>
+                                        <td>{{ salary.id }}</td>
+                                        <td>
+                                            {% if salary.teacher %}
+                                                {{ salary.teacher.name }}
+                                            {% else %}
+                                                <span class="text-muted">Unknown</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>${{ "%.2f"|format(salary.amount) }}</td>
+                                        <td>
+                                            {% if salary.payment_date %}
+                                                {{ salary.payment_date.strftime('%Y-%m-%d') }}
+                                            {% else %}
+                                                <span class="text-muted">Not set</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if salary.status == 'paid' %}badge-success{% else %}badge-warning{% endif %}">
+                                                {{ salary.status.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('salaries.view_salary', salary_id=salary.id) }}"
+                                               class="btn btn-sm btn-info">View Details</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+
+                    {% if not salaries %}
+                    <div class="alert alert-info">
+                        No salaries found matching the current filters.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Select All functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.salary-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+
+document.getElementById('selectAllTop').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.salary-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,606 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block content %}
+<style>
+.premium-login {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+.premium-login::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(255, 219, 198, 0.3) 0%, transparent 50%);
+    animation: backgroundShift 10s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(-20px, -20px) rotate(120deg); }
+    66% { transform: translate(20px, -10px) rotate(240deg); }
+}
+
+.premium-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 25px;
+    box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    max-width: 480px;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+    transform: perspective(1000px) rotateX(2deg);
+    transition: all 0.3s ease;
+}
+
+.premium-card:hover {
+    transform: perspective(1000px) rotateX(0deg) translateY(-5px);
+    box-shadow: 
+        0 35px 70px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
+}
+
+.premium-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px 30px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.premium-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.4;
+    animation: grain 8s linear infinite;
+}
+
+@keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-5%, -10%); }
+    20% { transform: translate(-15%, 5%); }
+    30% { transform: translate(7%, -25%); }
+    40% { transform: translate(-5%, 25%); }
+    50% { transform: translate(-15%, 10%); }
+    60% { transform: translate(15%, 0%); }
+    70% { transform: translate(0%, 15%); }
+    80% { transform: translate(3%, 35%); }
+    90% { transform: translate(-10%, 10%); }
+}
+
+.premium-header h3 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.5px;
+}
+
+.premium-header p {
+    margin: 10px 0 0 0;
+    opacity: 0.9;
+    font-size: 15px;
+    position: relative;
+    z-index: 1;
+    font-weight: 400;
+}
+
+.premium-body {
+    padding: 45px 35px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.premium-form .form-group {
+    margin-bottom: 25px;
+    position: relative;
+}
+
+.premium-form .form-label {
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+    display: block;
+}
+
+.premium-form .form-control,
+.premium-form .form-select {
+    border: 2px solid #e1e5e9;
+    border-radius: 15px;
+    padding: 15px 20px;
+    font-size: 16px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    position: relative;
+}
+
+.premium-form .form-control:focus,
+.premium-form .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 
+        0 0 0 4px rgba(102, 126, 234, 0.15),
+        0 8px 25px rgba(102, 126, 234, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    background: white;
+    transform: translateY(-2px);
+}
+
+.premium-form .input-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-size: 20px;
+}
+
+.premium-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    margin-top: 10px;
+}
+
+.premium-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+}
+
+.premium-btn:active {
+    transform: translateY(0);
+}
+
+.premium-links {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.premium-links p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.premium-links a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.premium-links a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+.google-signin-section {
+    margin-top: 25px;
+}
+
+.divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e1e8ed;
+}
+
+.divider span {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0 15px;
+    color: #6c757d;
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px;
+    background: white;
+    border: 2px solid #e1e8ed;
+    border-radius: 12px;
+    color: #333;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.google-btn:hover {
+    background: #f8f9fa;
+    border-color: #dadce0;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+}
+
+/* Animations */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .premium-login {
+        padding: 10px;
+    }
+    
+    .premium-card {
+        margin: 0;
+        border-radius: 15px;
+    }
+    
+    .premium-header {
+        padding: 30px 20px;
+    }
+    
+    .premium-body {
+        padding: 30px 20px;
+    }
+    
+    .premium-header h3 {
+        font-size: 24px;
+    }
+}
+
+/* Custom Notification Styles */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+}
+
+.notification {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    overflow: hidden;
+}
+
+.notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.notification.success::before {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.notification.danger::before {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.notification.warning::before {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.notification.info::before {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.notification-content {
+    flex: 1;
+    font-weight: 600;
+    color: #1f2937;
+    margin-left: 15px;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+    opacity: 0.7;
+    padding: 0;
+    margin-left: 15px;
+    transition: all 0.3s ease;
+}
+
+.notification-close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification.hiding {
+    animation: slideOutRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+</style>
+
+<div class="premium-login">
+    <div class="floating-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+    
+    <div class="premium-card">
+        <div class="premium-header">
+            <h3>Welcome Back</h3>
+            <p>Login to your School Management System</p>
+        </div>
+        
+        <div class="premium-body">
+            <!-- Custom Notification Container -->
+            <div id="notification-container" class="notification-container"></div>
+            
+            <form method="POST" action="{{ url_for('auth.login') }}" class="premium-form">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           placeholder="Enter your email" required>
+                    <i class="fas fa-envelope input-icon"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           placeholder="Enter your password" required>
+                    <i class="fas fa-lock input-icon"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="account_type" class="form-label">Account Type</label>
+                    <select class="form-select" id="account_type" name="account_type" required>
+                        <option value="">Select Account Type</option>
+                        <option value="admin">Administrator</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="parent">Parent</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="premium-btn">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                </button>
+            </form>
+            
+            <div class="premium-links">
+                <p>
+                    <small>Don't have an account?</small>
+                    <a href="{{ url_for('auth.register') }}">Register here</a>
+                </p>
+                
+                <!-- Google Sign-In Section -->
+                <div class="google-signin-section">
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
+                    <a href="{{ url_for('auth.google_login') }}" class="google-btn">
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Custom Notification System
+class NotificationManager {
+    constructor() {
+        this.container = document.getElementById('notification-container');
+        this.currentNotification = null;
+        this.timeout = null;
+    }
+
+    show(message, type = 'info') {
+        // Clear any existing notification and timeout
+        this.clear();
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">${message}</div>
+            <button class="notification-close">&times;</button>
+        `;
+
+        // Add close button functionality
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => this.clear());
+
+        // Add to container
+        this.container.appendChild(notification);
+        this.currentNotification = notification;
+
+        // Auto-hide after 10 seconds
+        this.timeout = setTimeout(() => {
+            this.hide();
+        }, 10000);
+    }
+
+    hide() {
+        if (this.currentNotification) {
+            this.currentNotification.classList.add('hiding');
+            setTimeout(() => {
+                this.clear();
+            }, 400);
+        }
+    }
+
+    clear() {
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        if (this.currentNotification) {
+            this.currentNotification.remove();
+            this.currentNotification = null;
+        }
+    }
+}
+
+// Initialize notification manager
+const notificationManager = new NotificationManager();
+
+// Check for flash messages and show as notifications
+document.addEventListener('DOMContentLoaded', function() {
+    // Use global notification manager
+    if (window.notificationManager) {
+        // Check for any flash messages in the page
+        const flashAlerts = document.querySelectorAll('.alert');
+        if (flashAlerts.length > 0) {
+            const firstAlert = flashAlerts[0];
+            const message = firstAlert.textContent.trim();
+            const type = firstAlert.classList.contains('alert-danger') ? 'danger' : 
+                        firstAlert.classList.contains('alert-success') ? 'success' : 
+                        firstAlert.classList.contains('alert-warning') ? 'warning' : 'info';
+            
+            window.notificationManager.show(message, type);
+            
+            // Hide all original alerts
+            flashAlerts.forEach(alert => alert.style.display = 'none');
+        }
+    }
+});
+
+// Add floating animation to shapes
+document.addEventListener('DOMContentLoaded', function() {
+    const shapes = document.querySelectorAll('.shape');
+    shapes.forEach(shape => {
+        shape.style.animation = `float ${6 + Math.random() * 4}s ease-in-out infinite`;
+    });
+});
+
+// Add ripple effect to button
+document.querySelector('.premium-btn').addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('ripple');
+    
+    this.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 600);
+});
+</script>
+
+<style>
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(0);
+    animation: ripple-animation 0.6s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}

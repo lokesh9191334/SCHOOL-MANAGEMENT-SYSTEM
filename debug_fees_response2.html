@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SCHOOL MANAGEMENT SYSTEM</title>
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SchoolMS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" sizes="152x152" href="/static/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/static/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/icon-192x192.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/mobile-pwa.css" rel="stylesheet">
+    <link href="/static/css/settings.css" rel="stylesheet">
+    <link href="/static/css/premium.css" rel="stylesheet">
+    <link href="/static/css/sidebar.css?v=1.2" rel="stylesheet">
+    <link href="/static/css/dashboard_desktop.css" rel="stylesheet">
+    
+  </head>
+  <body>
+    
+    
+        <div class="container mt-3">
+            
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    Logged in as admin!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            
+        </div>
+    
+    
+
+    
+    <div class="wrapper">
+        <nav id="sidebar" class="sidebar">
+    <!-- User Profile Section -->
+    <div class="user-profile px-4 py-3 bg-white bg-opacity-10 rounded mx-3 my-2">
+        <div class="d-flex align-items-center">
+            <div class="profile-pic me-3">
+                
+                <img src="/static/uploads/users/9aebf0cf-5a00-4848-adcf-5d71820ab8cf_IMG_20250831_174255_085.webp" alt="User Photo" 
+                     class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
+                
+            </div>
+            <div class="profile-info">
+                <h4 class="mb-0 text-sm font-weight-semibold">Lokesh Kumar</h4>
+                <p class="text-xs text-muted mb-0">Admin</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <ul class="list-unstyled components py-2">
+        <!-- Dashboard Section -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Dashboard</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/events">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Events</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Student Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Student Management</div>
+            <ul class="list-unstyled menu-items">
+                
+                <li>
+                    <a href="/students/add">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Student Registration</span>
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="/students/">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Students</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Academic Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Academic Management</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/teachers/">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Teachers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/classes/">
+                        <i class="fas fa-users"></i>
+                        <span>Classes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/subjects/">
+                        <i class="fas fa-book"></i>
+                        <span>Subjects</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/attendance/">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Finance Section -->
+        
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Finance</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/fees/">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Fees</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/salaries/">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Salaries</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        
+
+        <!-- System Section -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">System</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="/profile">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/authorized_activity">
+                        <i class="fas fa-bell"></i>
+                        <span>Activity Log</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/help">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Logout -->
+        <li class="logout-section">
+            <a href="/auth/logout" class="logout-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+        <div id="content">
+    
+            
+<div class="container-fluid fade-in-up">
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-2x mb-2 text-primary"></i>
+                    <h3 id="totalFees">0</h3>
+                    <p class="card-text">Total Fees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                    <h3 id="paidFees">0</h3>
+                    <p class="card-text">Paid Fees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x mb-2 text-warning"></i>
+                    <h3 id="pendingFees">0</h3>
+                    <p class="card-text">Pending Fees</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                    <h3 id="totalAmount">₹0.00</h3>
+                    <p class="card-text">Total Amount</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-search"></i>
+                Search & Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by student name...">
+                </div>
+                <div class="col-md-2">
+                    <select id="statusFilter" class="form-control">
+                        <option value="">All Statuses</option>
+                        <option value="paid">Paid</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="feeTypeFilter" class="form-control">
+                        <option value="">All Fee Types</option>
+                        
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="classroomFilter" class="form-control">
+                        <option value="">All Classes</option>
+                        
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="streamFilter" class="form-control">
+                        <option value="">All Streams</option>
+                        
+                        <option value="Non-Medical">Non-Medical</option>
+                        
+                        <option value="Medical">Medical</option>
+                        
+                        <option value="Arts with Math">Arts with Math</option>
+                        
+                        <option value="Commerce with Math">Commerce with Math</option>
+                        
+                        <option value="Medical with Math">Medical with Math</option>
+                        
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button id="clearFilters" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-between mb-3">
+        <div>
+            <button id="refreshBtn" class="btn btn-outline-primary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+        <div>
+            <a href="/fees/create" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add New Fee
+            </a>
+            <a href="/fees/fee_types" class="btn btn-outline-info">
+                <i class="fas fa-tags"></i> Fee Types
+            </a>
+        </div>
+    </div>
+
+    <!-- Fees Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list"></i>
+                Fees List
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="feesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th><i class="fas fa-image me-1"></i>Photo</th>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th>Father Name</th>
+                            <th>Phone</th>
+                            <th>Fee Type</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-credit-card"></i>
+                    Process Payment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="paymentForm">
+                <div class="modal-body">
+                    <input type="hidden" id="feeId" name="fee_id">
+                    <div class="mb-3">
+                        <label class="form-label">Student Name</label>
+                        <input type="text" class="form-control" id="studentName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fee Amount</label>
+                        <input type="text" class="form-control" id="feeAmount" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-control" id="payment_method" name="payment_method" onchange="togglePaymentMethod()">
+                            <option value="cash">Cash</option>
+                            <option value="bank">Bank Transfer</option>
+                            <option value="qr">QR Code Payment</option>
+                        </select>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="generateQRCode()">
+                                <i class="fas fa-qrcode me-1"></i>Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Date</label>
+                        <input type="date" class="form-control" id="payment_date" name="payment_date" required>
+                    </div>
+
+                    <!-- QR Code Payment Section -->
+                    <div id="qrPaymentSection" style="display: none; margin-top: 20px;">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-qrcode me-2"></i>QR Code Payment</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Amount to Pay:</strong> <span id="qrAmount" class="text-success fw-bold">₹0.00</span></p>
+                                    <p><strong>UPI ID:</strong> lk5278127-1@okicici</p>
+                                    <p><strong>Merchant:</strong> Bank of Baroda</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <div id="qrCodeContainer" class="text-center">
+                                        <div id="qrCode" style="width: 200px; height: 200px; margin: 0 auto; background: #f8f9fa; border: 2px dashed #dee2e6; display: flex; align-items: center; justify-content: center;">
+                                            <div class="text-muted">
+                                                <i class="fas fa-qrcode fa-3x mb-2"></i>
+                                                <br>QR Code will appear here
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid gap-2 mt-3">
+                                        <button type="button" id="generateQRBtn" class="btn btn-primary" onclick="generateQRCode()" style="display: none;">
+                                            <i class="fas fa-qrcode me-2"></i>Generate QR Code
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="paymentStatus" style="display: none;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Process Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-receipt"></i>
+                    Payment Receipt
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiptContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printReceipt()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let currentFeeId = null;
+
+// Updated markAsPaid function that accepts parameters directly
+function markAsPaid(feeId, studentName, feeAmount) {
+    currentFeeId = feeId;
+    // Populate modal with provided data
+    document.getElementById('feeId').value = feeId;
+    document.getElementById('studentName').value = studentName || 'N/A';
+    document.getElementById('feeAmount').value = `₹${parseFloat(feeAmount || 0).toFixed(2)}`;
+    // Set today's date as default payment date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('payment_date').value = today;
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    modal.show();
+}
+
+function togglePaymentMethod() {
+    const paymentMethod = document.getElementById('payment_method').value;
+    const qrSection = document.getElementById('qrPaymentSection');
+
+    if (paymentMethod === 'qr') {
+        qrSection.style.display = 'block';
+        // Update amount display
+        const amount = document.getElementById('feeAmount').value.replace('₹', '');
+        document.getElementById('qrAmount').textContent = '₹' + parseFloat(amount).toFixed(2);
+        // Auto-generate QR code
+        generateQRCode();
+    } else {
+        qrSection.style.display = 'none';
+    }
+}
+
+function generateQRCode() {
+    console.log('generateQRCode called');
+
+    const amount = document.getElementById('feeAmount').value.replace('₹', '');
+    const upiId = 'lk5278127-1@okicici';
+    const merchantName = 'Bank of Baroda';
+
+    console.log('Amount:', amount);
+
+    // Create UPI URL
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR`;
+    console.log('UPI URL:', upiUrl);
+
+    // Clear previous QR code
+    const qrContainer = document.getElementById('qrCode');
+    qrContainer.innerHTML = '';
+
+    // Use qr-server.com for reliable QR code generation
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+
+    console.log('Generating QR code with Google Charts API...');
+
+    // Create image element
+    const img = document.createElement('img');
+    img.src = qrImageUrl;
+    img.alt = 'UPI Payment QR Code';
+    img.style.cssText = 'background: white; border: 2px solid #dee2e6; border-radius: 5px; display: block; margin: 0 auto; max-width: 100%; height: auto; padding: 10px;';
+
+    // Add loading indicator
+    qrContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Generating QR Code...</div>';
+
+    // Handle image load
+    img.onload = function() {
+        console.log('QR code image loaded successfully');
+        qrContainer.innerHTML = '';
+        qrContainer.appendChild(img);
+        updateUI();
+    };
+
+    img.onerror = function() {
+        console.error('Failed to load QR code image');
+        qrContainer.innerHTML = '<div class="text-danger">Failed to generate QR code. Please try again.</div>';
+    };
+
+    function updateUI() {
+        const generateBtn = document.getElementById('generateQRBtn');
+        const statusDiv = document.getElementById('paymentStatus');
+
+        if (generateBtn) generateBtn.style.display = 'none';
+        if (statusDiv) {
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'alert alert-info';
+            statusDiv.innerHTML = '<i class="fas fa-mobile-alt me-2"></i>Scan QR code with any UPI app to make payment';
+        }
+
+        console.log('QR code display completed');
+    }
+}
+
+function completePayment() {
+    const statusDiv = document.getElementById('paymentStatus');
+    const scanBtn = document.getElementById('scanCompleteBtn');
+
+    statusDiv.className = 'alert alert-success';
+    statusDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Payment completed successfully!';
+    scanBtn.disabled = true;
+    scanBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Payment Confirmed';
+
+    // Auto-hide success message after 3 seconds and process payment
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+        // Now process the actual payment
+        processPayment();
+    }, 3000);
+}
+
+// Update QR amount when payment amount changes (if element exists)
+const paymentAmountInput = document.getElementById('paymentAmount');
+if (paymentAmountInput) {
+    paymentAmountInput.addEventListener('input', function() {
+        const amount = this.value || '0.00';
+        document.getElementById('qrAmount').textContent = '₹' + parseFloat(amount).toFixed(2);
+    });
+}
+
+function processPayment() {
+    const formData = new FormData(document.getElementById('paymentForm'));
+
+    fetch('/fees/api/process_payment', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message with transaction details
+            showPaymentSuccess(data);
+        } else {
+            alert('Error processing payment: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing payment');
+    });
+}
+
+function showPaymentSuccess(data) {
+    // Hide payment form
+    document.getElementById('paymentForm').style.display = 'none';
+    
+    // Create and show success message with transaction details
+    const successDiv = document.createElement('div');
+    successDiv.className = 'alert alert-success alert-dismissible fade show';
+    successDiv.innerHTML = `
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Payment Successful!</h4>
+        <hr>
+        <div class="payment-details">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td><strong>Student Name:</strong></td>
+                    <td>${data.student_name}</td>
+                </tr>
+                <tr>
+                    <td><strong>Father Name:</strong></td>
+                    <td>${data.father_name}</td>
+                </tr>
+                <tr>
+                    <td><strong>Fee Type:</strong></td>
+                    <td>${data.fee_type}</td>
+                </tr>
+                <tr>
+                    <td><strong>Amount:</strong></td>
+                    <td><strong class="text-success">₹${parseFloat(data.amount).toFixed(2)}</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Transaction ID:</strong></td>
+                    <td><code class="bg-light p-2 rounded">${data.transaction_id}</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Receipt Number:</strong></td>
+                    <td><code class="bg-light p-2 rounded">${data.receipt_number}</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Payment Date:</strong></td>
+                    <td>${new Date().toLocaleDateString('en-IN')}</td>
+                </tr>
+            </table>
+        </div>
+    `;
+    
+    // Clear modal body and add success message
+    const modalBody = document.querySelector('#paymentModal .modal-body');
+    modalBody.innerHTML = '';
+    modalBody.appendChild(successDiv);
+    
+    // Update modal footer - show close button only
+    const modalFooter = document.querySelector('#paymentModal .modal-footer');
+    modalFooter.innerHTML = `
+        <button type="button" class="btn btn-success" onclick="closePaymentModal()">
+            <i class="fas fa-check me-2"></i>Done
+        </button>
+    `;
+}
+
+function closePaymentModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+    modal.hide();
+    // Refresh the page after a short delay
+    setTimeout(() => {
+        location.reload();
+    }, 500);
+}
+
+function showQRCode(feeId, amount, studentName) {
+    console.log('showQRCode called for fee:', feeId, 'amount:', amount, 'student:', studentName);
+
+    const upiId = 'lk5278127-1@okicici';
+    const merchantName = 'Bank of Baroda';
+
+    // Create UPI URL
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR`;
+
+    // Create modal HTML
+    const modalHtml = `
+        <div class="modal fade" id="qrModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-qrcode me-2"></i>QR Payment
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="mb-3">
+                            <h6>${studentName}</h6>
+                            <h4 class="text-success">₹${parseFloat(amount).toFixed(2)}</h4>
+                        </div>
+
+                        <div id="qrCodeDisplay" class="mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p>Loading QR Code...</p>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>UPI ID:</strong> ${upiId}<br>
+                            <small>Scan with any UPI app (PhonePe, Google Pay, Paytm, etc.)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById('qrModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+    modal.show();
+
+    // Generate QR code using qr-server.com (more reliable)
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+
+    const img = document.createElement('img');
+    img.src = qrImageUrl;
+    img.alt = 'UPI Payment QR Code';
+    img.style.cssText = 'max-width: 100%; height: auto; border: 2px solid #dee2e6; border-radius: 5px;';
+
+    img.onload = function() {
+        document.getElementById('qrCodeDisplay').innerHTML = '';
+        document.getElementById('qrCodeDisplay').appendChild(img);
+    };
+
+    img.onerror = function() {
+        document.getElementById('qrCodeDisplay').innerHTML = '<div class="text-danger">Failed to load QR code</div>';
+    };
+
+    // Clean up modal when hidden
+    document.getElementById('qrModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Delete flow: show confirmation modal, then call AJAX delete and remove row in-place
+let _pendingDeleteFeeId = null;
+function deleteFee(feeId) {
+    _pendingDeleteFeeId = feeId;
+    const modalHtml = `
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirm Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete this fee? This action cannot be undone.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // Remove any existing modal and append new
+    const existing = document.getElementById('confirmDeleteModal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalEl = document.getElementById('confirmDeleteModal');
+    const bsModal = new bootstrap.Modal(modalEl);
+    modalEl.addEventListener('hidden.bs.modal', () => { modalEl.remove(); _pendingDeleteFeeId = null; });
+    bsModal.show();
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        // disable button to prevent duplicate clicks
+        this.disabled = true;
+        fetch(`/fees/${_pendingDeleteFeeId}/delete`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Prefer to find the row by the data-fee-id attribute (more robust)
+                const tr = document.querySelector(`#feesTable tbody tr[data-fee-id='${_pendingDeleteFeeId}']`) ||
+                           (document.querySelector(`#feesTable tbody tr td button[onclick*="deleteFee(${_pendingDeleteFeeId})"]`) && document.querySelector(`#feesTable tbody tr td button[onclick*="deleteFee(${_pendingDeleteFeeId})"]`).closest('tr'));
+                if (tr) tr.remove();
+                bsModal.hide();
+            } else {
+                alert('Error deleting fee: ' + (data.message || 'unknown'));
+                bsModal.hide();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting fee');
+            bsModal.hide();
+        });
+    });
+}
+
+function showReceipt(feeId) {
+    // Fetch receipt data via API
+    fetch(`/fees/${feeId}/receipt`)
+        .then(response => {
+            if (!response.ok) throw new Error('Receipt not found');
+            return response.json();
+        })
+        .then(data => {
+            displayReceipt(data);
+            const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Receipt not found for this fee');
+        });
+}
+
+function displayReceipt(data) {
+    const receiptContent = document.getElementById('receiptContent');
+    // Create two compact copies (Parent & School) side-by-side
+    receiptContent.innerHTML = `
+        <div id="printableReceipt" class="receipt-container" style="display:flex; gap:16px; justify-content:space-between; padding:10px; background:#fff;">
+            <div class="receipt-copy" style="width:48%; padding:12px; background:#fff; border:1px solid #ddd; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                <div class="text-center mb-2">
+                    <div style="font-weight:700; font-size:14px;">SCHOOL MANAGEMENT SYSTEM</div>
+                    <div style="font-size:12px; color:#666;">Parent Copy</div>
+                </div>
+                <hr style="border:1px dashed #e0e0e0; margin:8px 0;">
+                    <div style="text-align:center; font-weight:600; margin-bottom:6px;">PAYMENT RECEIPT</div>
+                <div style="font-size:12px; color:#333; line-height:1.5;">
+                    <div style="display:flex; justify-content:space-between;"><div>Receipt:</div><div><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${data.receipt_number}</code></div></div>
+                    <div style="display:flex; justify-content:space-between;"><div>Date:</div><div>${new Date(data.issued_date).toLocaleDateString('en-IN')}</div></div>
+                    ${data.transaction_id ? `<div style="display:flex; justify-content:space-between;"><div>Txn ID:</div><div><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${data.transaction_id}</code></div></div>` : ``}
+                    <div style="display:flex; justify-content:space-between;"><div>Student:</div><div>${data.student_name}</div></div>
+                    <div style="display:flex; justify-content:space-between;"><div>Class:</div><div>${ (data.student_class && (data.student_class.name || data.student_class.grade)) ? (data.student_class.name || data.student_class.grade) : '-' }</div></div>
+                    <div style="display:flex; justify-content:space-between;"><div>Father:</div><div>${data.father_name}</div></div>
+                    <div style="height:8px"></div>
+                    <div style="border-top:1px solid #e9e9e9; padding-top:6px;">
+                        <div style="display:flex; justify-content:space-between;"><div>Fee Type</div><div style="font-weight:600;">${data.fee_type}</div></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px;"><div>Amount</div><div style="font-weight:700;">₹${parseFloat(data.amount).toFixed(2)}</div></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px;"><div>Method</div><div>${data.payment_method}</div></div>
+                    </div>
+                    <div style="text-align:center; font-size:11px; color:#666; margin-top:8px;">This is a computer-generated receipt.</div>
+                    <div style="text-align:center; font-weight:700; margin-top:10px; font-size:12px;">STUDENT COPY</div>
+                </div>
+            </div>
+            <div class="receipt-separator" style="width:32px; display:flex; align-items:center; justify-content:center;">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    <div style="font-size:16px; color:#999; line-height:1;">✂</div>
+                    <div style="font-size:11px; color:#999; letter-spacing:0.6px;">CUT HERE</div>
+                    <div style="width:1px; height:120px; border-right:1px dashed #cfcfcf; margin-top:6px;"></div>
+                </div>
+            </div>
+
+            <div class="receipt-copy" style="width:48%; padding:12px; background:#fff; border:1px solid #ddd; border-radius:6px; font-size:13px; box-sizing:border-box;">
+                <div class="text-center mb-2">
+                    <div style="font-weight:700; font-size:14px;">SCHOOL MANAGEMENT SYSTEM</div>
+                    <div style="font-size:12px; color:#666;">School Copy</div>
+                </div>
+                <hr style="border:1px dashed #e0e0e0; margin:8px 0;">
+                <div style="text-align:center; font-weight:600; margin-bottom:6px;">PAYMENT RECEIPT</div>
+                <div style="font-size:12px; color:#333; line-height:1.5;">
+                    <div style="display:flex; justify-content:space-between;"><div>Receipt:</div><div><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${data.receipt_number}</code></div></div>
+                    <div style="display:flex; justify-content:space-between;"><div>Date:</div><div>${new Date(data.issued_date).toLocaleDateString('en-IN')}</div></div>
+                    ${data.transaction_id ? `<div style="display:flex; justify-content:space-between;"><div>Txn ID:</div><div><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${data.transaction_id}</code></div></div>` : ``}
+                    <div style="display:flex; justify-content:space-between;"><div>Student:</div><div>${data.student_name}</div></div>
+                    <div style="display:flex; justify-content:space-between;"><div>Class:</div><div>${ (data.student_class && (data.student_class.name || data.student_class.grade)) ? (data.student_class.name || data.student_class.grade) : '-' }</div></div>
+                    <div style="display:flex; justify-content:space-between;"><div>Father:</div><div>${data.father_name}</div></div>
+                    <div style="height:8px"></div>
+                    <div style="border-top:1px solid #e9e9e9; padding-top:6px;">
+                        <div style="display:flex; justify-content:space-between;"><div>Fee Type</div><div style="font-weight:600;">${data.fee_type}</div></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px;"><div>Amount</div><div style="font-weight:700;">₹${parseFloat(data.amount).toFixed(2)}</div></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px;"><div>Method</div><div>${data.payment_method}</div></div>
+                    </div>
+                    <div style="text-align:center; font-size:11px; color:#666; margin-top:8px;">This is a computer-generated receipt.</div>
+                    <div style="text-align:center; font-weight:700; margin-top:10px; font-size:12px;">SCHOOL COPY</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function printReceipt() {
+    const printableArea = document.getElementById('printableReceipt');
+    const originalContent = document.body.innerHTML;
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Payment Receipt</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                    background: white;
+                }
+                /* Two receipts left and right */
+                #printableReceipt { display:flex; gap:16px; justify-content:space-between; align-items:flex-start; background:#fff; }
+                .receipt-copy { width:48%; box-sizing:border-box; background:#fff; }
+                code {
+                    background: #f5f5f5;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                }
+                hr { margin: 10px 0; }
+                table { width: 100%; }
+                td { padding: 6px; }
+                .text-center { text-align: center; }
+                @media print {
+                    body { padding: 0; background: #fff; }
+                    /* Print: place copies left and right to use full page width */
+                    #printableReceipt { gap:10px; justify-content:space-between; }
+                    .receipt-copy { width:48vw; min-width:280px; }
+                }
+            </style>
+        </head>
+        <body>
+            ${printableArea.innerHTML}
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Search and filter functionality (guard element access)
+const _searchInput = document.getElementById('searchInput');
+const _statusFilter = document.getElementById('statusFilter');
+const _feeTypeFilter = document.getElementById('feeTypeFilter');
+const _classroomFilter = document.getElementById('classroomFilter');
+const _streamFilter = document.getElementById('streamFilter');
+
+if (_searchInput) _searchInput.addEventListener('input', filterFees);
+if (_statusFilter) _statusFilter.addEventListener('change', filterFees);
+if (_feeTypeFilter) _feeTypeFilter.addEventListener('change', filterFees);
+if (_classroomFilter) _classroomFilter.addEventListener('change', filterFees);
+if (_streamFilter) _streamFilter.addEventListener('change', filterFees);
+
+function filterFees() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const feeTypeFilter = document.getElementById('feeTypeFilter').value;
+    const classroomFilter = document.getElementById('classroomFilter').value;
+    const streamFilter = document.getElementById('streamFilter').value;
+
+    const rows = document.querySelectorAll('#feesTable tbody tr');
+
+    rows.forEach(row => {
+        // Updated column indices based on table structure (0 = Photo):
+        // 0: Photo, 1: Student Name, 2: Class, 3: Father Name, 4: Phone, 5: Fee Type, 6: Amount, 7: Due Date, 8: Status
+        const studentName = (row.cells[1] && row.cells[1].textContent) ? row.cells[1].textContent.toLowerCase() : '';
+        // fee type comparison by id (data attribute)
+        const feeType = row.getAttribute('data-fee-type') || '';
+        const status = (row.getAttribute('data-status') || '').toLowerCase();
+        const classroom = row.getAttribute('data-classroom') || '';
+        const stream = row.getAttribute('data-stream') || '';
+
+        const matchesSearch = studentName.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        const matchesFeeType = !feeTypeFilter || feeType === feeTypeFilter;
+        const matchesClassroom = !classroomFilter || classroom === classroomFilter;
+        const matchesStream = !streamFilter || stream === streamFilter;
+
+        if (matchesSearch && matchesStatus && matchesFeeType && matchesClassroom && matchesStream) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+document.getElementById('clearFilters').addEventListener('click', function() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('feeTypeFilter').value = '';
+    document.getElementById('classroomFilter').value = '';
+    document.getElementById('streamFilter').value = '';
+    filterFees();
+});
+
+document.getElementById('refreshBtn').addEventListener('click', function() {
+    location.reload();
+});
+
+// Initialize tooltips and other UI elements
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips if any
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Handle payment form submission
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+            processPayment(); // Call the payment processing function
+        });
+    }
+});
+</script>
+
+<style>
+.fee-row {
+    transition: all 0.3s ease;
+}
+
+.fee-row:hover {
+    background-color: #f8f9fa;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+</style>
+
+    
+        </div>
+    </div>
+    
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+
+
+
+
+
+
+  
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+      window.schoolRoutes = {
+        students: "/students/",
+        fees: "/fees/",
+        subjects: "/subjects/",
+        classes: "/classes/",
+        parents: "/parents/",
+        dashboard: "/"
+      };
+    </script>
+    
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/mobile-detection.js"></script>
+    
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/static/sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

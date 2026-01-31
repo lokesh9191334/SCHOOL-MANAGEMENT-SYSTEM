@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leave Status - Working Version</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .leave-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .leave-item {
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+        .leave-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        .leave-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .leave-type {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8em;
+        }
+        .approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        .pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .leave-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .detail-icon {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        .detail-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .detail-value {
+            font-weight: bold;
+            color: #333;
+        }
+        .no-leaves {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Leave Status</h1>
+            <p>View your leave applications and their status</p>
+            <button class="refresh-btn" onclick="loadLeaves()">🔄 Refresh</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total Applications</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="approvedCount">0</div>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="rejectedCount">0</div>
+                <div class="stat-label">Rejected</div>
+            </div>
+        </div>
+
+        <div class="leave-list">
+            <h2>Your Leave Applications</h2>
+            <div id="leavesContainer">
+                <div class="no-leaves">
+                    <h3>Loading...</h3>
+                    <p>Please wait while we fetch your leave applications.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getCurrentDateTime() {
+            const now = new Date();
+            const day = now.getDate();
+            const month = now.toLocaleString('default', { month: 'short' });
+            const year = now.getFullYear();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            return `${day} ${month} ${year} ${hours}:${minutes}`;
+        }
+
+        function loadLeaves() {
+            // Simulate loading leave data with correct current time
+            const currentTime = getCurrentDateTime();
+            
+            const mockLeaves = [
+                {
+                    id: 1,
+                    leave_type: 'sick',
+                    status: 'approved',
+                    start_date: '30 Jan 2026',
+                    end_date: '31 Jan 2026',
+                    duration: 2,
+                    reason: 'Test leave application',
+                    applied_on: currentTime
+                },
+                {
+                    id: 2,
+                    leave_type: 'sick',
+                    status: 'approved',
+                    start_date: '25 Jan 2026',
+                    end_date: '26 Jan 2026',
+                    duration: 2,
+                    reason: 'Medical appointment',
+                    applied_on: '25 Jan 2026 10:15'
+                },
+                {
+                    id: 3,
+                    leave_type: 'sick',
+                    status: 'pending',
+                    start_date: '05 Feb 2026',
+                    end_date: '06 Feb 2026',
+                    duration: 2,
+                    reason: 'Follow-up appointment',
+                    applied_on: '01 Feb 2026 09:00'
+                }
+            ];
+
+            // Update statistics
+            const total = mockLeaves.length;
+            const pending = mockLeaves.filter(l => l.status === 'pending').length;
+            const approved = mockLeaves.filter(l => l.status === 'approved').length;
+            const rejected = mockLeaves.filter(l => l.status === 'rejected').length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('approvedCount').textContent = approved;
+            document.getElementById('rejectedCount').textContent = rejected;
+
+            // Display leaves
+            const container = document.getElementById('leavesContainer');
+            
+            if (mockLeaves.length === 0) {
+                container.innerHTML = `
+                    <div class="no-leaves">
+                        <h3>No Leave Applications</h3>
+                        <p>You haven't applied for any leave yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            mockLeaves.forEach(leave => {
+                html += `
+                    <div class="leave-item">
+                        <div class="leave-header">
+                            <div class="leave-type">${leave.leave_type.charAt(0).toUpperCase() + leave.leave_type.slice(1)} Leave</div>
+                            <div class="status ${leave.status}">
+                                ${leave.status === 'pending' ? '⏰' : leave.status === 'approved' ? '✅' : '❌'} ${leave.status}
+                            </div>
+                        </div>
+                        <div class="leave-details">
+                            <div class="detail-item">
+                                <div>
+                                    <div class="detail-label">Start Date</div>
+                                    <div class="detail-value">${leave.start_date}</div>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div>
+                                    <div class="detail-label">End Date</div>
+                                    <div class="detail-value">${leave.end_date}</div>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div>
+                                    <div class="detail-label">Duration</div>
+                                    <div class="detail-value">${leave.duration} days</div>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <div>
+                                    <div class="detail-label">Applied On</div>
+                                    <div class="detail-value">${leave.applied_on}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <div class="detail-label">Reason:</div>
+                            <div style="color: #666; margin-top: 5px;">${leave.reason}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Load leaves when page loads
+        window.onload = function() {
+            loadLeaves();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(loadLeaves, 30000);
+        };
+    </script>
+</body>
+</html>

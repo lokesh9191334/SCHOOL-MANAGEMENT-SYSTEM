@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .substituted-timetable-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    .timetable-header {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        padding: 1.5rem;
+    }
+    .timetable-grid {
+        font-size: 0.9rem;
+    }
+    .period-header {
+        background: #f8f9fa;
+        font-weight: bold;
+        text-align: center;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        min-width: 120px;
+    }
+    .day-header {
+        background: #e9ecef;
+        font-weight: bold;
+        text-align: center;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+    }
+    .period-cell {
+        border: 1px solid #dee2e6;
+        padding: 0.5rem;
+        min-height: 100px;
+        vertical-align: top;
+    }
+    .subject-block {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        padding: 0.5rem;
+        border-radius: 5px;
+        margin-bottom: 0.25rem;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    .teacher-block {
+        background: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+    .room-block {
+        background: #17a2b8;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        font-size: 0.8rem;
+    }
+    .substitution-block {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        color: #212529;
+        padding: 0.5rem;
+        border-radius: 5px;
+        margin-bottom: 0.25rem;
+        font-weight: bold;
+        font-size: 0.85rem;
+        border: 2px dashed #ffc107;
+    }
+    .substitution-info {
+        font-size: 0.75rem;
+        color: #856404;
+        font-style: italic;
+    }
+    .empty-period {
+        background: #f8f9fa;
+        color: #6c757d;
+        text-align: center;
+        padding: 1rem;
+        font-style: italic;
+    }
+    .free-period {
+        background: #d4edda;
+        color: #155724;
+        text-align: center;
+        padding: 1rem;
+        font-weight: bold;
+    }
+    .legend {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+    }
+    .legend-item {
+        display: inline-block;
+        margin-right: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .legend-color {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 0.5rem;
+        border-radius: 3px;
+        vertical-align: middle;
+    }
+    .stats-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+    }
+    .action-buttons {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    .action-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="substituted-timetable-container mb-4">
+    <div class="timetable-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2><i class="fas fa-calendar-alt me-2"></i>{{ teacher.name }} - Substituted Timetable</h2>
+                <p class="mb-1">
+                    <i class="fas fa-id-badge me-2"></i>Employee ID: {{ teacher.employee_id or 'N/A' }}
+                </p>
+                <p class="mb-1">
+                    <i class="fas fa-phone me-2"></i>{{ teacher.phone or 'N/A' }}
+                </p>
+                <p class="mb-0">
+                    <i class="fas fa-envelope me-2"></i>{{ teacher.email or 'N/A' }}
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="d-flex justify-content-end">
+                    <span class="badge bg-light text-dark fs-6">
+                        <i class="fas fa-calendar-day me-1"></i>{{ today.strftime('%d %b %Y') }}
+                    </span>
+                    {% if teacher.subject %}
+                    <br>
+                    <span class="badge bg-light text-dark fs-6">
+                        <i class="fas fa-book me-1"></i>{{ teacher.subject }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <h6><i class="fas fa-info-circle me-2"></i>Legend:</h6>
+        <div class="legend-item">
+            <span class="legend-color" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);"></span>
+            Regular Period
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #6c757d;"></span>
+            Teacher
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: #17a2b8;"></span>
+            Room/Lab
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);"></span>
+            Substitution
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4>{{ timetable_grid | length }}</h4>
+                    <p class="mb-0">Working Days</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-success text-white">
+                <div class="card-body text-center">
+                    {% set total_periods = [] %}
+                    {% for day_entries in timetable_grid.values() %}
+                        {% for entry in day_entries.values() %}
+                            {% set _ = total_periods.append(entry) %}
+                        {% endfor %}
+                    {% endfor %}
+                    <h4>{{ total_periods | length }}</h4>
+                    <p class="mb-0">Total Periods</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-warning text-white">
+                <div class="card-body text-center">
+                    {% set substitution_count = [] %}
+                    {% for day_entries in timetable_grid.values() %}
+                        {% for entry in day_entries.values() %}
+                            {% if entry.is_substitution %}
+                                {% set _ = substitution_count.append(entry) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    <h4>{{ substitution_count | length }}</h4>
+                    <p class="mb-0">Substitutions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card bg-info text-white">
+                <div class="card-body text-center">
+                    {% set unique_classes = [] %}
+                    {% for day_entries in timetable_grid.values() %}
+                        {% for entry in day_entries.values() %}
+                            {% if entry.classroom and entry.classroom.name not in unique_classes %}
+                                {% set _ = unique_classes.append(entry.classroom.name) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    <h4>{{ unique_classes | length }}</h4>
+                    <p class="mb-0">Classes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable Grid -->
+    <div class="timetable-container">
+        <div class="table-responsive timetable-grid">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th class="day-header">Day / Period</th>
+                        {% set periods = [1,2,3,4,5,6,7,8] %}
+                        {% for period in periods %}
+                        <th class="period-header">
+                            Period {{ period }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                    {% set day_indices = [0,1,2,3,4,5] %}
+                    
+                    {% for day_idx in day_indices %}
+                    <tr>
+                        <td class="day-header">
+                            <strong>{{ days[day_idx] }}</strong>
+                        </td>
+                        {% for period in periods %}
+                        <td class="period-cell">
+                            {% if timetable_grid[day_idx] and timetable_grid[day_idx][period] %}
+                                {% set entry = timetable_grid[day_idx][period] %}
+                                {% if entry.is_substitution %}
+                                <div class="substitution-block">
+                                    <i class="fas fa-exchange-alt me-1"></i>Substitution
+                                </div>
+                                <div class="substitution-info">
+                                    Original: {{ entry.original_teacher.name if entry.original_teacher else 'Unknown' }}
+                                </div>
+                                <div class="subject-block">
+                                    <i class="fas fa-book me-1"></i>{{ entry.subject.name }}
+                                </div>
+                                <div class="teacher-block">
+                                    <i class="fas fa-user-tie me-1"></i>{{ entry.teacher.name }}
+                                </div>
+                                {% if entry.classroom %}
+                                <div class="room-block">
+                                    <i class="fas fa-door-open me-1"></i>{{ entry.classroom.name }}
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <div class="subject-block">
+                                    <i class="fas fa-book me-1"></i>{{ entry.subject.name }}
+                                </div>
+                                <div class="teacher-block">
+                                    <i class="fas fa-user-tie me-1"></i>{{ entry.teacher.name }}
+                                </div>
+                                {% if entry.classroom %}
+                                <div class="room-block">
+                                    <i class="fas fa-door-open me-1"></i>{{ entry.classroom.name }}
+                                </div>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="text-center mt-4 no-print">
+        <a href="{{ url_for('enhanced_timetable_v2.enhanced_timetable_dashboard') }}" 
+           class="btn btn-secondary btn-lg me-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <button onclick="window.print()" class="btn btn-primary btn-lg">
+            <i class="fas fa-print me-2"></i>Print Timetable
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add print functionality
+    window.addEventListener('beforeprint', function() {
+        document.body.classList.add('printing');
+    });
+    
+    window.addEventListener('afterprint', function() {
+        document.body.classList.remove('printing');
+    });
+    
+    // Auto-refresh every 5 minutes
+    setInterval(function() {
+        if (!document.body.classList.contains('printing')) {
+            location.reload();
+        }
+    }, 300000);
+</script>
+{% endblock %}

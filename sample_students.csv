@@ -1,0 +1,6 @@
+first_name,last_name,email,roll_number,phone,gender,father_name,mother_name,parent_phone,parent_email,permanent_address,correspondence_address,date_of_birth
+Rahul,Sharma,rahul.sharma@example.com,2024001,+919876543210,Male,Rajesh Sharma,Priya Sharma,+919876543210,rajesh.sharma@example.com,123 MG Road, Delhi, Delhi,2005-03-15
+Priya,Verma,priya.verma@example.com,2024002,+919876543211,Female,Amit Verma,Anita Verma,+919876543211,amit.verma@example.com,456 Park Street, Mumbai, Mumbai,2005-07-22
+Amit,Kumar,amit.kumar@example.com,2024003,+919876543212,Male,Vijay Kumar,Sunita Kumar,+919876543212,vijay.kumar@example.com,789 Gandhi Nagar, Bangalore, Bangalore,2005-11-08
+Sneha,Patel,sneha.patel@example.com,2024004,+919876543213,Female,Raj Patel,Meera Patel,+919876543213,raj.patel@example.com,321 Sardar Patel Road, Ahmedabad, Ahmedabad,2005-01-30
+Vikram,Singh,vikram.singh@example.com,2024005,+919876543214,Male,Gurpreet Singh,Kavita Singh,+919876543214,gurpreet.singh@example.com,654 Golden Temple Road, Amritsar, Amritsar,2005-09-12

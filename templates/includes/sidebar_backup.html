@@ -1,0 +1,303 @@
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <div class="user-profile px-4 py-3 bg-white bg-opacity-10 rounded mx-3 my-2">
+            <div class="d-flex align-items-center">
+                <div class="profile-pic me-3">
+                    {% if current_user.photo %}
+                    <img src="{{ url_for('static', filename=current_user.photo) }}" alt="User Photo" 
+                         class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                         style="width: 45px; height: 45px; font-size: 1.2rem; font-weight: bold;">
+                        {{ current_user.name[0] }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h4 class="mb-0 text-sm font-weight-semibold">{{ current_user.name }}</h4>
+                    <p class="mb-0 text-xs text-white text-opacity-75">{{ current_user.role | capitalize }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar-menu">
+        <ul class="list-unstyled components py-2">
+        <!-- Dashboard Section -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Dashboard</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('dashboard.index') }}">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.index') }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.events') }}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Events</span>
+                    </a>
+                </li>
+                {% if current_user.role == 'parent' %}
+                <li>
+                    <a href="{{ url_for('payments.parent_fee_payment') }}">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Fee Payment</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </li>
+
+        <!-- Notifications Section -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Notifications</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('parents.notifications') }}" class="notification-link position-relative">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('parents.messages') }}">
+                        <i class="fas fa-envelope"></i>
+                        <span>Messages</span>
+                    </a>
+                </li>
+                {% if current_user.role == 'admin' %}
+                <li>
+                    <a href="{{ url_for('payments.payment_test') }}">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Payment Alerts</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </li>
+
+        <!-- Security & Monitoring -->
+        {% if current_user.role == 'admin' %}
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Security & Monitoring</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('dashboard.ip_tracking') }}">
+                        <i class="fas fa-globe-americas"></i>
+                        <span>IP Tracking</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.authorized_activity') }}">
+                        <i class="fas fa-list-alt"></i>
+                        <span>Activity Log</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {% endif %}
+
+        <!-- Student Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Student Management</div>
+            <ul class="list-unstyled menu-items">
+                {% if current_user.role != 'teacher' %}
+                <li>
+                    <a href="{{ url_for('students.add_student') }}">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Student Registration</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('students.list_students') }}">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Students</span>
+                    </a>
+                </li>
+                {% if current_user.role != 'teacher' %}
+                <li>
+                    <a href="{{ url_for('students.import_students') }}">
+                        <i class="fas fa-upload"></i>
+                        <span>Import Students (CSV)</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('students.export_students_advanced') }}">
+                        <i class="fas fa-download"></i>
+                        <span>Export Students (CSV)</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </li>
+
+        <!-- Academic Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Academic Management</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('teachers.list_teachers') }}">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Teachers</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('classes.list_classes') }}">
+                        <i class="fas fa-users"></i>
+                        <span>Classes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('subjects.list_subjects') }}">
+                        <i class="fas fa-book"></i>
+                        <span>Subjects</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.events') }}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Events</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Finance Management -->
+        {% if current_user.role != 'teacher' %}
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Finance Management</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('fees.list_fees') }}">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Fees</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('salaries.list_salaries') }}">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Salaries</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {% endif %}
+
+        <!-- Notifications Management -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Notifications Management</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('parents.notifications') }}">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('parents.messages') }}">
+                        <i class="fas fa-envelope"></i>
+                        <span>Messages</span>
+                    </a>
+                </li>
+                {% if current_user.role == 'admin' %}
+                <li>
+                    <a href="{{ url_for('payments.payment_test') }}">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Payment Alerts</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </li>
+
+        <!-- Security & Monitoring -->
+        {% if current_user.role == 'admin' %}
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Security & Monitoring</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('dashboard.ip_tracking') }}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>IP Tracking</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.authorized_activity') }}">
+                        <i class="fas fa-bell"></i>
+                        <span>Activity Log</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {% endif %}
+
+        <!-- Leave Management -->
+        {% if current_user.role == 'admin' %}
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Leave Management</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('dashboard.teacher_leaves') }}">
+                        <i class="fas fa-user-clock"></i>
+                        <span>Teacher Leaves</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {% endif %}
+
+        <!-- Student Complaints -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">Student Complaints</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('complaints.complaints') }}">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Complaints</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- System -->
+        <li class="menu-section">
+            <div class="section-title px-4 py-2 text-xs font-weight-bold text-uppercase text-muted">System</div>
+            <ul class="list-unstyled menu-items">
+                <li>
+                    <a href="{{ url_for('dashboard.profile') }}">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.settings') }}">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('dashboard.help') }}">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Logout -->
+        <li class="logout-section">
+            <a href="{{ url_for('auth.logout') }}" class="logout-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </li>
+    </ul>
+</nav>

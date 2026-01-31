@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SCHOOL MANAGEMENT SYSTEM</title>
+    <meta name="theme-color" content="#007bff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SchoolMS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='icons/icon-144x144.png') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/mobile-pwa.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/settings.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/premium.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sidebar-force-visible.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sidebar.css', v='1.2') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/mobile-sidebar-final.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dashboard_desktop.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/notifications.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/premium-design.css') }}" rel="stylesheet">
+    
+    <!-- Mobile Responsive Navigation CSS -->
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Mobile Navigation Toggle */
+        .mobile-nav-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 1.3em;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mobile-nav-toggle:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
+        }
+
+        .mobile-nav-toggle:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        /* Hide 3-bar menu when sidebar is open - Only on mobile */
+        @media (max-width: 768px) {
+            .sidebar.active ~ .wrapper .mobile-nav-toggle,
+            .sidebar.active + .mobile-nav-toggle {
+                display: none !important;
+            }
+        }
+
+        /* Mobile Overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+        }
+
+        .mobile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Mobile Back Button */
+        .mobile-back-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1001;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mobile-back-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.5);
+        }
+
+        .mobile-back-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        .mobile-back-btn i {
+            font-size: 1.1em;
+        }
+
+        /* Responsive Sidebar */
+        @media (max-width: 768px) {
+            .mobile-nav-toggle {
+                display: flex;
+            }
+
+            .mobile-back-btn {
+                display: flex;
+            }
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: -320px;
+                width: 320px;
+                height: 100vh;
+                z-index: 1000;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 6px 0 30px rgba(0,0,0,0.2);
+                backdrop-filter: blur(20px);
+                border-right: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            #sidebar.active {
+                left: 0;
+            }
+
+            #content {
+                margin-left: 0 !important;
+                padding-top: 80px;
+            }
+
+            .wrapper {
+                padding-left: 0;
+            }
+        }
+
+        /* Desktop Styles - More Specific */
+        @media (min-width: 769px) {
+            .mobile-nav-toggle {
+                display: none !important;
+            }
+
+            .mobile-back-btn {
+                display: none !important;
+            }
+
+            .mobile-overlay {
+                display: none !important;
+            }
+
+            /* Ensure sidebar stays open on desktop - Override mobile styles and existing sidebar.css */
+            #sidebar {
+                position: fixed !important;
+                left: 0 !important;
+                width: 280px !important;
+                height: 100vh !important;
+                z-index: 999 !important;
+                transition: none !important;
+                box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15) !important;
+                transform: none !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                margin-left: 0 !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+                top: 0 !important;
+            }
+
+            #sidebar.active {
+                left: 0 !important;
+                transform: none !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                margin-left: 0 !important;
+            }
+
+            #content {
+                margin-left: 280px !important;
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+                padding-left: 0 !important;
+            }
+
+            .wrapper {
+                padding-left: 0 !important;
+                margin-left: 0 !important;
+            }
+
+            /* Hide mobile elements completely */
+            .mobile-nav-toggle,
+            .mobile-back-btn,
+            .mobile-overlay {
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                display: none !important;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1200px) {
+            #sidebar {
+                width: 280px !important;
+            }
+
+            #content {
+                margin-left: 280px !important;
+            }
+        }
+
+        /* Role-based colors */
+        .role-admin .mobile-nav-toggle {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .role-teacher .mobile-nav-toggle {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .role-parent .mobile-nav-toggle {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        /* Role-based sidebar themes */
+        .role-admin #sidebar {
+            background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%) !important;
+        }
+
+        .role-teacher #sidebar {
+            background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%) !important;
+        }
+
+        .role-parent #sidebar {
+            background: linear-gradient(180deg, #0f4c0f 0%, #1a5c1a 100%) !important;
+        }
+
+        /* Ensure sidebar visibility on all pages - ULTIMATE FORCE */
+        #sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 280px !important;
+            height: 100vh !important;
+            z-index: 99999 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            display: block !important;
+        }
+
+        /* Override any page-specific sidebar hiding - ULTIMATE FORCE */
+        #content {
+            margin-left: 280px !important;
+        }
+
+        .wrapper {
+            padding-left: 0 !important;
+            margin-left: 0 !important;
+        }
+
+        /* Force main wrapper adjustments */
+        .main-wrapper {
+            margin-left: 280px !important;
+        }
+
+        /* ULTIMATE FORCE - Override any conflicting styles */
+        * #sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 280px !important;
+            height: 100vh !important;
+            z-index: 99999 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: none !important;
+            margin-left: 0 !important;
+            display: block !important;
+        }
+
+        @media (max-width: 768px) {
+            #content {
+                margin-left: 0 !important;
+                padding: 70px 15px 15px 15px !important;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body class="role-{{ current_user.role if current_user.is_authenticated else 'guest' }}">
+    <!-- Custom Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Mobile Navigation Toggle -->
+    {% if current_user.is_authenticated %}
+    <button class="mobile-nav-toggle" id="mobileNavToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+    <div class="wrapper">
+        {% include 'includes/sidebar.html' %}
+        <div id="content">
+    {% endif %}
+            {% block content %}{% endblock %}
+    {% if current_user.is_authenticated %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Mobile Navigation JavaScript -->
+    <script>
+        // Mobile Navigation JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileNavToggle = document.getElementById('mobileNavToggle');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            const sidebar = document.getElementById('sidebar');
+            
+            // Force sidebar visibility on all pages
+            if (sidebar) {
+                console.log('🔧 Forcing sidebar visibility...');
+                sidebar.style.position = 'fixed';
+                sidebar.style.left = '0';
+                sidebar.style.top = '0';
+                sidebar.style.width = '280px';
+                sidebar.style.height = '100vh';
+                sidebar.style.zIndex = '99999';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.opacity = '1';
+                sidebar.style.pointerEvents = 'auto';
+                sidebar.style.transform = 'none';
+                sidebar.style.marginLeft = '0';
+                sidebar.style.display = 'block';
+                console.log('✅ Sidebar forced visible');
+            }
+            
+            // Force content margin
+            const content = document.getElementById('content');
+            if (content) {
+                content.style.marginLeft = '280px';
+            }
+            
+            // Force main wrapper margin
+            const mainWrapper = document.querySelector('.main-wrapper');
+            if (mainWrapper) {
+                mainWrapper.style.marginLeft = '280px';
+            }
+            
+            // Function to check if current page is home
+            function isHomePage() {
+                const currentPath = window.location.pathname;
+                return currentPath === '/' || currentPath === '/dashboard' || currentPath.endsWith('/dashboard');
+            }
+            
+            // Function to show/hide 3-bar menu based on page
+            function updateMobileMenuVisibility() {
+                if (window.innerWidth <= 768) {
+                    if (isHomePage()) {
+                        // Show 3-bar menu on home page
+                        mobileNavToggle.style.display = 'flex';
+                        mobileNavToggle.style.visibility = 'visible';
+                        mobileNavToggle.style.opacity = '1';
+                        mobileNavToggle.style.pointerEvents = 'auto';
+                    } else {
+                        // Hide 3-bar menu on other pages
+                        if (!sidebar.classList.contains('active')) {
+                            mobileNavToggle.style.display = 'flex';
+                            mobileNavToggle.style.visibility = 'visible';
+                            mobileNavToggle.style.opacity = '1';
+                            mobileNavToggle.style.pointerEvents = 'auto';
+                        }
+                    }
+                }
+            }
+            
+            // Initial check
+            updateMobileMenuVisibility();
+            
+            if (mobileNavToggle && sidebar) {
+                mobileNavToggle.addEventListener('click', function() {
+                    // Toggle the SAME sidebar as desktop
+                    sidebar.classList.toggle('active');
+                    mobileOverlay.classList.toggle('active');
+                    
+                    // Hide 3-bar menu when sidebar opens
+                    if (sidebar.classList.contains('active')) {
+                        mobileNavToggle.style.display = 'none';
+                    }
+                    
+                    console.log('3-bar menu clicked - opening desktop sidebar on mobile');
+                });
+                
+                mobileOverlay.addEventListener('click', function() {
+                    closeSidebar();
+                });
+                
+                // Add click listeners to all sidebar links - close sidebar when any link is clicked
+                setTimeout(function() {
+                    const allLinks = document.querySelectorAll('#sidebar a[href]');
+                    console.log('Found sidebar links:', allLinks.length);
+                    
+                    allLinks.forEach(function(link) {
+                        link.addEventListener('click', function(e) {
+                            console.log('Sidebar link clicked:', link.href);
+                            
+                            // Close sidebar when any link is clicked on mobile
+                            if (window.innerWidth <= 768) {
+                                closeSidebar();
+                                
+                                // Check if navigating to home page after a short delay
+                                setTimeout(function() {
+                                    updateMobileMenuVisibility();
+                                }, 100);
+                            }
+                        });
+                    });
+                }, 500);
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768) {
+                        // On desktop, ensure sidebar is visible
+                        sidebar.classList.remove('active');
+                        mobileOverlay.classList.remove('active');
+                    }
+                    updateMobileMenuVisibility();
+                });
+                
+                // Handle escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        if (sidebar.classList.contains('active')) {
+                            closeSidebar();
+                        }
+                    }
+                });
+            }
+            
+            function closeSidebar() {
+                console.log('Closing sidebar');
+                sidebar.classList.remove('active');
+                mobileOverlay.classList.remove('active');
+                
+                // Show 3-bar menu when sidebar closes
+                setTimeout(function() {
+                    updateMobileMenuVisibility();
+                }, 100);
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+
+
+
+
+
+
+
+
+  
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+      window.schoolRoutes = {
+        students: "{{ url_for('students.list_students') }}",
+        fees: "{{ url_for('fees.list_fees') }}",
+        subjects: "{{ url_for('subjects.list_subjects') }}",
+        classes: "{{ url_for('classes.list_classes') }}",
+        parents: "{{ url_for('parents.portal') }}",
+        dashboard: "{{ url_for('dashboard.index') }}"
+      };
+    </script>
+    {% if not _auth_guest %}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-detection.js') }}"></script>
+    {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/auto-refresh.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ip-tracker.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/security-ui-enhancements.js') }}"></script>
+    {% endif %}
+
+    <!-- Custom Notification System -->
+    <script>
+    // Custom Notification System - Global
+    class NotificationManager {
+        constructor() {
+            this.container = document.getElementById('notification-container');
+            this.currentNotification = null;
+            this.timeout = null;
+        }
+
+        show(message, type = 'info') {
+            // Clear any existing notification and timeout
+            this.clear();
+
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">${message}</div>
+                <button class="notification-close">&times;</button>
+            `;
+
+            // Add close button functionality
+            const closeBtn = notification.querySelector('.notification-close');
+            closeBtn.addEventListener('click', () => this.clear());
+
+            // Add to container
+            this.container.appendChild(notification);
+            this.currentNotification = notification;
+
+            // Auto-hide after 5 seconds (for dashboard/home)
+            this.timeout = setTimeout(() => {
+                this.hide();
+            }, 5000);
+        }
+
+        hide() {
+            if (this.currentNotification) {
+                this.currentNotification.classList.add('hiding');
+                setTimeout(() => {
+                    this.clear();
+                }, 400);
+            }
+        }
+
+        clear() {
+            if (this.timeout) {
+                clearTimeout(this.timeout);
+                this.timeout = null;
+            }
+            if (this.currentNotification) {
+                this.currentNotification.remove();
+                this.currentNotification = null;
+            }
+        }
+    }
+
+    // Initialize global notification manager
+    window.notificationManager = new NotificationManager();
+
+    // Check for flash messages and show as notifications
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for any flash messages in the page
+        const flashAlerts = document.querySelectorAll('.alert');
+        if (flashAlerts.length > 0) {
+            const firstAlert = flashAlerts[0];
+            const message = firstAlert.textContent.trim();
+            const type = firstAlert.classList.contains('alert-danger') ? 'danger' : 
+                        firstAlert.classList.contains('alert-success') ? 'success' : 
+                        firstAlert.classList.contains('alert-warning') ? 'warning' : 'info';
+            
+            window.notificationManager.show(message, type);
+            
+            // Hide all original alerts
+            flashAlerts.forEach(alert => alert.style.display = 'none');
+        }
+    });
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+    <!-- Real-time Leave Notification System -->
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+    <script>
+    // Update pending leaves count
+    function updatePendingLeavesCount() {
+        fetch('/api/pending-leaves-count')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('pendingLeavesBadge');
+                if (badge) {
+                    badge.textContent = data.count;
+                    badge.style.display = data.count > 0 ? 'inline-block' : 'none';
+                }
+            })
+            .catch(error => console.error('Error updating pending leaves count:', error));
+    }
+
+    // Check for new leave applications
+    function checkNewLeaves() {
+        fetch('/api/recent-leaves')
+            .then(response => response.json())
+            .then(data => {
+                data.leaves.forEach(leave => {
+                    if (window.notificationManager) {
+                        window.notificationManager.show(
+                            `New leave application from ${leave.teacher_name}: ${leave.leave_type} leave for ${leave.duration} days`,
+                            'info'
+                        );
+                    }
+                });
+                updatePendingLeavesCount();
+            })
+            .catch(error => console.error('Error checking new leaves:', error));
+    }
+
+    // Initialize and set periodic updates
+    document.addEventListener('DOMContentLoaded', function() {
+        updatePendingLeavesCount();
+        
+        // Check for new leaves every 30 seconds
+        setInterval(checkNewLeaves, 30000);
+        
+        // Update count every 10 seconds
+        setInterval(updatePendingLeavesCount, 10000);
+    });
+    </script>
+    {% endif %}
+
+    <!-- Real-time Leave Status Update for Teachers -->
+    {% if current_user.is_authenticated and current_user.role == 'teacher' %}
+    <script>
+    // Check for leave status updates
+    function checkLeaveStatusUpdates() {
+        fetch('/api/teacher-leave-status-updates')
+            .then(response => response.json())
+            .then(data => {
+                data.updates.forEach(update => {
+                    if (window.notificationManager) {
+                        const statusText = update.status === 'approved' ? 'Approved' : 'Rejected';
+                        const statusType = update.status === 'approved' ? 'success' : 'danger';
+                        
+                        window.notificationManager.show(
+                            `Your leave application has been ${statusText}${update.admin_comment ? ': ' + update.admin_comment : ''}`,
+                            statusType
+                        );
+                    }
+                });
+            })
+            .catch(error => console.error('Error checking leave status updates:', error));
+    }
+
+    // Initialize and set periodic updates
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for status updates every 15 seconds
+        setInterval(checkLeaveStatusUpdates, 15000);
+    });
+    </script>
+    {% endif %}
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('{{ url_for('static', filename='sw.js') }}').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

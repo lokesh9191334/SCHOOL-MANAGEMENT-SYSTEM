@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-12 d-flex align-items-center justify-content-between">
+      <div>
+        <h2 class="mb-1">
+          <i class="fas fa-award me-2 text-success"></i>
+          Student Result
+        </h2>
+        <p class="text-muted mb-0">Professional-grade result calculation and presentation</p>
+      </div>
+      <a href="{{ url_for('students.list_students') }}" class="btn-back">
+        <i class="fas fa-arrow-left me-2"></i>Back to Students
+      </a>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-2">
+          <div class="d-flex justify-content-center">
+            {% if student.photo %}
+            <img src="{{ url_for('static', filename=student.photo) }}" alt="Student Photo" 
+                 class="rounded-circle border-2 border-primary" 
+                 style="width: 100px; height: 100px; object-fit: cover;">
+            {% else %}
+            <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle border-2 border-primary" 
+                 style="width: 100px; height: 100px; font-size: 2rem; font-weight: bold;">
+              {% if student.first_name %}
+                {{ student.first_name[0] }}{{ student.last_name[0] if student.last_name else '' }}
+              {% else %}
+                {{ student.name[0] if student.name else '?' }}
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-control">
+            <div class="small text-muted">Student Name</div>
+            <div class="fw-bold">{{ student.full_name() }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="form-control">
+            <div class="small text-muted">Roll Number</div>
+            <div class="fw-bold">{{ student.roll_number or '—' }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="form-control">
+            <div class="small text-muted">Class</div>
+            <div class="fw-bold">
+              {% if classroom %}{{ classroom.name }}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" id="result-form">
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="fas fa-layer-group me-2"></i>Select Class & Student</span>
+        <small class="text-muted">Premium selection with real-time details</small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Class</label>
+            <select class="form-select" id="select-class">
+              <option value="">Select Class</option>
+              {% for cls in classes %}
+              <option value="{{ cls.id }}" {% if classroom and classroom.id == cls.id %}selected{% endif %}>{{ cls.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Student</label>
+            <select class="form-select" id="select-student">
+              <option value="">Select Student</option>
+              {% for s in students_in_class %}
+              <option value="{{ s.id }}" {% if student and student.id == s.id %}selected{% endif %}>
+                {{ s.full_name() }} (Roll {{ s.roll_number or '—' }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <div class="border rounded p-3">
+              <div class="small text-muted">Family & DOB</div>
+              <div>Father: <span class="fw-semibold">{{ student.parent_name or '—' }}</span></div>
+              <div>Mother: <span class="fw-semibold">{{ student.guardian_name or '—' }}</span></div>
+              <div>DOB: <span class="fw-semibold">{{ student.date_of_birth or '—' }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="fas fa-book me-2"></i>Subject Marks</span>
+        <small class="text-muted">Enter marks out of 100</small>
+      </div>
+      <div class="card-body">
+        {% if subjects %}
+        {% if not ready %}
+        <div class="alert alert-warning">
+          Please select Class and Student from above to enter subject marks.
+        </div>
+        {% endif %}
+        <div class="table-responsive">
+          <table class="table table-striped align-middle">
+            <thead>
+              <tr>
+                <th style="width:100px">Subject No.</th>
+                <th>Subject</th>
+                <th style="width:140px">Marks</th>
+                <th>Grade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="subjects-body">
+              {% for subj in subjects %}
+              {% set sres = (subject_results|selectattr('id','equalto',subj.id)|list)[0] if calculated else None %}
+              <tr data-subject-id="{{ subj.id }}">
+                <td class="text-muted">{{ loop.index }}</td>
+                <td class="fw-semibold">{{ subj.name }}</td>
+                <td>
+                  <input type="number" min="0" max="100" step="1"
+                         class="form-control mark-input"
+                         name="mark_{{ subj.id }}"
+                         value="{{ sres.marks if sres else '' }}"
+                         placeholder="0-100"
+                         {% if not ready %}disabled{% endif %}>
+                </td>
+                <td>
+                  <span class="badge rounded-pill grade-badge {% if sres %}grade-{{ sres.grade|lower }}{% endif %}">
+                    {{ sres.grade if sres else '—' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge {% if sres and sres.status == 'Fail' %}bg-danger{% elif sres %}bg-success{% else %}bg-secondary{% endif %} status-badge">
+                    {{ sres.status if sres else '—' }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+          No subjects configured for this class. Please add subjects to calculate results.
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer d-flex justify-content-between">
+        <div>
+          <button type="button" class="btn btn-outline-primary" id="preview-btn">
+            <i class="fas fa-calculator me-2"></i>Preview Calculation
+          </button>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-check-circle me-2"></i>Calculate Result
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Overall Summary</h5>
+          <div class="d-flex flex-wrap gap-3">
+            <div class="summary-tile">
+              <div class="text-muted small">Total</div>
+              <div class="fs-4 fw-bold" id="summary-total">{{ total or 0 }}</div>
+            </div>
+            <div class="summary-tile">
+              <div class="text-muted small">Percentage</div>
+              <div class="fs-4 fw-bold" id="summary-percentage">{{ percentage or 0 }}%</div>
+            </div>
+            <div class="summary-tile">
+              <div class="text-muted small">Grade</div>
+              <div class="fs-4 fw-bold" id="summary-grade">{{ overall_grade or '—' }}</div>
+            </div>
+            <div class="summary-tile">
+              <div class="text-muted small">Status</div>
+              <div class="fs-4 fw-bold" id="summary-status">
+                {% if overall_status %}
+                <span class="badge {% if overall_status == 'Pass' %}bg-success{% else %}bg-danger{% endif %}">{{ overall_status }}</span>
+                {% else %}
+                <span class="badge bg-secondary">—</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <p class="mt-3 mb-0 text-muted">
+            Note: Any subject below 22 marks shows Fail with grade D, while overall status follows percentage-based rules for a professional evaluation.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Professional Remarks</h5>
+          <ul class="mb-0">
+            <li>Premium layout with clear subject-wise outcomes</li>
+            <li>Instant calculations and visual badges for grade & status</li>
+            <li>Mobile-friendly, touch-optimized inputs</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.summary-tile { min-width: 140px; padding: 12px 16px; border: 1px solid #eee; border-radius: 8px; }
+.grade-a { background-color: #d1e7dd; color: #0f5132; }
+.grade-b { background-color: #cff4fc; color: #055160; }
+.grade-c { background-color: #fff3cd; color: #664d03; }
+.grade-d { background-color: #f8d7da; color: #842029; }
+</style>
+
+<script>
+document.getElementById('select-student')?.addEventListener('change', (e) => {
+  const sid = e.target.value;
+  if (sid) {
+    window.location.href = "{{ url_for('students.student_result', student_id=0) }}".replace('/0', '/' + sid);
+  }
+});
+document.getElementById('select-class')?.addEventListener('change', (e) => {
+  const classId = e.target.value;
+  if (!classId) return;
+  const base = "{{ url_for('students.student_result', student_id=student.id) }}";
+  const url = base + "?class_id=" + classId;
+  window.location.href = url;
+});
+function computeGrade(m) {
+  if (m < 22) return 'D';
+  if (m < 33) return 'C';
+  if (m < 60) return 'B';
+  return 'A';
+}
+function updateRow(row) {
+  const input = row.querySelector('.mark-input');
+  const val = parseFloat(input.value || '0');
+  const grade = computeGrade(val);
+  const gradeBadge = row.querySelector('.grade-badge');
+  const statusBadge = row.querySelector('.status-badge');
+  gradeBadge.textContent = grade;
+  gradeBadge.className = 'badge rounded-pill grade-badge grade-' + grade.toLowerCase();
+  const fail = val < 22;
+  statusBadge.textContent = fail ? 'Fail' : 'Pass';
+  statusBadge.className = 'badge ' + (fail ? 'bg-danger' : 'bg-success') + ' status-badge';
+}
+function recalcSummary() {
+  const inputs = document.querySelectorAll('.mark-input');
+  let total = 0;
+  inputs.forEach(i => { total += parseFloat(i.value || '0'); });
+  const maxTotal = inputs.length * 100;
+  const pct = maxTotal ? (total / maxTotal * 100) : 0;
+  document.getElementById('summary-total').textContent = Math.round(total);
+  document.getElementById('summary-percentage').textContent = (pct.toFixed(2)) + '%';
+  const overallGrade = (pct >= 60) ? 'A' : (pct >= 50) ? 'B' : (pct >= 33) ? 'C' : 'D';
+  document.getElementById('summary-grade').textContent = overallGrade;
+  const statusHtml = (pct >= 33)
+    ? '<span class="badge bg-success">Pass</span>'
+    : '<span class="badge bg-danger">Fail</span>';
+  document.getElementById('summary-status').innerHTML = statusHtml;
+}
+document.querySelectorAll('.mark-input').forEach(input => {
+  input.addEventListener('input', (e) => {
+    const row = e.target.closest('tr');
+    updateRow(row);
+    recalcSummary();
+  });
+});
+document.getElementById('preview-btn')?.addEventListener('click', () => {
+  document.querySelectorAll('#subjects-body tr').forEach(updateRow);
+  recalcSummary();
+});
+</script>
+{% endblock %}

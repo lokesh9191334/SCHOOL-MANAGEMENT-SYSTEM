@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .class-section {
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        font-weight: bold;
+    }
+    .class-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .class-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .class-checkbox {
+        width: 20px;
+        height: 20px;
+    }
+    .selected-count {
+        background: #28a745;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+    .bulk-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        border-top: 2px solid #dee2e6;
+        padding: 1rem;
+        box-shadow: 0 -4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    .grade-badge {
+        background: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    .has-timetable {
+        opacity: 0.6;
+        background: #f8f9fa;
+    }
+    .selection-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #28a745;
+        color: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    
+    <div class="container-fluid mt-4 mb-5">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="fas fa-calendar-plus me-2"></i>Bulk Create Timetables</h2>
+                        <p class="text-muted">Select multiple classes to create timetables at once</p>
+                    </div>
+                    <div class="selected-count">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span id="selectedCount">0</span> Classes Selected
+                    </div>
+                </div>
+
+                <!-- Settings Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Timetable Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" id="bulkCreateForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="academic_year" class="form-label">Academic Year *</label>
+                                    <input type="text" class="form-control" id="academic_year" name="academic_year" 
+                                           value="2024-2025" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="publish_status" class="form-label">Initial Status</label>
+                                    <select class="form-control" id="publish_status" name="publish_status">
+                                        <option value="draft">Draft (Recommended)</option>
+                                        <option value="published">Published</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Quick Selection Tools -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="mb-0"><i class="fas fa-magic me-2"></i>Quick Selection</h6>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="selectAll()">
+                                    <i class="fas fa-check-square me-1"></i>Select All
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="selectNone()">
+                                    <i class="fas fa-square me-1"></i>Clear All
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="selectWithoutTimetable()">
+                                    <i class="fas fa-calendar-times me-1"></i>Only Without Timetable
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classes Selection -->
+                <form method="POST" id="classSelectionForm">
+                    <input type="hidden" name="academic_year" value="2024-2025">
+                    
+                    {% set existing_timetables = {} %}
+                    {% for timetable in timetables %}
+                        {% if timetable.classroom_id %}
+                            {% set _ = existing_timetables.update({timetable.classroom_id: timetable}) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Group classes by grade -->
+                    {% set classes_by_grade = {} %}
+                    {% for classroom in classrooms %}
+                        {% set grade = classroom.grade or 'Unknown' %}
+                        {% if grade not in classes_by_grade %}
+                            {% set _ = classes_by_grade.update({grade: []}) %}
+                        {% endif %}
+                        {% set _ = classes_by_grade[grade].append(classroom) %}
+                    {% endfor %}
+
+                    {% for grade in ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] %}
+                        {% if grade in classes_by_grade %}
+                        <div class="class-section">
+                            <div class="section-header">
+                                <i class="fas fa-graduation-cap me-2"></i>Grade {{ grade }}
+                                <span class="badge bg-light text-dark ms-2">{{ classes_by_grade[grade] | length }} sections</span>
+                            </div>
+                            <div class="p-3">
+                                <div class="row">
+                                    {% for classroom in classes_by_grade[grade] %}
+                                    <div class="col-lg-4 col-md-6 mb-3">
+                                        <div class="card class-card h-100 {% if existing_timetables[classroom.id] %}has-timetable{% endif %}">
+                                            <div class="card-body position-relative">
+                                                <div class="form-check">
+                                                    <input class="form-check-input class-checkbox" 
+                                                           type="checkbox" 
+                                                           name="selected_classes" 
+                                                           value="{{ classroom.id }}"
+                                                           id="class_{{ classroom.id }}"
+                                                           {% if existing_timetables[classroom.id] %}disabled{% endif %}>
+                                                    <label class="form-check-label w-100" for="class_{{ classroom.id }}">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <h6 class="card-title mb-1">{{ classroom.name }}</h6>
+                                                                <p class="card-text text-muted small mb-2">
+                                                                    <i class="fas fa-users me-1"></i>Capacity: {{ classroom.capacity or 40 }}
+                                                                    {% if classroom.room %}
+                                                                    <br><i class="fas fa-door-open me-1"></i>{{ classroom.room }}
+                                                                    {% endif %}
+                                                                </p>
+                                                            </div>
+                                                            <span class="grade-badge">{{ classroom.grade }}</span>
+                                                        </div>
+                                                        
+                                                        <!-- Timetable Status -->
+                                                        {% if existing_timetables[classroom.id] %}
+                                                        <div class="mt-2">
+                                                            <span class="badge bg-warning">
+                                                                <i class="fas fa-calendar me-1"></i>Has Timetable
+                                                            </span>
+                                                            <small class="text-muted d-block">
+                                                                {{ existing_timetables[classroom.id].academic_year }}
+                                                            </small>
+                                                        </div>
+                                                        {% else %}
+                                                        <div class="mt-2">
+                                                            <span class="badge bg-success">
+                                                                <i class="fas fa-plus-circle me-1"></i>Available
+                                                            </span>
+                                                        </div>
+                                                        {% endif %}
+                                                    </label>
+                                                </div>
+                                                
+                                                {% if existing_timetables[classroom.id] %}
+                                                <div class="selection-indicator" title="Already has timetable">
+                                                    <i class="fas fa-check"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-actions">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>Ready to Create Timetables
+                    </h5>
+                    <small class="text-muted">Selected classes will get basic timetables that can be customized later</small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="{{ url_for('enhanced_timetable_v2.enhanced_timetable_dashboard') }}" 
+                       class="btn btn-secondary btn-lg me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                    </a>
+                    <button type="submit" form="classSelectionForm" class="btn btn-success btn-lg" 
+                            id="createBtn" disabled>
+                        <i class="fas fa-plus-circle me-2"></i>Create 
+                        <span id="createCount">0</span> Timetables
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('input[name="selected_classes"]:checked');
+        const count = checkboxes.length;
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('createCount').textContent = count;
+        
+        const createBtn = document.getElementById('createBtn');
+        createBtn.disabled = count === 0;
+        
+        if (count > 0) {
+            createBtn.innerHTML = `<i class="fas fa-plus-circle me-2"></i>Create ${count} Timetable${count > 1 ? 's' : ''}`;
+        } else {
+            createBtn.innerHTML = '<i class="fas fa-plus-circle me-2"></i>Create 0 Timetables';
+        }
+    }
+
+    function selectAll() {
+        const checkboxes = document.querySelectorAll('input[name="selected_classes"]:not(:disabled)');
+        checkboxes.forEach(checkbox => checkbox.checked = true);
+        updateSelectedCount();
+    }
+
+    function selectNone() {
+        const checkboxes = document.querySelectorAll('input[name="selected_classes"]');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
+        updateSelectedCount();
+    }
+
+    function selectWithoutTimetable() {
+        selectNone();
+        const checkboxes = document.querySelectorAll('input[name="selected_classes"]:not(:disabled)');
+        checkboxes.forEach(checkbox => checkbox.checked = true);
+        updateSelectedCount();
+    }
+
+    // Update count on checkbox change
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'selected_classes') {
+            updateSelectedCount();
+        }
+    });
+
+    // Update form settings when changed
+    document.getElementById('academic_year').addEventListener('change', function() {
+        document.querySelector('input[name="academic_year"]').value = this.value;
+    });
+
+    // Initialize
+    updateSelectedCount();
+
+    // Add confirmation before submission
+    document.getElementById('classSelectionForm').addEventListener('submit', function(e) {
+        const count = document.querySelectorAll('input[name="selected_classes"]:checked').length;
+        if (count === 0) {
+            e.preventDefault();
+            alert('Please select at least one class to create timetables.');
+            return;
+        }
+        
+        const confirmMsg = `Are you sure you want to create timetables for ${count} class${count > 1 ? 'es' : ''}?\n\n` +
+                         'Basic timetables will be created that you can customize later.';
+        
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+        }
+    });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'a':
+                    e.preventDefault();
+                    selectAll();
+                    break;
+                case 'd':
+                    e.preventDefault();
+                    selectNone();
+                    break;
+            }
+        }
+    });
+</script>
+{% endblock %}

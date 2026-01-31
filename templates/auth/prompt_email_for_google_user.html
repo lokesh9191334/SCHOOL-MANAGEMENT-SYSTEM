@@ -1,0 +1,36 @@
+{% extends 'auth/base_auth.html' %}
+
+{% block title %}Enter Email and Set Password{% endblock %}
+
+{% block auth_content %}
+<div class="register-card">
+    <div class="card-header text-center">
+        <h2 class="card-title">Enter Email and Set Password</h2>
+        <p class="card-subtitle">Google did not provide your email. Please enter your email and set a password to continue.</p>
+    </div>
+    <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form action="{{ url_for('auth.prompt_email_for_google_user') }}" method="POST">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="password">New Password</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Submit</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

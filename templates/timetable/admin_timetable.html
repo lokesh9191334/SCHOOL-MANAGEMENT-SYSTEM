@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable Management - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Timetable Management
+                </h2>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
+                        <i class="fas fa-plus me-2"></i>Create New Timetable
+                    </button>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Timetables List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Existing Timetables
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if timetables %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>Academic Year</th>
+                                        <th>Semester</th>
+                                        <th>Status</th>
+                                        <th>Created By</th>
+                                        <th>Created At</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for timetable in timetables %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ timetable.name }}</strong>
+                                            {% if timetable.description %}
+                                                <br><small class="text-muted">{{ timetable.description[:50] }}{% if timetable.description|length > 50 %}...{% endif %}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if timetable.classroom %}
+                                                {{ timetable.classroom.name }}
+                                            {% else %}
+                                                <span class="text-muted">General</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ timetable.academic_year }}</td>
+                                        <td>{{ timetable.semester or 'N/A' }}</td>
+                                        <td>
+                                            {% if timetable.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                            {% if timetable.is_published %}
+                                                <span class="badge bg-info">Published</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Draft</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ timetable.created_by.name }}</td>
+                                        <td>{{ timetable.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ url_for('timetable.timetable_entries', timetable_id=timetable.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" title="Manage Entries">
+                                                    <i class="fas fa-th"></i>
+                                                </a>
+                                                <a href="{{ url_for('timetable.edit_timetable', timetable_id=timetable.id) }}" 
+                                                   class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                {% if not timetable.is_published %}
+                                                <form method="POST" action="{{ url_for('timetable.publish_timetable', timetable_id=timetable.id) }}" 
+                                                      style="display: inline;" onsubmit="return confirm('Publish this timetable? Teachers will be able to view it.')">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Publish">
+                                                        <i class="fas fa-paper-plane"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                <button class="btn btn-sm btn-outline-info" 
+                                                        onclick="viewTimetable({{ timetable.id }})" title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Timetables Created</h5>
+                            <p class="text-muted">Create your first timetable to get started.</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
+                                <i class="fas fa-plus me-2"></i>Create First Timetable
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetables|length }}</h4>
+                            <p class="mb-0">Total Timetables</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetables|selectattr('is_published')|list|length }}</h4>
+                            <p class="mb-0">Published</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetables|selectattr('is_published', 'equalto', False)|list|length }}</h4>
+                            <p class="mb-0">Drafts</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-edit fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetables|selectattr('is_active')|list|length }}</h4>
+                            <p class="mb-0">Active</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-play-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Timetable Modal -->
+<div class="modal fade" id="addTimetableModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Create New Timetable
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Timetable Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                                <div class="form-text">e.g., "Class 10A - Science Stream"</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="academic_year" class="form-label">Academic Year *</label>
+                                <input type="text" class="form-control" id="academic_year" name="academic_year" 
+                                       value="2024-2025" required>
+                                <div class="form-text">e.g., "2024-2025"</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="classroom_id" class="form-label">Class</label>
+                                <select class="form-select" id="classroom_id" name="classroom_id">
+                                    <option value="">Select Class (Optional)</option>
+                                    {% for classroom in classrooms %}
+                                    <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Leave empty for general timetable</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="semester" class="form-label">Semester</label>
+                                <input type="text" class="form-control" id="semester" name="semester" 
+                                       placeholder="e.g., First Semester">
+                                <div class="form-text">Optional</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        <div class="form-text">Optional description of the timetable</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_published" name="is_published">
+                            <label class="form-check-label" for="is_published">
+                                <strong>Publish immediately</strong>
+                            </label>
+                            <div class="form-text">If checked, teachers will be able to view this timetable immediately</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Create Timetable
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Timetable Modal -->
+<div class="modal fade" id="viewTimetableModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Timetable View
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="timetableContent">
+                    <!-- Timetable content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewTimetable(timetableId) {
+    fetch(`/timetable/api/timetable/${timetableId}/view`)
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h4>${data.timetable.name}</h4>
+                        <p class="text-muted">${data.timetable.description || 'No description'}</p>
+                        <div class="row">
+                            <div class="col-md-3"><strong>Class:</strong> ${data.timetable.classroom}</div>
+                            <div class="col-md-3"><strong>Academic Year:</strong> ${data.timetable.academic_year}</div>
+                            <div class="col-md-3"><strong>Semester:</strong> ${data.timetable.semester || 'N/A'}</div>
+                            <div class="col-md-3"><strong>Status:</strong> ${data.timetable.is_published ? 'Published' : 'Draft'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Create timetable grid
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            html += '<div class="table-responsive"><table class="table table-bordered">';
+            html += '<thead><tr><th>Period</th><th>Time</th>';
+            days.forEach(day => {
+                html += `<th>${day}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // Find max periods
+            let maxPeriods = 0;
+            Object.values(data.entries).forEach(dayEntries => {
+                dayEntries.forEach(entry => {
+                    if (entry.period > maxPeriods) maxPeriods = entry.period;
+                });
+            });
+            
+            // Create rows for each period
+            for (let period = 1; period <= maxPeriods; period++) {
+                html += `<tr><td><strong>Period ${period}</strong></td><td>`;
+                
+                // Find time for this period
+                let timeStr = '';
+                Object.values(data.entries).forEach(dayEntries => {
+                    dayEntries.forEach(entry => {
+                        if (entry.period === period && !timeStr) {
+                            timeStr = `${entry.start_time} - ${entry.end_time}`;
+                        }
+                    });
+                });
+                html += timeStr || 'N/A';
+                html += '</td>';
+                
+                // Add cells for each day
+                days.forEach(day => {
+                    html += '<td>';
+                    if (data.entries[day]) {
+                        const entry = data.entries[day].find(e => e.period === period);
+                        if (entry) {
+                            html += `<strong>${entry.subject}</strong><br>`;
+                            html += `<small class="text-muted">${entry.teacher}</small><br>`;
+                            html += `<small>${entry.classroom}</small>`;
+                            if (entry.room_number && entry.room_number !== 'N/A') {
+                                html += `<br><small class="text-info">Room: ${entry.room_number}</small>`;
+                            }
+                            if (entry.is_lab) {
+                                html += `<br><span class="badge bg-info">Lab</span>`;
+                            }
+                            if (entry.is_break) {
+                                html += `<br><span class="badge bg-warning">Break</span>`;
+                            }
+                        }
+                    }
+                    html += '</td>';
+                });
+                
+                html += '</tr>';
+            }
+            
+            html += '</tbody></table></div>';
+            
+            document.getElementById('timetableContent').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('viewTimetableModal')).show();
+        })
+        .catch(error => {
+            console.error('Error loading timetable:', error);
+            alert('Error loading timetable');
+        });
+}
+</script>
+{% endblock %}

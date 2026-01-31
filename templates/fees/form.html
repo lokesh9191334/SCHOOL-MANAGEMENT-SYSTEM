@@ -1,0 +1,443 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-lg-10 offset-lg-1">
+      <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Add New Fee</h4>
+          <small class="text-white-50">Professional fee management with advanced features</small>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" id="feeForm">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                  <i class="fas fa-info-circle me-2"></i>Basic Info
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="parent-tab" data-bs-toggle="tab" data-bs-target="#parent" type="button" role="tab">
+                  <i class="fas fa-users me-2"></i>Parent/Guardian
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab">
+                  <i class="fas fa-credit-card me-2"></i>Payment Settings
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="premium-tab" data-bs-toggle="tab" data-bs-target="#premium" type="button" role="tab">
+                  <i class="fas fa-star me-2"></i>Premium Features
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content">
+              <!-- Basic Information Tab -->
+              <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="student_id" class="form-label fw-bold">
+                      <i class="fas fa-user-graduate me-1"></i>Student
+                      <span class="badge bg-danger">Required</span>
+                    </label>
+                    <select class="form-select form-select-lg" id="student_id" name="student_id" required onchange="loadStudentInfo()">
+                      <option value="">-- Select Student --</option>
+                      {% for s in students %}
+                        <option value="{{ s.id }}"
+                                data-parent="{{ s.parent_name or '' }}"
+                                data-guardian="{{ s.guardian_name or '' }}">
+                          {{ s.full_name() if s.full_name else s.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="amount" class="form-label fw-bold">
+                      <i class="fas fa-rupee-sign me-1"></i>Amount
+                      <span class="badge bg-danger">Required</span>
+                    </label>
+                    <div class="input-group input-group-lg">
+                      <span class="input-group-text">₹</span>
+                      <input type="number" class="form-control" id="amount" name="amount" step="0.01" placeholder="0.00" required />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="fee_type_id" class="form-label fw-bold">
+                      <i class="fas fa-tag me-1"></i>Fee Type
+                    </label>
+                    <select class="form-select form-select-lg" id="fee_type_id" name="fee_type_id">
+                      <option value="">-- Select Fee Type --</option>
+                      {% for ft in fee_types %}
+                        <option value="{{ ft.id }}">{{ ft.name }}</option>
+                      {% endfor %}
+                    </select>
+                    <small class="text-muted">Select predefined fee category</small>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="stream" class="form-label fw-bold">
+                      <i class="fas fa-stream me-1"></i>Stream
+                    </label>
+                    <select class="form-select form-select-lg" id="stream" name="stream">
+                      <option value="">-- Select Stream --</option>
+                      {% for stream_option in streams %}
+                      <option value="{{ stream_option }}">{{ stream_option }}</option>
+                      {% endfor %}
+                    </select>
+                    <small class="text-muted">For 11th & 12th grade classes</small>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="class_id" class="form-label fw-bold">
+                      <i class="fas fa-users me-1"></i>Class
+                      <span class="badge bg-danger">Required</span>
+                    </label>
+                    <select class="form-select form-select-lg" id="class_id" name="class_id" required>
+                      <option value="">-- Select Class --</option>
+                      {% for classroom in classrooms %}
+                        <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="due_date" class="form-label fw-bold">
+                      <i class="fas fa-calendar me-1"></i>Due Date
+                    </label>
+                    <input type="date" class="form-control form-control-lg" id="due_date" name="due_date" />
+                  </div>
+                </div>
+
+                <div class="row">
+
+                </div>
+
+                <div class="mb-3">
+                  <label for="description" class="form-label fw-bold">
+                    <i class="fas fa-sticky-note me-1"></i>Description & Notes
+                  </label>
+                  <textarea class="form-control" id="description" name="description" rows="3" placeholder="Enter any additional notes or details about this fee..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                  <label for="photo" class="form-label fw-bold">
+                    <i class="fas fa-camera me-1"></i>Fee Receipt/Document Photo
+                  </label>
+                  <input type="file" class="form-control form-control-lg" id="photo" name="photo" accept="image/*">
+                  <small class="text-muted">Upload a photo of the fee receipt or document (optional)</small>
+                </div>
+              </div>
+
+              <!-- Parent/Guardian Tab -->
+              <div class="tab-pane fade" id="parent" role="tabpanel">
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <strong>Receipt Information:</strong> Parent/Guardian details will be captured for receipt generation. These details are auto-filled from student records but can be modified if needed.
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="father_name" class="form-label fw-bold">
+                      <i class="fas fa-male me-1"></i>Father's Name
+                    </label>
+                    <input type="text" class="form-control form-control-lg" id="father_name" name="father_name" placeholder="Enter father's name" />
+                    <small class="text-muted">Will appear on receipt</small>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="mother_name" class="form-label fw-bold">
+                      <i class="fas fa-female me-1"></i>Mother's Name
+                    </label>
+                    <input type="text" class="form-control form-control-lg" id="mother_name" name="mother_name" placeholder="Enter mother's name" />
+                    <small class="text-muted">Will appear on receipt</small>
+                  </div>
+                </div>
+
+
+              </div>
+
+              <!-- Payment Settings Tab -->
+              <div class="tab-pane fade" id="payment" role="tabpanel">
+                <div class="card mb-3 border-primary">
+                  <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Method</h6>
+                  </div>
+                  <div class="card-body">
+                    <label for="payment_method" class="form-label fw-bold">Preferred Payment Method</label>
+                    <select class="form-select form-select-lg" id="payment_method" name="payment_method" onchange="handlePaymentMethodChange()">
+                      <option value="">-- Select Method --</option>
+                      <option value="cash">Cash</option>
+                      <option value="card">Credit/Debit Card</option>
+                      <option value="online">Online Payment</option>
+                      <option value="cheque">Cheque</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="upi">UPI</option>
+                      <option value="wallet">Digital Wallet</option>
+                      <option value="qr">QR Code Payment</option>
+                    </select>
+
+                    <!-- QR Code Payment Section -->
+                    <div id="qrPaymentSection" style="display: none; margin-top: 20px;">
+                      <div class="alert alert-info">
+                        <h6><i class="fas fa-qrcode me-2"></i>QR Code Payment</h6>
+                        <div class="row">
+                          <div class="col-md-6">
+                            <p><strong>Amount to Pay:</strong> <span id="qrAmount" class="text-success fw-bold">$0.00</span></p>
+                            <div id="qrCodeContainer" class="text-center">
+                              <div id="qrCode" style="width: 200px; height: 200px; margin: 0 auto; background: #f8f9fa; border: 2px dashed #dee2e6; display: flex; align-items: center; justify-content: center;">
+                                <div class="text-muted">
+                                  <i class="fas fa-qrcode fa-3x mb-2"></i>
+                                  <br>QR Code will appear here
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <div class="d-grid gap-2">
+                              <button type="button" id="generateQRBtn" class="btn btn-primary" onclick="generateQRCode()">
+                                <i class="fas fa-qrcode me-2"></i>Generate QR Code
+                              </button>
+                              <button type="button" id="scanCompleteBtn" class="btn btn-success" style="display: none;" onclick="completePayment()">
+                                <i class="fas fa-check-circle me-2"></i>Payment Complete
+                              </button>
+                              <div id="paymentStatus" class="alert alert-warning" style="display: none;">
+                                <i class="fas fa-clock me-2"></i>Waiting for payment confirmation...
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Premium Features Tab -->
+              <div class="tab-pane fade" id="premium" role="tabpanel">
+                <div class="alert alert-success">
+                  <i class="fas fa-crown me-2"></i>
+                  <strong>Premium Features Enabled!</strong> Your institution has access to all advanced fee management features.
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="card border-info h-100">
+                      <div class="card-body">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="auto_reminder_enabled" name="auto_reminder_enabled" checked>
+                          <label class="form-check-label" for="auto_reminder_enabled">
+                            <strong><i class="fas fa-bell me-2 text-info"></i>Automatic Reminders</strong>
+                            <br><small class="text-muted">Send SMS/Email reminders before due date</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="card border-success h-100">
+                      <div class="card-body">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="online_payment_enabled" name="online_payment_enabled" checked>
+                          <label class="form-check-label" for="online_payment_enabled">
+                            <strong><i class="fas fa-globe me-2 text-success"></i>Online Payment Gateway</strong>
+                            <br><small class="text-muted">Accept online payments via gateway</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="card border-warning h-100">
+                      <div class="card-body">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="receipt_auto_generate" name="receipt_auto_generate" checked>
+                          <label class="form-check-label" for="receipt_auto_generate">
+                            <strong><i class="fas fa-file-invoice me-2 text-warning"></i>Auto-Generate Receipt</strong>
+                            <br><small class="text-muted">Automatically create receipt on payment</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="card border-danger h-100">
+                      <div class="card-body">
+                        <div class="form-check form-switch form-check-lg">
+                          <input class="form-check-input" type="checkbox" id="print_receipt" name="print_receipt" checked>
+                          <label class="form-check-label" for="print_receipt">
+                            <strong><i class="fas fa-print me-2 text-danger"></i>Print Receipt Option</strong>
+                            <br><small class="text-muted">Enable printing of receipt after payment</small>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="alert alert-info mt-3">
+                  <i class="fas fa-lightbulb me-2"></i>
+                  <strong>Pro Tip:</strong> Enable all premium features for the best fee management experience. You can always modify these settings later.
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 pt-3 border-top">
+              <a href="{{ url_for('fees.list_fees') }}" class="btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Back to Fees
+              </a>
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save me-2"></i>Create Fee
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+
+  .nav-link {
+    color: #495057;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+  }
+
+  .nav-link:hover {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+  }
+
+  .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    background-color: #f8f9fa;
+  }
+
+  .form-check-lg .form-check-input {
+    width: 1.5em;
+    height: 1.5em;
+    margin-top: 0.25em;
+  }
+
+  .form-check-lg .form-check-label {
+    padding-left: 0.5em;
+  }
+</style>
+
+<script>
+function loadStudentInfo() {
+  const studentSelect = document.getElementById('student_id');
+  const selectedOption = studentSelect.options[studentSelect.selectedIndex];
+
+  if (selectedOption.value) {
+    // Auto-fill parent/guardian information
+    const parentName = selectedOption.getAttribute('data-parent');
+    const guardianName = selectedOption.getAttribute('data-guardian');
+
+    if (parentName) {
+      document.getElementById('father_name').value = parentName;
+    }
+    if (guardianName) {
+      document.getElementById('guardian_name').value = guardianName;
+    }
+  }
+}
+
+function handlePaymentMethodChange() {
+  const paymentMethod = document.getElementById('payment_method').value;
+  const qrSection = document.getElementById('qrPaymentSection');
+
+  if (paymentMethod === 'qr') {
+    qrSection.style.display = 'block';
+    // Update amount display
+    const amount = document.getElementById('amount').value || '0.00';
+    document.getElementById('qrAmount').textContent = '₹' + parseFloat(amount).toFixed(2);
+  } else {
+    qrSection.style.display = 'none';
+  }
+}
+
+function generateQRCode() {
+  const amount = document.getElementById('amount').value;
+  if (!amount || parseFloat(amount) <= 0) {
+    alert('Please enter a valid amount first');
+    return;
+  }
+
+  const qrContainer = document.getElementById('qrCode');
+  const generateBtn = document.getElementById('generateQRBtn');
+  const scanBtn = document.getElementById('scanCompleteBtn');
+  const statusDiv = document.getElementById('paymentStatus');
+
+  // Generate QR code data (simplified for demo)
+  const qrData = `PAY:${amount}:SchoolFee`;
+
+  // For demo purposes, we'll create a simple visual QR code representation
+  qrContainer.innerHTML = `
+    <div style="width: 100%; height: 100%; background: white; border: 2px solid #000; display: flex; align-items: center; justify-content: center; position: relative;">
+      <div style="position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; border: 2px solid #000;">
+        <div style="position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px; border: 1px solid #000;">
+          <div style="position: absolute; top: 30px; left: 30px; right: 30px; bottom: 30px; background: #000; opacity: 0.8;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 12px; text-align: center;">
+              <i class="fas fa-qrcode fa-2x mb-2"></i><br>
+              <strong>₹${parseFloat(amount).toFixed(2)}</strong><br>
+              <small>School Fee</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  generateBtn.style.display = 'none';
+  scanBtn.style.display = 'inline-block';
+  statusDiv.style.display = 'block';
+  statusDiv.className = 'alert alert-warning';
+  statusDiv.innerHTML = '<i class="fas fa-clock me-2"></i>Waiting for payment confirmation...';
+}
+
+function completePayment() {
+  const statusDiv = document.getElementById('paymentStatus');
+  const scanBtn = document.getElementById('scanCompleteBtn');
+
+  statusDiv.className = 'alert alert-success';
+  statusDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Payment completed successfully!';
+  scanBtn.disabled = true;
+  scanBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Payment Confirmed';
+
+  // Auto-hide success message after 3 seconds
+  setTimeout(() => {
+    statusDiv.style.display = 'none';
+  }, 3000);
+}
+
+// Form validation
+document.getElementById('feeForm').addEventListener('submit', function(e) {
+  const amount = parseFloat(document.getElementById('amount').value);
+  if (amount <= 0) {
+    e.preventDefault();
+    alert('Please enter a valid amount greater than 0');
+    return false;
+  }
+});
+
+// Update QR amount when amount field changes
+document.getElementById('amount').addEventListener('input', function() {
+  const amount = this.value || '0.00';
+  document.getElementById('qrAmount').textContent = '₹' + parseFloat(amount).toFixed(2);
+});
+</script>
+{% endblock %}

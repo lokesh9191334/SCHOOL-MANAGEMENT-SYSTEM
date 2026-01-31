@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid notifications-container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card premium-fade-in">
+        <div class="card-header">
+          <h2><i class="fas fa-credit-card me-2"></i>Payment Notifications</h2>
+        </div>
+        <div class="card-body">
+          {% if payments %}
+            {% for payment in payments %}
+            <div class="payment-notification premium-scale-in">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="payment-amount">₹{{ "%.2f"|format(payment.amount) }}</div>
+                  <div class="payment-student">{{ payment.student.name if payment.student else 'Unknown Student' }}</div>
+                  {% if payment.description %}
+                  <div class="payment-description">{{ payment.description }}</div>
+                  {% endif %}
+                </div>
+                <div class="text-end">
+                  <div class="payment-time">{{ payment.created_at.strftime('%d %b %Y, %I:%M %p') }}</div>
+                  {% if payment.payment_method %}
+                  <div class="payment-method">{{ payment.payment_method }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-5 premium-fade-in">
+              <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+              <h4 class="text-muted">No Recent Payments</h4>
+              <p class="text-muted">No payments received in the last 24 hours.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}Add Exam Entry - {{ date_sheet.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Add Exam Entry
+                    </h2>
+                    <p class="text-muted mb-0">{{ date_sheet.title }} - {{ date_sheet.exam_type.title() }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('date_sheet.date_sheet_entries', date_sheet_id=date_sheet.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Entries
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Exam Entry Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('date_sheet.add_date_sheet_entry', date_sheet_id=date_sheet.id) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="exam_date" class="form-label">Exam Date *</label>
+                                    <input type="date" class="form-control" id="exam_date" name="exam_date" required>
+                                    <div class="form-text">Select the exam date</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="subject_id" class="form-label">Subject *</label>
+                                    <select class="form-select" id="subject_id" name="subject_id" required>
+                                        <option value="">Select Subject</option>
+                                        {% for subject in subjects %}
+                                        <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Select the subject for this exam</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_time" class="form-label">Start Time *</label>
+                                    <input type="time" class="form-control" id="start_time" name="start_time" required>
+                                    <div class="form-text">Exam start time</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_time" class="form-label">End Time *</label>
+                                    <input type="time" class="form-control" id="end_time" name="end_time" required>
+                                    <div class="form-text">Exam end time</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="classroom_id" class="form-label">Class *</label>
+                                    <select class="form-select" id="classroom_id" name="classroom_id" required>
+                                        <option value="">Select Class</option>
+                                        {% for classroom in classrooms %}
+                                        <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Select the class for this exam</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="section" class="form-label">Section</label>
+                                    <select class="form-select" id="section" name="section">
+                                        <option value="">Select Section (Optional)</option>
+                                        <option value="A">Section A</option>
+                                        <option value="B">Section B</option>
+                                        <option value="C">Section C</option>
+                                        <option value="D">Section D</option>
+                                        <option value="E">Section E</option>
+                                        <option value="F">Section F</option>
+                                    </select>
+                                    <div class="form-text">Class section (A, B, C, etc.)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="room_number" class="form-label">Room Number</label>
+                                    <input type="text" class="form-control" id="room_number" name="room_number" 
+                                           placeholder="e.g., Room 101">
+                                    <div class="form-text">Exam room number</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="floor_number" class="form-label">Floor Number</label>
+                                    <input type="text" class="form-control" id="floor_number" name="floor_number" 
+                                           placeholder="e.g., 1st Floor">
+                                    <div class="form-text">Floor number</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="building_name" class="form-label">Building Name</label>
+                                    <input type="text" class="form-control" id="building_name" name="building_name" 
+                                           placeholder="e.g., Main Building">
+                                    <div class="form-text">Building name</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="exam_venue" class="form-label">Exam Venue</label>
+                                    <input type="text" class="form-control" id="exam_venue" name="exam_venue" 
+                                           placeholder="e.g., Examination Hall">
+                                    <div class="form-text">Exam venue (if different from room)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="exam_duration" class="form-label">Duration (minutes)</label>
+                                    <input type="number" class="form-control" id="exam_duration" name="exam_duration" 
+                                           min="15" max="240" placeholder="e.g., 90">
+                                    <div class="form-text">Exam duration in minutes</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="max_marks" class="form-label">Maximum Marks</label>
+                                    <input type="number" class="form-control" id="max_marks" name="max_marks" 
+                                           min="1" placeholder="e.g., 100">
+                                    <div class="form-text">Maximum marks for this exam</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="special_instructions" class="form-label">Special Instructions</label>
+                                    <textarea class="form-control" id="special_instructions" name="special_instructions" rows="3" 
+                                              placeholder="Enter any special instructions for students..."></textarea>
+                                    <div class="form-text">Special instructions for students (optional)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Location Information</h6>
+                            <p class="mb-0">
+                                <strong>Room Number:</strong> Specific room where exam will be conducted<br>
+                                <strong>Section:</strong> Class section for targeted students<br>
+                                <strong>Floor Number:</strong> Floor level of the exam room<br>
+                                <strong>Building Name:</strong> Building where the room is located<br>
+                                <strong>Exam Venue:</strong> General venue name (if different from room)
+                            </p>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Add Entry
+                            </button>
+                            <a href="{{ url_for('date_sheet.date_sheet_entries', date_sheet_id=date_sheet.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Quick Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Location Details</h6>
+                        <p class="mb-0">
+                            Provide complete location information to help students find the exam venue easily.
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-clock me-2"></i>Time Management</h6>
+                        <p class="mb-0">
+                            Ensure adequate time between consecutive exams for the same class.
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-file-alt me-2"></i>Instructions</h6>
+                        <p class="mb-0">
+                            Include important instructions like "Bring calculator", "No electronic devices", etc.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Exam Schedule Info
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Exam Period</label>
+                                <div class="text-muted">{{ date_sheet.start_date.strftime('%d-%m-%Y') }} to {{ date_sheet.end_date.strftime('%d-%m-%Y') }}</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Exam Type</label>
+                                <div class="text-muted">{{ date_sheet.exam_type.title() }}</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Academic Year</label>
+                                <div class="text-muted">{{ date_sheet.academic_year }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-calculate duration when start and end times are selected
+document.addEventListener('DOMContentLoaded', function() {
+    const startTimeInput = document.getElementById('start_time');
+    const endTimeInput = document.getElementById('end_time');
+    const durationInput = document.getElementById('exam_duration');
+    
+    function calculateDuration() {
+        if (startTimeInput.value && endTimeInput.value) {
+            const start = new Date(`2000-01-01T${startTimeInput.value}:00`);
+            const end = new Date(`2000-01-01T${endTimeInput.value}:00`);
+            const diff = end - start;
+            const minutes = Math.round(diff / 60000);
+            
+            if (minutes > 0 && minutes <= 240) {
+                durationInput.value = minutes;
+            }
+        }
+    }
+    
+    startTimeInput.addEventListener('change', calculateDuration);
+    endTimeInput.addEventListener('change', calculateDuration);
+    
+    // Auto-fill room number based on class selection
+    const classroomSelect = document.getElementById('classroom_id');
+    const roomNumberInput = document.getElementById('room_number');
+    const sectionSelect = document.getElementById('section');
+    
+    classroomSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            // Auto-fill room number based on class name
+            const className = selectedOption.text;
+            const roomMatch = className.match(/\d+/);
+            if (roomMatch) {
+                roomNumberInput.value = `Room ${roomMatch[0]}`;
+            }
+            
+            // Auto-fill section based on class name
+            const sectionMatch = className.match(/[A-F]$/);
+            if (sectionMatch) {
+                sectionSelect.value = sectionMatch[0];
+            }
+        }
+    });
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const examDate = document.getElementById('exam_date').value;
+        const examDateObj = new Date(examDate);
+        const today = new Date();
+        
+        if (examDateObj < today) {
+            e.preventDefault();
+            alert('Exam date cannot be in the past!');
+            return false;
+        }
+        
+        const startTime = document.getElementById('start_time').value;
+        const endTime = document.getElementById('end_time').value;
+        
+        if (startTime >= endTime) {
+            e.preventDefault();
+            alert('End time must be after start time!');
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}

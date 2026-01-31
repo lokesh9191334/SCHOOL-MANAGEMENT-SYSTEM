@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Login Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        input { display: block; margin: 10px 0; padding: 10px; width: 300px; }
+        button { padding: 10px 20px; background: blue; color: white; border: none; cursor: pointer; }
+        .result { margin-top: 20px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>SIMPLE LOGIN TEST</h1>
+    <form method="POST" action="http://localhost:5000/auth/login">
+        <input type="email" name="email" value="admin@school.com" required>
+        <input type="password" name="password" value="admin123" required>
+        <input type="text" name="account_type" value="admin" required>
+        <button type="submit">LOGIN</button>
+    </form>
+    <div class="result" id="result"></div>
+    
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            
+            fetch('http://localhost:5000/auth/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    document.getElementById('result').innerHTML = 
+                        '<div style="color: green;">✅ SUCCESS! Redirecting to: ' + response.url + '</div>';
+                    window.location.href = response.url;
+                } else {
+                    document.getElementById('result').innerHTML = 
+                        '<div style="color: red;">❌ FAILED! Status: ' + response.status + '</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: red;">❌ ERROR: ' + error.message + '</div>';
+            });
+        });
+    </script>
+</body>
+</html>

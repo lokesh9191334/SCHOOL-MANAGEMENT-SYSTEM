@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .debug-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .debug-warning {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .debug-error {
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #f44336;
+        }
+
+        .debug-success {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .css-rules {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .test-button:hover {
+            background: #0056b3;
+        }
+
+        #test-sidebar {
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%);
+            color: white;
+            position: fixed;
+            left: 0;
+            top: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #test-sidebar.hidden {
+            margin-left: -280px;
+        }
+
+        #test-content {
+            margin-left: 280px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+
+        #test-content.full-width {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 Sidebar Debug Tool</h1>
+        
+        <div class="debug-info">
+            <strong>Screen Width:</strong> <span id="screenWidth"></span>px
+        </div>
+        
+        <div class="debug-info">
+            <strong>Current Time:</strong> <span id="currentTime"></span>
+        </div>
+
+        <div class="debug-info">
+            <strong>Browser:</strong> <span id="browserInfo"></span>
+        </div>
+
+        <div class="debug-warning">
+            <strong>⚠️ Issue:</strong> Sidebar is hiding on desktop when clicking links
+        </div>
+
+        <div class="debug-info">
+            <strong>🔍 Investigation:</strong> Checking all CSS rules affecting #sidebar
+        </div>
+
+        <div class="css-rules">
+            <strong>Current CSS Rules for #sidebar:</strong>
+            <div id="cssRules"></div>
+        </div>
+
+        <div class="debug-info">
+            <strong>🧪 Test Controls:</strong>
+            <button class="test-button" onclick="toggleSidebar()">Toggle Sidebar</button>
+            <button class="test-button" onclick="addActiveClass()">Add Active Class</button>
+            <button class="test-button" onclick="removeActiveClass()">Remove Active Class</button>
+            <button class="test-button" onclick="checkComputedStyles()">Check Computed Styles</button>
+            <button class="test-button" onclick="forceDesktopStyles()">Force Desktop Styles</button>
+        </div>
+
+        <div id="computedStyles" class="css-rules" style="display: none;">
+            <strong>Computed Styles:</strong>
+            <div id="computedStylesContent"></div>
+        </div>
+    </div>
+
+    <!-- Test Sidebar -->
+    <div id="test-sidebar">
+        <h3>Test Sidebar</h3>
+        <p>This is a test sidebar to debug the issue.</p>
+        <ul>
+            <li><a href="#" onclick="simulateLinkClick(event)">Home</a></li>
+            <li><a href="#" onclick="simulateLinkClick(event)">Dashboard</a></li>
+            <li><a href="#" onclick="simulateLinkClick(event)">Teacher Leave Status</a></li>
+            <li><a href="#" onclick="simulateLinkClick(event)">Students</a></li>
+        </ul>
+    </div>
+
+    <div id="test-content">
+        <h2>Main Content Area</h2>
+        <p>Click the links above to test sidebar behavior.</p>
+        <div id="debugLog"></div>
+    </div>
+
+    <script>
+        // Update debug info
+        function updateDebugInfo() {
+            document.getElementById('screenWidth').textContent = window.innerWidth;
+            document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+            document.getElementById('browserInfo').textContent = navigator.userAgent;
+        }
+
+        // Get all CSS rules for #sidebar
+        function getCSSRules() {
+            const rules = [];
+            for (let i = 0; i < document.styleSheets.length; i++) {
+                try {
+                    const sheet = document.styleSheets[i];
+                    for (let j = 0; j < sheet.cssRules.length; j++) {
+                        const rule = sheet.cssRules[j];
+                        if (rule.selectorText && rule.selectorText.includes('#sidebar')) {
+                            rules.push({
+                                selector: rule.selectorText,
+                                styles: rule.style.cssText
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.log('Cannot access stylesheet:', e);
+                }
+            }
+            return rules;
+        }
+
+        // Display CSS rules
+        function displayCSSRules() {
+            const rules = getCSSRules();
+            const rulesDiv = document.getElementById('cssRules');
+            let html = '';
+            rules.forEach(rule => {
+                html += `<div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6;">`;
+                html += `<strong>${rule.selector}</strong><br>`;
+                html += `<code>${rule.styles}</code>`;
+                html += `</div>`;
+            });
+            rulesDiv.innerHTML = html || 'No CSS rules found for #sidebar';
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('test-sidebar');
+            sidebar.classList.toggle('hidden');
+            updateDebugInfo();
+            logDebug('Sidebar toggled');
+        }
+
+        // Add active class
+        function addActiveClass() {
+            const sidebar = document.getElementById('test-sidebar');
+            sidebar.classList.add('active');
+            updateDebugInfo();
+            logDebug('Added "active" class to sidebar');
+        }
+
+        // Remove active class
+        function removeActiveClass() {
+            const sidebar = document.getElementById('test-sidebar');
+            sidebar.classList.remove('active', 'hidden');
+            updateDebugInfo();
+            logDebug('Removed "active" class from sidebar');
+        }
+
+        // Check computed styles
+        function checkComputedStyles() {
+            const sidebar = document.getElementById('test-sidebar');
+            const styles = window.getComputedStyle(sidebar);
+            const importantStyles = [
+                'position', 'left', 'margin-left', 'transform', 'width', 'visibility', 'opacity'
+            ];
+            
+            let html = '';
+            importantStyles.forEach(prop => {
+                html += `<strong>${prop}:</strong> ${styles.getPropertyValue(prop)}<br>`;
+            });
+            
+            document.getElementById('computedStylesContent').innerHTML = html;
+            document.getElementById('computedStyles').style.display = 'block';
+            logDebug('Computed styles checked');
+        }
+
+        // Force desktop styles
+        function forceDesktopStyles() {
+            const sidebar = document.getElementById('test-sidebar');
+            const content = document.getElementById('test-content');
+            
+            // Apply desktop styles
+            sidebar.style.cssText = `
+                position: fixed !important;
+                left: 0 !important;
+                width: 280px !important;
+                height: 100vh !important;
+                z-index: 1000 !important;
+                margin-left: 0 !important;
+                transform: none !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            `;
+            
+            content.style.cssText = `
+                margin-left: 280px !important;
+                padding: 20px !important;
+            `;
+            
+            updateDebugInfo();
+            logDebug('Forced desktop styles applied');
+        }
+
+        // Simulate link click
+        function simulateLinkClick(event) {
+            event.preventDefault();
+            logDebug(`Link clicked: ${event.target.textContent}`);
+            
+            // Check current screen width
+            if (window.innerWidth <= 768) {
+                // Mobile behavior: hide sidebar
+                document.getElementById('test-sidebar').classList.add('hidden');
+                document.getElementById('test-content').classList.add('full-width');
+                logDebug('Mobile behavior: Sidebar hidden');
+            } else {
+                // Desktop behavior: keep sidebar visible
+                forceDesktopStyles();
+                logDebug('Desktop behavior: Sidebar kept visible');
+            }
+        }
+
+        // Log debug messages
+        function logDebug(message) {
+            const log = document.getElementById('debugLog');
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `<div style="padding: 5px; border-bottom: 1px solid #eee;">[${time}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Initialize
+        updateDebugInfo();
+        displayCSSRules();
+        
+        // Update on resize
+        window.addEventListener('resize', function() {
+            updateDebugInfo();
+            logDebug(`Window resized to ${window.innerWidth}px`);
+        });
+
+        // Log initial state
+        logDebug('Debug tool initialized');
+    </script>
+</body>
+</html>

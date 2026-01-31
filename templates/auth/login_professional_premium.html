@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block content %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --auth-primary: #6366f1;
+    --auth-primary-dark: #4f46e5;
+    --auth-bg: #0f172a;
+    --auth-surface: rgba(30, 41, 59, 0.7);
+    --auth-border: rgba(255, 255, 255, 0.1);
+    --auth-text: #f8fafc;
+    --auth-text-muted: #94a3b8;
+}
+
+.auth-page-wrapper {
+    background: var(--auth-bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.auth-page-wrapper::before {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+    top: -250px;
+    right: -100px;
+    z-index: 0;
+}
+
+.auth-page-wrapper::after {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    bottom: -300px;
+    left: -150px;
+    z-index: 0;
+}
+
+.auth-card {
+    background: var(--auth-surface);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--auth-border);
+    border-radius: 28px;
+    width: 100%;
+    max-width: 600px;
+    padding: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 10;
+    animation: authFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.auth-logo {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--auth-primary), #8b5cf6);
+    border-radius: 18px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: white;
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+}
+
+.auth-header h1 {
+    color: var(--auth-text);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+}
+
+.auth-header p {
+    color: var(--auth-text-muted);
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    color: var(--auth-text);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    margin-left: 4px;
+}
+
+.input-container {
+    position: relative;
+}
+
+.auth-input {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--auth-border);
+    border-radius: 14px;
+    padding: 14px 16px 14px 45px;
+    color: var(--auth-text);
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: var(--auth-primary);
+    background: rgba(15, 23, 42, 0.8);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--auth-text-muted);
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus + .input-icon {
+    color: var(--auth-primary);
+}
+
+.auth-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--auth-primary), var(--auth-primary-dark));
+    color: white;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+}
+
+.auth-btn:active {
+    transform: translateY(0);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid var(--auth-border);
+}
+
+.auth-footer p {
+    color: var(--auth-text-muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.auth-link {
+    color: var(--auth-primary);
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.auth-link:hover {
+    color: #818cf8;
+}
+
+.options-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    font-size: 13px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--auth-text-muted);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.remember-me input {
+    accent-color: var(--auth-primary);
+    width: 16px;
+    height: 16px;
+}
+
+.forgot-password {
+    color: var(--auth-text-muted);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.forgot-password:hover {
+    color: var(--auth-primary);
+}
+
+/* Custom Select Styling */
+.auth-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 18px;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 25px 0;
+    color: var(--auth-text-muted);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--auth-border);
+}
+
+.auth-divider span {
+    padding: 0 15px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.google-btn {
+    width: 100%;
+    background: white;
+    color: #1f2937;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.google-btn img {
+    width: 20px;
+    height: 20px;
+}
+
+.google-btn:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.google-btn:active {
+    transform: translateY(0);
+    background: #f3f4f6;
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 30px 20px;
+        border-radius: 20px;
+    }
+}
+</style>
+
+<div class="auth-page-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h1>Welcome Back</h1>
+            <p>Sign in to your dashboard</p>
+        </div>
+
+        <form action="{{ url_for('auth.login') }}" method="POST" class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div class="input-container">
+                    <input type="email" name="email" class="auth-input" placeholder="name@example.com" required>
+                    <i class="fas fa-envelope input-icon"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div class="input-container">
+                    <input type="password" name="password" class="auth-input" placeholder="••••••••" required>
+                    <i class="fas fa-lock input-icon"></i>
+                </div>
+            </div>
+
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label class="form-label">School ID</label>
+                    <div class="input-container">
+                        <input type="text" name="school_id" class="auth-input" style="padding-left: 15px;" placeholder="5 Digits" maxlength="5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Account Type</label>
+                    <div class="input-container">
+                        <select name="account_type" class="auth-input auth-select" style="padding-left: 15px;" required>
+                            <option value="admin">Admin</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="parent">Parent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="options-row">
+                <label class="remember-me">
+                    <input type="checkbox" name="remember">
+                    <span>Remember me</span>
+                </label>
+                <a href="{{ url_for('auth.forgot_password') }}" class="forgot-password">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="auth-btn">
+                <span>Sign In</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="auth-divider">
+            <span>Or continue with</span>
+        </div>
+
+        <a href="{{ url_for('auth.google_login') }}" style="text-decoration: none;">
+            <button class="google-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                <span>Continue with Google</span>
+            </button>
+        </a>
+
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="{{ url_for('auth.register') }}" class="auth-link">Create Account</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

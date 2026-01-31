@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Test Notification System</h3>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <strong>Notification System Status:</strong> The notification system has been implemented with email and SMS support.
+            Configure your SMTP and Twilio credentials in environment variables to enable notifications.
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <h5>Test Email</h5>
+              <p>Send a test email to verify SMTP configuration.</p>
+              <a href="{{ url_for('notifications.test_email') }}" class="btn btn-primary">Send Test Email</a>
+            </div>
+            <div class="col-md-6">
+              <h5>Test SMS</h5>
+              <p>Send a test SMS to verify Twilio configuration.</p>
+              <a href="{{ url_for('notifications.test_sms') }}" class="btn btn-primary">Send Test SMS</a>
+            </div>
+          </div>
+
+          <hr>
+
+          <h5>Environment Variables Required:</h5>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Variable</th>
+                  <th>Description</th>
+                  <th>Example</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>SMTP_SERVER</code></td>
+                  <td>SMTP server address</td>
+                  <td>smtp.gmail.com</td>
+                </tr>
+                <tr>
+                  <td><code>SMTP_PORT</code></td>
+                  <td>SMTP server port</td>
+                  <td>587</td>
+                </tr>
+                <tr>
+                  <td><code>SMTP_USERNAME</code></td>
+                  <td>Email address for sending</td>
+                  <td>your-email@gmail.com</td>
+                </tr>
+                <tr>
+                  <td><code>SMTP_PASSWORD</code></td>
+                  <td>Email password or app password</td>
+                  <td>your-app-password</td>
+                </tr>
+                <tr>
+                  <td><code>TWILIO_ACCOUNT_SID</code></td>
+                  <td>Twilio Account SID</td>
+                  <td>ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</td>
+                </tr>
+                <tr>
+                  <td><code>TWILIO_AUTH_TOKEN</code></td>
+                  <td>Twilio Auth Token</td>
+                  <td>your-auth-token</td>
+                </tr>
+                <tr>
+                  <td><code>TWILIO_PHONE_NUMBER</code></td>
+                  <td>Twilio phone number</td>
+                  <td>+1234567890</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-warning">
+            <strong>Note:</strong> For Gmail, you may need to generate an "App Password" instead of using your regular password.
+            Enable "Less secure app access" or use OAuth2 for production use.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

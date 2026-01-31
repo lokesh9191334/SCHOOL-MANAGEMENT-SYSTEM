@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}My Substitutions - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-user-clock me-2"></i>My Substitutions
+                </h2>
+                <div>
+                    <a href="{{ url_for('teacher_substitution.teacher_leave') }}" class="btn btn-warning">
+                        <i class="fas fa-calendar-times me-2"></i>Apply for Leave
+                    </a>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Alert -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ substitutions|selectattr('substitute_teacher_id', 'equalto', current_user.teacher_profile.id)|list|length }}</h4>
+                            <p class="mb-0">Assigned to Me</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-plus fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ substitutions|selectattr('original_teacher_id', 'equalto', current_user.teacher_profile.id)|list|length }}</h4>
+                            <p class="mb-0">My Absences</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-minus fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ substitutions|selectattr('status', 'equalto', 'accepted')|list|length }}</h4>
+                            <p class="mb-0">Accepted</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ substitutions|selectattr('status', 'equalto', 'pending')|selectattr('substitute_teacher_id', 'equalto', current_user.teacher_profile.id)|list|length }}</h4>
+                            <p class="mb-0">Pending Action</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for different views -->
+    <ul class="nav nav-tabs mb-4" id="substitutionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="assigned-tab" data-bs-toggle="tab" data-bs-target="#assigned" type="button" role="tab">
+                <i class="fas fa-user-plus me-2"></i>Assigned to Me
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="my-absences-tab" data-bs-toggle="tab" data-bs-target="#my-absences" type="button" role="tab">
+                <i class="fas fa-user-minus me-2"></i>My Absences
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="substitutionTabsContent">
+        <!-- Assigned to Me Tab -->
+        <div class="tab-pane fade show active" id="assigned" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Substitutions Assigned to Me
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Period</th>
+                                    <th>Original Teacher</th>
+                                    <th>Subject</th>
+                                    <th>Class</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for substitution in substitutions if substitution.substitute_teacher_id == current_user.teacher_profile.id %}
+                                <tr>
+                                    <td>{{ substitution.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>Period {{ substitution.period_number }}</td>
+                                    <td>{{ substitution.original_teacher.name }}</td>
+                                    <td>{{ substitution.subject.name }}</td>
+                                    <td>{{ substitution.classroom.name }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ substitution.absence_reason|title }}</span>
+                                    </td>
+                                    <td>
+                                        {% if substitution.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif substitution.status == 'accepted' %}
+                                        <span class="badge bg-success">Accepted</span>
+                                        {% elif substitution.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% elif substitution.status == 'completed' %}
+                                        <span class="badge bg-info">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if substitution.status == 'pending' %}
+                                        <form method="POST" action="{{ url_for('teacher_substitution.accept_substitution', substitution_id=substitution.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Accept this substitution?')">
+                                                <i class="fas fa-check"></i> Accept
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('teacher_substitution.reject_substitution', substitution_id=substitution.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reject this substitution?')">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-info" onclick="viewDetails({{ substitution.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No substitutions assigned to you</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Absences Tab -->
+        <div class="tab-pane fade" id="my-absences" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-minus me-2"></i>My Absences (Substitutions Created)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Period</th>
+                                    <th>Substitute Teacher</th>
+                                    <th>Subject</th>
+                                    <th>Class</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for substitution in substitutions if substitution.original_teacher_id == current_user.teacher_profile.id %}
+                                <tr>
+                                    <td>{{ substitution.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>Period {{ substitution.period_number }}</td>
+                                    <td>{{ substitution.substitute_teacher.name }}</td>
+                                    <td>{{ substitution.subject.name }}</td>
+                                    <td>{{ substitution.classroom.name }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ substitution.absence_reason|title }}</span>
+                                    </td>
+                                    <td>
+                                        {% if substitution.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif substitution.status == 'accepted' %}
+                                        <span class="badge bg-success">Accepted</span>
+                                        {% elif substitution.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% elif substitution.status == 'completed' %}
+                                        <span class="badge bg-info">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewDetails({{ substitution.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if substitution.status == 'pending' %}
+                                        <button class="btn btn-sm btn-warning" onclick="editSubstitution({{ substitution.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No absences recorded</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Substitution Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>Substitution Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewDetails(id) {
+    // This would typically fetch details via AJAX
+    // For now, showing a simple message
+    document.getElementById('detailsContent').innerHTML = `
+        <div class="text-center">
+            <i class="fas fa-info-circle fa-3x text-primary mb-3"></i>
+            <p>Substitution ID: ${id}</p>
+            <p>Detailed information would be loaded here.</p>
+        </div>
+    `;
+    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+}
+
+function editSubstitution(id) {
+    // Implementation for editing substitution
+    console.log('Edit substitution:', id);
+}
+
+// Auto-refresh for pending substitutions
+setInterval(() => {
+    // Implementation for auto-refresh
+    console.log('Checking for new substitutions...');
+}, 30000); // Check every 30 seconds
+</script>
+{% endblock %}

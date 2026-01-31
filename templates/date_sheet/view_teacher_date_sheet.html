@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}{{ date_sheet.title }} - {{ teacher.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>{{ date_sheet.title }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {{ date_sheet.exam_type.title() }} - {{ date_sheet.start_date.strftime('%d-%m-%Y') }} to {{ date_sheet.end_date.strftime('%d-%m-%Y') }}
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-info" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i>Print Schedule
+                    </button>
+                    <a href="{{ url_for('date_sheet.teacher_date_sheet') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Date Schedules
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Exam Schedule Overview -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>Exam Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Exam Type</label>
+                        <h6 class="text-primary">{{ date_sheet.exam_type.title() }}</h6>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Duration</label>
+                        <h6 class="text-primary">{{ (date_sheet.end_date - date_sheet.start_date).days + 1 }} days</h6>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Class</label>
+                        <h6 class="text-primary">{{ date_sheet.classroom.name if date_sheet.classroom else 'All Classes' }}</h6>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Academic Year</label>
+                        <h6 class="text-primary">{{ date_sheet.academic_year }}</h6>
+                    </div>
+                </div>
+            </div>
+            {% if date_sheet.description %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Description</label>
+                        <p class="text-primary">{{ date_sheet.description }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Exam Schedule by Date -->
+    {% if entries %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>Exam Schedule
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Organize entries by date -->
+            {% set entries_by_date = {} %}
+            {% for entry in entries %}
+                {% set date_key = entry.exam_date.strftime('%Y-%m-%d') %}
+                {% if date_key not in entries_by_date %}
+                    {% set _ = entries_by_date.update({date_key: []}) %}
+                {% endif %}
+                {% set _ = entries_by_date[date_key].append(entry) %}
+            {% endfor %}
+
+            {% for date_key, day_entries in entries_by_date.items() %}
+                {% set exam_date = day_entries[0].exam_date %}
+                {% set day_name = exam_date.strftime('%A') %}
+                
+                <div class="exam-day-section mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">
+                            <i class="fas fa-calendar-day me-2"></i>
+                            {{ exam_date.strftime('%d-%m-%Y') }} - {{ day_name }}
+                        </h6>
+                        <span class="badge bg-primary">{{ day_entries|length }} Exams</span>
+                    </div>
+                    
+                    <div class="row">
+                        {% for entry in day_entries %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="exam-card">
+                                <div class="exam-header">
+                                    <h6 class="mb-0">{{ entry.subject.name }}</h6>
+                                    <span class="badge bg-info">{{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}</span>
+                                </div>
+                                <div class="exam-body">
+                                    <p class="mb-2">
+                                        <strong>Duration:</strong> 
+                                        {% if entry.exam_duration %}
+                                            {{ entry.exam_duration }} minutes
+                                        {% else %}
+                                            {{ (entry.end_time - entry.start_time).total_seconds() / 60 }} minutes
+                                        {% endif %}
+                                    </p>
+                                    {% if entry.classroom %}
+                                    <p class="mb-2"><strong>Class:</strong> {{ entry.classroom.name }}</p>
+                                    {% endif %}
+                                    {% if entry.section %}
+                                    <p class="mb-2"><strong>Section:</strong> <span class="badge bg-primary">{{ entry.section }}</span></p>
+                                    {% endif %}
+                                    {% if entry.room_number %}
+                                    <p class="mb-2"><strong>Room:</strong> <span class="badge bg-info">{{ entry.room_number }}</span></p>
+                                    {% endif %}
+                                    {% if entry.floor_number %}
+                                    <p class="mb-2"><strong>Floor:</strong> <span class="badge bg-secondary">{{ entry.floor_number }}</span></p>
+                                    {% endif %}
+                                    {% if entry.building_name %}
+                                    <p class="mb-2"><strong>Building:</strong> <span class="badge bg-warning">{{ entry.building_name }}</span></p>
+                                    {% endif %}
+                                    {% if entry.exam_venue %}
+                                    <p class="mb-2"><strong>Venue:</strong> {{ entry.exam_venue }}</p>
+                                    {% endif %}
+                                    {% if entry.max_marks %}
+                                    <p class="mb-2">
+                                        <strong>Max Marks:</strong> 
+                                        <span class="badge bg-success">{{ entry.max_marks }}</span>
+                                    </p>
+                                    {% endif %}
+                                    {% if entry.special_instructions %}
+                                    <div class="alert alert-info py-2">
+                                        <small><strong>Instructions:</strong> {{ entry.special_instructions }}</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No Exams Found</h5>
+            <p class="text-muted">No exam entries found for your subjects in this schedule.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Summary Statistics -->
+    {% if entries %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Exam Summary
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-primary">{{ entries|length }}</h4>
+                        <p class="text-muted">Total Exams</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-success">{{ entries|selectattr('subject')|map(attribute='name')|unique|list|length }}</h4>
+                        <p class="text-muted">Subjects</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="text-info">{{ (date_sheet.end_date - date_sheet.start_date).days + 1 }}</h4>
+                        <p class="text-muted">Exam Days</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        {% set total_marks = entries|selectattr('max_marks')|sum %}
+                        <h4 class="text-warning">{{ total_marks or 0 }}</h4>
+                        <p class="text-muted">Total Marks</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.exam-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    height: 100%;
+    background: #fff;
+    transition: box-shadow 0.3s ease;
+}
+
+.exam-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.exam-header {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.exam-day-section {
+    border-left: 4px solid #007bff;
+    padding-left: 20px;
+    margin-left: 10px;
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .exam-card {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        margin-bottom: 15px;
+    }
+    
+    .exam-day-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .card {
+        border: 1px solid #ccc;
+        box-shadow: none;
+    }
+    
+    .btn {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// Print functionality
+function printSchedule() {
+    window.print();
+}
+
+// Auto-refresh for real-time updates (optional)
+function checkForUpdates() {
+    // This could be implemented to check for any changes in the date sheet
+    // and show a notification to refresh the page
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        printSchedule();
+    }
+});
+</script>
+
+{% block extra_js %}
+<script>
+// Add any additional JavaScript if needed
+</script>
+{% endblock %}
+{% endblock %}

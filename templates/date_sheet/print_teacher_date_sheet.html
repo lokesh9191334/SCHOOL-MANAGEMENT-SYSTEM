@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ date_sheet.title }} - {{ teacher.name }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .exam-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .exam-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .exam-info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .exam-info-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .exam-info-value {
+            color: #666;
+        }
+        
+        .exam-day {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        
+        .day-header {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .exam-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        
+        .exam-subject {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .exam-time {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .exam-details {
+            margin-bottom: 5px;
+        }
+        
+        .exam-details strong {
+            color: #333;
+        }
+        
+        .exam-instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .summary {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+        
+        .summary-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                margin: 10px;
+            }
+            
+            .exam-day {
+                page-break-inside: avoid;
+            }
+            
+            .exam-card {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ date_sheet.title }}</h1>
+        <p>{{ date_sheet.exam_type.title() }} Examination Schedule</p>
+        <p>{{ date_sheet.start_date.strftime('%d-%m-%Y') }} to {{ date_sheet.end_date.strftime('%d-%m-%Y') }}</p>
+        <p>Generated for: {{ teacher.name }} ({{ teacher.subject.name if teacher.subject else 'Teacher' }})</p>
+    </div>
+
+    <div class="exam-info">
+        <div class="exam-info-row">
+            <span class="exam-info-label">Academic Year:</span>
+            <span class="exam-info-value">{{ date_sheet.academic_year }}</span>
+        </div>
+        <div class="exam-info-row">
+            <span class="exam-info-label">Duration:</span>
+            <span class="exam-info-value">{{ (date_sheet.end_date - date_sheet.start_date).days + 1 }} days</span>
+        </div>
+        <div class="exam-info-row">
+            <span class="exam-info-label">Class:</span>
+            <span class="exam-info-value">{{ date_sheet.classroom.name if date_sheet.classroom else 'All Classes' }}</span>
+        </div>
+        {% if date_sheet.description %}
+        <div class="exam-info-row">
+            <span class="exam-info-label">Description:</span>
+            <span class="exam-info-value">{{ date_sheet.description }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if entries %}
+        <!-- Organize entries by date -->
+        {% set entries_by_date = {} %}
+        {% for entry in entries %}
+            {% set date_key = entry.exam_date.strftime('%Y-%m-%d') %}
+            {% if date_key not in entries_by_date %}
+                {% set _ = entries_by_date.update({date_key: []}) %}
+            {% endif %}
+            {% set _ = entries_by_date[date_key].append(entry) %}
+        {% endfor %}
+
+        {% for date_key, day_entries in entries_by_date.items() %}
+            {% set exam_date = day_entries[0].exam_date %}
+            {% set day_name = exam_date.strftime('%A') %}
+            
+            <div class="exam-day">
+                <div class="day-header">
+                    {{ exam_date.strftime('%d-%m-%Y') }} - {{ day_name }}
+                </div>
+                
+                {% for entry in day_entries %}
+                <div class="exam-card">
+                    <div class="exam-subject">{{ entry.subject.name }}</div>
+                    <div class="exam-time">{{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}</div>
+                    
+                    <div class="exam-details">
+                        <strong>Duration:</strong> 
+                        {% if entry.exam_duration %}
+                            {{ entry.exam_duration }} minutes
+                        {% else %}
+                            {{ (entry.end_time - entry.start_time).total_seconds() / 60 }} minutes
+                        {% endif %}
+                    </div>
+                    
+                    {% if entry.classroom %}
+                    <div class="exam-details">
+                        <strong>Class:</strong> {{ entry.classroom.name }}
+                    </div>
+                    {% endif %}
+                    {% if entry.section %}
+                    <div class="exam-details">
+                        <strong>Section:</strong> {{ entry.section }}
+                    </div>
+                    {% endif %}
+                    {% if entry.room_number %}
+                    <div class="exam-details">
+                        <strong>Room Number:</strong> {{ entry.room_number }}
+                    </div>
+                    {% endif %}
+                    {% if entry.floor_number %}
+                    <div class="exam-details">
+                        <strong>Floor:</strong> {{ entry.floor_number }}
+                    </div>
+                    {% endif %}
+                    {% if entry.building_name %}
+                    <div class="exam-details">
+                        <strong>Building:</strong> {{ entry.building_name }}
+                    </div>
+                    {% endif %}
+                    {% if entry.exam_venue %}
+                    <div class="exam-details">
+                        <strong>Venue:</strong> {{ entry.exam_venue }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if entry.max_marks %}
+                    <div class="exam-details">
+                        <strong>Maximum Marks:</strong> {{ entry.max_marks }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if entry.special_instructions %}
+                    <div class="exam-instructions">
+                        <strong>Special Instructions:</strong><br>
+                        {{ entry.special_instructions }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 40px;">
+            <h3>No Exams Found</h3>
+            <p>No exam entries found for your subjects in this schedule.</p>
+        </div>
+    {% endif %}
+
+    {% if entries %}
+    <div class="summary">
+        <div class="summary-title">Exam Summary</div>
+        <div class="summary-row">
+            <span>Total Exams:</span>
+            <span>{{ entries|length }}</span>
+        </div>
+        <div class="summary-row">
+            <span>Subjects:</span>
+            <span>{{ entries|selectattr('subject')|map(attribute='name')|unique|list|length }}</span>
+        </div>
+        <div class="summary-row">
+            <span>Exam Days:</span>
+            <span>{{ (date_sheet.end_date - date_sheet.start_date).days + 1 }}</span>
+        </div>
+        {% set total_marks = entries|selectattr('max_marks')|sum %}
+        {% if total_marks %}
+        <div class="summary-row">
+            <span>Total Marks:</span>
+            <span>{{ total_marks }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>This schedule was generated on {{ now().strftime('%d-%m-%Y %H:%M') }}</p>
+        <p>© School Management System</p>
+    </div>
+
+    <script>
+        // Auto-print when page loads
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+        
+        // Close window after printing
+        window.onafterprint = function() {
+            window.close();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .ip-tracker-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+    }
+    
+    .main-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+        border: none;
+        overflow: hidden;
+    }
+    
+    .ip-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .ip-info-card {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .ip-info-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .ip-details {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .header-item {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.3s ease;
+    }
+    
+    .header-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .header-value {
+        font-family: 'Courier New', monospace;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 8px 15px;
+        border-radius: 8px;
+        font-weight: bold;
+        color: #495057;
+        border: 1px solid #dee2e6;
+    }
+    
+    .ip-type-badge {
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    
+    .ip-public { 
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+        color: white; 
+    }
+    
+    .ip-private { 
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); 
+        color: black; 
+    }
+    
+    .ip-local { 
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%); 
+        color: white; 
+    }
+    
+    .ip-unknown { 
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
+        color: white; 
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .btn-enhanced {
+        border-radius: 10px;
+        padding: 12px 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .btn-enhanced:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-online { background: #28a745; }
+    .status-error { background: #dc3545; }
+    .status-loading { background: #ffc107; }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .alert-enhanced {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ip-tracker-container">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="main-card">
+                    <!-- Header -->
+                    <div class="ip-header">
+                        <h1><i class="fas fa-network-wired me-3"></i>IP Address Tracking System</h1>
+                        <p class="mb-0">Real-time IP detection and tracking for enhanced security monitoring</p>
+                    </div>
+                    
+                    <!-- IP Information Cards -->
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="ip-info-card">
+                                    <h4><i class="fas fa-globe me-2"></i>Primary IP Address</h4>
+                                    <h2 id="primary-ip">
+                                        <span class="loading-spinner"></span> Loading...
+                                    </h2>
+                                    <small>Most accurate client IP detected</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="ip-info-card">
+                                    <h4><i class="fas fa-shield-alt me-2"></i>IP Type</h4>
+                                    <h2 id="ip-type">
+                                        <span class="loading-spinner"></span> Loading...
+                                    </h2>
+                                    <small>Network classification</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="ip-info-card">
+                                    <h4><i class="fas fa-server me-2"></i>Remote Address</h4>
+                                    <h3 id="remote-addr">
+                                        <span class="loading-spinner"></span> Loading...
+                                    </h3>
+                                    <small>Direct connection IP</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="ip-info-card">
+                                    <h4><i class="fas fa-desktop me-2"></i>User Agent</h4>
+                                    <h5 id="user-agent" style="font-size: 14px;">
+                                        <span class="loading-spinner"></span> Loading...
+                                    </h5>
+                                    <small>Browser and device information</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detailed Headers -->
+                        <div class="ip-details">
+                            <h4><i class="fas fa-list-alt me-2"></i>All IP Headers Analysis</h4>
+                            <div id="headers-list">
+                                <div class="text-center py-4">
+                                    <span class="loading-spinner"></span>
+                                    <p class="mt-2">Loading IP headers...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Control Buttons -->
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-enhanced me-3" onclick="refreshIPInfo()">
+                                <i class="fas fa-sync me-2"></i>Refresh IP Info
+                            </button>
+                            <button class="btn btn-success btn-enhanced me-3" onclick="logTestActivity()">
+                                <i class="fas fa-plus me-2"></i>Log Test Activity
+                            </button>
+                            <button class="btn btn-info btn-enhanced" onclick="exportIPData()">
+                                <i class="fas fa-download me-2"></i>Export Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentIPData = null;
+    
+    function showLoadingState() {
+        document.getElementById('primary-ip').innerHTML = '<span class="loading-spinner"></span> Loading...';
+        document.getElementById('ip-type').innerHTML = '<span class="loading-spinner"></span> Loading...';
+        document.getElementById('remote-addr').innerHTML = '<span class="loading-spinner"></span> Loading...';
+        document.getElementById('user-agent').innerHTML = '<span class="loading-spinner"></span> Loading...';
+        document.getElementById('headers-list').innerHTML = `
+            <div class="text-center py-4">
+                <span class="loading-spinner"></span>
+                <p class="mt-2">Loading IP headers...</p>
+            </div>
+        `;
+    }
+    
+    function showError(message) {
+        document.getElementById('primary-ip').innerHTML = `<span class="status-indicator status-error"></span> Error`;
+        document.getElementById('ip-type').innerHTML = `<span class="status-indicator status-error"></span> Unknown`;
+        document.getElementById('remote-addr').innerHTML = `<span class="status-indicator status-error"></span> Error`;
+        document.getElementById('user-agent').innerHTML = `<span class="status-indicator status-error"></span> Error`;
+        document.getElementById('headers-list').innerHTML = `
+            <div class="alert alert-danger alert-enhanced">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Error:</strong> ${message}
+            </div>
+        `;
+    }
+    
+    function refreshIPInfo() {
+        showLoadingState();
+        
+        fetch('/ip-tracker/ip-info')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                currentIPData = data;
+                
+                // Update IP information with better formatting
+                document.getElementById('primary-ip').innerHTML = `
+                    <span class="status-indicator status-online"></span>
+                    ${data.primary_ip || 'Not detected'}
+                `;
+                
+                const ipType = data.ip_type || 'unknown';
+                const ipTypeElement = document.getElementById('ip-type');
+                ipTypeElement.className = 'ip-type-badge ip-' + ipType;
+                ipTypeElement.innerHTML = `
+                    <span class="status-indicator status-${ipType === 'unknown' ? 'error' : 'online'}"></span>
+                    ${ipType.toUpperCase()}
+                `;
+                
+                document.getElementById('remote-addr').innerHTML = `
+                    <span class="status-indicator status-online"></span>
+                    ${data.remote_addr || 'Not detected'}
+                `;
+                
+                const userAgent = data.user_agent || 'Not detected';
+                document.getElementById('user-agent').innerHTML = `
+                    <span class="status-indicator status-online"></span>
+                    ${userAgent.length > 100 ? userAgent.substring(0, 100) + '...' : userAgent}
+                `;
+                
+                // Display all headers with enhanced styling
+                const headersList = document.getElementById('headers-list');
+                headersList.innerHTML = '';
+                
+                if (data.all_headers && Object.keys(data.all_headers).length > 0) {
+                    for (const [header, value] of Object.entries(data.all_headers)) {
+                        const headerItem = document.createElement('div');
+                        headerItem.className = 'header-item';
+                        
+                        const hasValue = value && value !== 'Not present';
+                        const statusClass = hasValue ? 'status-online' : 'status-error';
+                        
+                        headerItem.innerHTML = `
+                            <div>
+                                <strong>${header}:</strong>
+                                ${hasValue ? '<span class="status-indicator status-online"></span>' : '<span class="status-indicator status-error"></span>'}
+                            </div>
+                            <span class="header-value">${value || 'Not present'}</span>
+                        `;
+                        headersList.appendChild(headerItem);
+                    }
+                } else {
+                    headersList.innerHTML = `
+                        <div class="alert alert-warning alert-enhanced">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No IP headers detected
+                        </div>
+                    `;
+                }
+                
+                // Show success notification
+                showNotification('IP information updated successfully!', 'success');
+                
+            })
+            .catch(error => {
+                console.error('Error fetching IP info:', error);
+                showError(error.message || 'Failed to fetch IP information');
+                showNotification('Error loading IP information', 'error');
+            });
+    }
+    
+    function logTestActivity() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="loading-spinner"></span> Logging...';
+        button.disabled = true;
+        
+        fetch('/ip-tracker/log-test', {method: 'POST'})
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                showNotification('Test activity logged successfully! Check the activity logs.', 'success');
+                refreshIPInfo();
+            })
+            .catch(error => {
+                console.error('Error logging test activity:', error);
+                showNotification('Error logging test activity: ' + error.message, 'error');
+            })
+            .finally(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+    }
+    
+    function exportIPData() {
+        if (!currentIPData) {
+            showNotification('No IP data available to export. Please refresh first.', 'warning');
+            return;
+        }
+        
+        // Create CSV content
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "IP Address Tracking Report\n";
+        csvContent += `Generated,${new Date().toISOString()}\n\n`;
+        csvContent += "Primary IP," + (currentIPData.primary_ip || 'Not detected') + "\n";
+        csvContent += "IP Type," + (currentIPData.ip_type || 'Unknown') + "\n";
+        csvContent += "Remote Address," + (currentIPData.remote_addr || 'Not detected') + "\n";
+        csvContent += "User Agent," + (currentIPData.user_agent || 'Not detected') + "\n";
+        csvContent += "Request Path," + (currentIPData.request_path || 'Not detected') + "\n";
+        csvContent += "Request Method," + (currentIPData.request_method || 'Not detected') + "\n\n";
+        csvContent += "IP Headers\n";
+        csvContent += "Header,Value\n";
+        
+        if (currentIPData.all_headers) {
+            for (const [header, value] of Object.entries(currentIPData.all_headers)) {
+                csvContent += `"${header}","${value || 'Not present'}"\n`;
+            }
+        }
+        
+        // Create download link
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `ip_tracking_report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('IP data exported successfully!', 'success');
+    }
+    
+    function showNotification(message, type) {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.ip-notification');
+        existingNotifications.forEach(notif => notif.remove());
+        
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed ip-notification alert-enhanced`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; animation: slideInRight 0.3s ease;';
+        
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'error' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${icon} me-2"></i>
+                <div class="flex-grow-1">${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 5000);
+    }
+    
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Load IP info on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshIPInfo();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(refreshIPInfo, 30000);
+    });
+</script>
+{% endblock %}

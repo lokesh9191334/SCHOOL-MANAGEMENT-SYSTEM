@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.first_name }} {{ student.last_name }} - Fees{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Student Fees</h1>
+        <a href="{{ url_for('students.view_student', student_id=student.id) }}" class="d-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Back to Student Profile
+        </a>
+    </div>
+
+    <!-- Student Information -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-lg-4">
+                    <h5 class="font-weight-bold">Student Information</h5>
+                    <p><strong>Name:</strong> {{ student.first_name }} {{ student.last_name }}</p>
+                    <p><strong>Roll Number:</strong> {{ student.roll_number or 'N/A' }}</p>
+                    <p><strong>Class:</strong> {{ student.classroom.name if student.classroom else 'No Class' }}</p>
+                    <p><strong>Email:</strong> {{ student.email or 'N/A' }}</p>
+                </div>
+                <div class="col-lg-4">
+                    <h5 class="font-weight-bold">Fees Summary</h5>
+                    <p><strong>Total Fees:</strong> ₹{{ "%.2f"|format(fees|map(attribute='amount')|map('float')|sum) }}</p>
+                    <p><strong>Paid Fees:</strong> ₹{{ "%.2f"|format(fees|selectattr('paid', 'equalto', true)|map(attribute='amount')|map('float')|sum) }}</p>
+                    <p><strong>Pending Fees:</strong> ₹{{ "%.2f"|format(fees|selectattr('paid', 'equalto', false)|map(attribute='amount')|map('float')|sum) }}</p>
+                    <p><strong>Payment Status:</strong> 
+                        {% set total = fees|map(attribute='amount')|map('float')|sum %}
+                        {% set paid = fees|selectattr('paid', 'equalto', true)|map(attribute='amount')|map('float')|sum %}
+                        {% if total > 0 %}
+                            {{ "%.1f"|format((paid / total) * 100) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fees Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Fees Details</h6>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Fee Type</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Payment Status</th>
+                        <th>Payment Date</th>
+                        <th>Payment Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if fees %}
+                        {% for fee in fees %}
+                            <tr>
+                                <td>{{ fee.fee_type.name if fee.fee_type else fee.category or 'General Fee' }}</td>
+                                <td>₹{{ "%.2f"|format(fee.amount) }}</td>
+                                <td>{{ fee.due_date.strftime('%Y-%m-%d') if fee.due_date else 'N/A' }}</td>
+                                <td>
+                                    {% if fee.paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ fee.payment_date.strftime('%Y-%m-%d') if fee.payment_date else 'N/A' }}</td>
+                                <td>{{ fee.payment_method or 'N/A' }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No fees records found for this student.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

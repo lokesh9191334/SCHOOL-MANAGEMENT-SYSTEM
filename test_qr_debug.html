@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+</head>
+<body>
+    <h1>QR Code Debug Test</h1>
+    <div id="qrContainer" style="width: 200px; height: 200px; border: 1px solid black;"></div>
+    <button onclick="testQR()">Test QR Code</button>
+    <div id="status"></div>
+
+    <script>
+        function testQR() {
+            const status = document.getElementById('status');
+            const container = document.getElementById('qrContainer');
+
+            status.textContent = 'Testing QRCode library...';
+
+            if (typeof QRCode === 'undefined') {
+                status.textContent = 'ERROR: QRCode library not loaded!';
+                return;
+            }
+
+            status.textContent = 'QRCode library loaded. Generating QR...';
+
+            const testUrl = 'upi://pay?pa=test@upi&pn=Test&am=100&cu=INR';
+
+            QRCode.toCanvas(testUrl, {
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: 'H'
+            }, function(error, canvas) {
+                if (error) {
+                    status.textContent = 'ERROR generating QR: ' + error.message;
+                    console.error(error);
+                } else {
+                    container.innerHTML = '';
+                    container.appendChild(canvas);
+                    status.textContent = 'SUCCESS: QR code generated!';
+                }
+            });
+        }
+
+        // Auto test on load
+        window.onload = function() {
+            setTimeout(testQR, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Profile Header -->
+      <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0"><i class="fas fa-user-circle me-2"></i>My Profile</h4>
+        </div>
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-4 text-center">
+              <div class="profile-avatar mb-3">
+                <div class="avatar-circle mx-auto">
+                  <i class="fas fa-user fa-3x text-white"></i>
+                </div>
+                <button class="btn btn-outline-light btn-sm mt-2" onclick="changeAvatar()">
+                  <i class="fas fa-camera me-1"></i>Change Photo
+                </button>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <h3 id="displayName">Admin User</h3>
+              <p class="text-muted mb-2" id="displayTitle">School Administrator</p>
+              <p class="mb-3" id="displayBio">Experienced school administrator with a passion for education excellence.</p>
+              <div class="row">
+                <div class="col-sm-6">
+                  <p class="mb-1"><strong>Email:</strong> <span id="displayEmail">admin@school.edu</span></p>
+                  <p class="mb-1"><strong>Phone:</strong> <span id="displayPhone">+1 (555) 123-4567</span></p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="mb-1"><strong>Department:</strong> <span id="displayDepartment">Administration</span></p>
+                  <p class="mb-1"><strong>Employee ID:</strong> <span id="displayEmployeeId">ADM001</span></p>
+                </div>
+              </div>
+              <div class="mt-3">
+                <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                  <i class="fas fa-edit me-2"></i>Edit Profile
+                </button>
+                <button class="btn btn-outline-secondary" onclick="changePassword()">
+                  <i class="fas fa-key me-2"></i>Change Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Details -->
+      <div class="card shadow-lg mt-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Profile Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Full Name</label>
+                <p class="mb-0" id="displayFullName">Admin User</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Role</label>
+                <p class="mb-0" id="displayRole">School Administrator</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Join Date</label>
+                <p class="mb-0" id="displayJoinDate">January 1, 2025</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label fw-bold">Address</label>
+                <p class="mb-0" id="displayAddress">School Campus</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Years of Experience</label>
+                <p class="mb-0" id="yearsExperience">5+ Years</p>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">Status</label>
+                <p class="mb-0"><span class="badge bg-success">Active</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form class="profile-edit-form">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="fullName" class="form-label">Full Name *</label>
+                <input type="text" class="form-control" id="fullName" value="Admin User" required>
+              </div>
+              <div class="mb-3">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" class="form-control" id="email" value="admin@school.edu" required>
+              </div>
+              <div class="mb-3">
+                <label for="phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="phone" value="+1 (555) 123-4567">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="department" class="form-label">Department</label>
+                <input type="text" class="form-control" id="department" value="Administration">
+              </div>
+              <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" rows="3">School Campus</textarea>
+              </div>
+              <div class="mb-3">
+                <label for="bio" class="form-label">Bio</label>
+                <textarea class="form-control" id="bio" rows="2">Experienced school administrator with a passion for education excellence.</textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Profile Avatar */
+.avatar-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.avatar-circle:hover {
+  transform: scale(1.05);
+}
+
+/* Card styling */
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  border-radius: 10px 10px 0 0 !important;
+  border: none;
+  font-weight: 600;
+}
+
+/* Form styling */
+.form-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .avatar-circle {
+    width: 100px;
+    height: 100px;
+  }
+
+  .avatar-circle .fa-3x {
+    font-size: 2.5rem;
+  }
+}
+</style>
+
+<script>
+// Profile data management
+let profileData = {
+  fullName: 'Admin User',
+  title: 'School Administrator',
+  bio: 'Experienced school administrator with a passion for education excellence.',
+  email: 'admin@school.edu',
+  phone: '+1 (555) 123-4567',
+  department: 'Administration',
+  joinDate: 'January 1, 2025',
+  address: 'School Campus',
+  employeeId: 'ADM001',
+  yearsExperience: '5+ Years'
+};
+
+// Load saved profile data on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadProfileData();
+  updateDisplay();
+});
+
+function loadProfileData() {
+  // Load from localStorage
+  const savedData = localStorage.getItem('profileData');
+  if (savedData) {
+    profileData = { ...profileData, ...JSON.parse(savedData) };
+  }
+}
+
+function saveProfileData() {
+  localStorage.setItem('profileData', JSON.stringify(profileData));
+}
+
+function updateDisplay() {
+  // Update all display elements
+  document.getElementById('displayName').textContent = profileData.fullName;
+  document.getElementById('displayTitle').textContent = profileData.title;
+  document.getElementById('displayBio').textContent = profileData.bio;
+  document.getElementById('displayFullName').textContent = profileData.fullName;
+  document.getElementById('displayRole').textContent = profileData.title;
+  document.getElementById('displayEmail').textContent = profileData.email;
+  document.getElementById('displayPhone').textContent = profileData.phone;
+  document.getElementById('displayDepartment').textContent = profileData.department;
+  document.getElementById('displayJoinDate').textContent = profileData.joinDate;
+  document.getElementById('displayAddress').textContent = profileData.address;
+  document.getElementById('displayEmployeeId').textContent = profileData.employeeId;
+  document.getElementById('yearsExperience').textContent = profileData.yearsExperience;
+
+  // Update form fields
+  document.getElementById('fullName').value = profileData.fullName;
+  document.getElementById('email').value = profileData.email;
+  document.getElementById('phone').value = profileData.phone;
+  document.getElementById('department').value = profileData.department;
+  document.getElementById('address').value = profileData.address;
+  document.getElementById('bio').value = profileData.bio;
+}
+
+function saveProfile() {
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const department = document.getElementById('department').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const bio = document.getElementById('bio').value.trim();
+
+  // Validation
+  if (!fullName || !email) {
+    alert('Please fill in all required fields (Full Name and Email)');
+    return;
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert('Please enter a valid email address');
+    return;
+  }
+
+  // Update profile data
+  profileData.fullName = fullName;
+  profileData.email = email;
+  profileData.phone = phone;
+  profileData.department = department;
+  profileData.address = address;
+  profileData.bio = bio;
+
+  // Save to localStorage
+  saveProfileData();
+
+  // Update display
+  updateDisplay();
+
+  // Show success message and close modal
+  alert('Profile updated successfully!');
+  const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+  modal.hide();
+}
+
+function changeAvatar() {
+  alert('Avatar change functionality will be implemented soon!');
+}
+
+function changePassword() {
+  alert('Password change functionality will be implemented soon!');
+}
+</script>
+{% endblock %}

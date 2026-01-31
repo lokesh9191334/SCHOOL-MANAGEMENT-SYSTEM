@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Parent Registration{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100">
+    <div class="row h-100">
+        <div class="col-lg-6 mx-auto align-self-center">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Parent Registration
+                    </h4>
+                </div>
+                <div class="card-body p-5">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.parent_register') }}">
+                        <div class="mb-4">
+                            <label for="secret_key" class="form-label fw-bold">
+                                <i class="fas fa-key me-2"></i>6-Digit Secret Key
+                            </label>
+                            <input type="text" class="form-control" id="secret_key" name="secret_key" 
+                                   placeholder="Enter 6-digit secret key" maxlength="6" pattern="[0-9]{6}" required>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info me-1"></i>
+                                Enter the 6-digit secret key provided by the school for parent portal access.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="school_id" class="form-label fw-bold">
+                                <i class="fas fa-school me-2"></i>5-Digit School ID
+                            </label>
+                            <input type="text" class="form-control" id="school_id" name="school_id" 
+                                   placeholder="Enter 5-digit school ID" maxlength="5" pattern="[0-9]{5}" required>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info me-1"></i>
+                                Enter the 5-digit school ID provided by your school.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-bold">
+                                <i class="fas fa-user me-2"></i>Full Name
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-user text-primary"></i>
+                                </span>
+                                <input type="text" class="form-control border-primary" 
+                                       id="name" name="name" placeholder="Enter your full name" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-bold">
+                                <i class="fas fa-envelope me-2"></i>Email Address
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-envelope text-primary"></i>
+                                </span>
+                                <input type="email" class="form-control border-primary" 
+                                       id="email" name="email" placeholder="Enter your email address" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="phone" class="form-label fw-bold">
+                                <i class="fas fa-phone me-2"></i>Phone Number
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-phone text-primary"></i>
+                                </span>
+                                <input type="tel" class="form-control border-primary" 
+                                       id="phone" name="phone" placeholder="Enter your phone number" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="address" class="form-label fw-bold">
+                                <i class="fas fa-map-marker-alt me-2"></i>Address
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary" 
+                                      style="height: auto; padding: 12px;">
+                                    <i class="fas fa-map-marker-alt text-primary"></i>
+                                </span>
+                                <textarea class="form-control border-primary" id="address" 
+                                          name="address" rows="3" placeholder="Enter your address" required></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-2"></i>Password
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-lock text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-primary" 
+                                       id="password" name="password" placeholder="Create a strong password" required>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                Password must be at least 8 characters long
+                            </small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-2"></i>Confirm Password
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-lock text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-primary" 
+                                       id="confirm_password" name="confirm_password" 
+                                       placeholder="Confirm your password" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Create Parent Account
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                Already have an account? 
+                                <a href="{{ url_for('auth.login') }}" class="text-primary">Login here</a>
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    if (password !== confirmPassword) this.setCustomValidity('Passwords do not match'); else this.setCustomValidity('');
+});
+
+// Autofill when school_id + secret_key are entered
+(function() {
+    const secretEl = document.getElementById('secret_key');
+    const schoolEl = document.getElementById('school_id');
+    const nameEl = document.getElementById('name');
+    const emailEl = document.getElementById('email');
+    const phoneEl = document.getElementById('phone');
+    const addressEl = document.getElementById('address');
+
+    let timer = null;
+    function debounceLookup() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            const secret = (secretEl.value || '').trim();
+            const school = (schoolEl.value || '').trim();
+            if (!/^[0-9]{6}$/.test(secret) || !/^[0-9]{5}$/.test(school)) return;
+            const url = `/auth/parent-lookup?school_id=${encodeURIComponent(school)}&secret_key=${encodeURIComponent(secret)}`;
+            fetch(url, { credentials: 'same-origin' })
+                .then(r => r.json().then(b => ({status: r.status, body: b})))
+                .then(({status, body}) => {
+                    if (status === 200 && body.found) {
+                        if (!nameEl.value) nameEl.value = body.name || '';
+                        if (!emailEl.value) emailEl.value = body.email || '';
+                        if (!phoneEl.value) phoneEl.value = body.phone || '';
+                        if (!addressEl.value) addressEl.value = body.address || '';
+                    }
+                })
+                .catch(() => {});
+        }, 450);
+    }
+
+    if (secretEl && schoolEl) {
+        secretEl.addEventListener('input', debounceLookup);
+        schoolEl.addEventListener('input', debounceLookup);
+    }
+})();
+</script>
+{% endblock %}

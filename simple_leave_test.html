@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Leave Test</title>
+</head>
+<body>
+    <h1>Simple Leave Test Form</h1>
+    <form id="simpleForm">
+        <div>
+            <label>Leave Type:</label>
+            <select name="leave_type" required>
+                <option value="">Select</option>
+                <option value="sick">Sick</option>
+                <option value="personal">Personal</option>
+                <option value="vacation">Vacation</option>
+            </select>
+        </div>
+        <br>
+        <div>
+            <label>Start Date:</label>
+            <input type="text" name="start_date" placeholder="2026/01/30" required>
+        </div>
+        <br>
+        <div>
+            <label>End Date:</label>
+            <input type="text" name="end_date" placeholder="2026/02/01" required>
+        </div>
+        <br>
+        <div>
+            <label>Reason:</label>
+            <textarea name="reason" required>Testing leave submission</textarea>
+        </div>
+        <br>
+        <button type="submit">Submit Leave</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+    document.getElementById('simpleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('/teacher/submit-leave', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('result').innerHTML = 
+                '<h3>Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            
+            if (data.success) {
+                alert('SUCCESS! Leave submitted!');
+                setTimeout(() => {
+                    window.location.href = '/teacher/leave-status';
+                }, 2000);
+            } else {
+                alert('ERROR: ' + data.message);
+            }
+        })
+        .catch(error => {
+            document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            alert('ERROR: ' + error.message);
+        });
+    });
+    </script>
+</body>
+</html>

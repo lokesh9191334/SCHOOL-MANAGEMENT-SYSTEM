@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-lg">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-clock me-2"></i>Teacher Leave Requests
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Filter Buttons -->
+                    <div class="mb-4">
+                        <div class="btn-group" role="group">
+                            <a href="?status=all" class="btn {% if not status or status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                <i class="fas fa-list me-1"></i>All
+                            </a>
+                            <a href="?status=pending" class="btn {% if status == 'pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                                <i class="fas fa-hourglass-half me-1"></i>Pending
+                            </a>
+                            <a href="?status=approved" class="btn {% if status == 'approved' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                <i class="fas fa-check-circle me-1"></i>Approved
+                            </a>
+                            <a href="?status=rejected" class="btn {% if status == 'rejected' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                                <i class="fas fa-times-circle me-1"></i>Rejected
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Leave Requests Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Teacher</th>
+                                    <th>Leave Type</th>
+                                    <th>Period</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if leaves %}
+                                    {% for leave in leaves %}
+                                    <tr id="leave-{{ leave.id }}">
+                                        <td><span class="badge bg-secondary">{{ leave.id }}</span></td>
+                                        <td>
+                                            {% if leave.teacher %}
+                                                <strong>{{ leave.teacher.name }}</strong>
+                                                <br><small class="text-muted">ID: {{ leave.teacher.id }}</small>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ leave.leave_type.title() }}</span>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ leave.start_date.strftime('%d %b %Y') }}
+                                            {% if leave.end_date != leave.start_date %}
+                                                - {{ leave.end_date.strftime('%d %b %Y') }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">
+                                                {{ (leave.end_date - leave.start_date).days + 1 }} days
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if leave.status == 'pending' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-hourglass-half me-1"></i>Pending
+                                                </span>
+                                            {% elif leave.status == 'approved' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i>Approved
+                                                </span>
+                                            {% elif leave.status == 'rejected' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle me-1"></i>Rejected
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                {{ leave.created_at.strftime('%d %b %Y %H:%M') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            {% if leave.status == 'pending' %}
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.id }})">
+                                                        <i class="fas fa-check"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" onclick="rejectLeave({{ leave.id }})">
+                                                        <i class="fas fa-times"></i> Reject
+                                                    </button>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">
+                                                    {% if leave.reviewed_at %}
+                                                        <i class="fas fa-check-circle text-success"></i> Processed
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4">
+                                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">No leave requests found</p>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function approveLeave(id) {
+    if (confirm('Are you sure you want to approve this leave request?')) {
+        fetch(`/teacher-leaves/${id}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while approving the leave');
+        });
+    }
+}
+
+function rejectLeave(id) {
+    const reason = prompt('Please enter reason for rejection (optional):');
+    if (reason !== null) {
+        fetch(`/teacher-leaves/${id}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({ admin_comment: reason })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while rejecting the leave');
+        });
+    }
+}
+</script>
+{% endblock %}

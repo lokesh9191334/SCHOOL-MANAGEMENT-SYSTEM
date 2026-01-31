@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Class Incharge Mapping{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-1">
+        <i class="fas fa-user-check me-2 text-primary"></i>Class Incharge (Class Teacher)
+      </h3>
+      <p class="text-muted mb-0">Easily see who is incharge of each class and assign/update in one place.</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('classes.list_classes') }}">
+      <i class="fas fa-arrow-left me-1"></i>Back to Classes
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <input type="text" class="form-control" id="searchInput" placeholder="Search by class name or teacher...">
+        </div>
+        <div class="col-md-6">
+          <select class="form-select" id="teacherFilter">
+            <option value="">All Teachers</option>
+            <option value="__unassigned__">Not assigned</option>
+            {% for t in teachers %}
+              <option value="{{ t.name|lower }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-striped align-middle" id="inchargeTable">
+          <thead>
+            <tr>
+              <th>Class</th>
+              <th>Current Incharge</th>
+              <th style="min-width: 320px;">Assign / Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in classes %}
+            <tr>
+              <td class="class-name">
+                <strong>{{ c.name }}</strong>
+                {% if c.grade or c.year %}
+                  <div class="text-muted small">Grade/Year: {{ c.grade or c.year }}</div>
+                {% endif %}
+              </td>
+              <td class="current-teacher">
+                {% if c.class_teacher %}
+                  <span class="badge bg-success-subtle text-success">
+                    <i class="fas fa-user me-1"></i>{{ c.class_teacher.name }}
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary">
+                    <i class="fas fa-circle-question me-1"></i>Not assigned
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" class="d-flex gap-2">
+                  <input type="hidden" name="class_id" value="{{ c.id }}">
+                  <select class="form-select" name="class_teacher_id">
+                    <option value="">-- Not Assigned --</option>
+                    {% for t in teachers %}
+                      <option value="{{ t.id }}" {% if c.class_teacher_id == t.id %}selected{% endif %}>
+                        {{ t.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-save me-1"></i>Save
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const searchInput = document.getElementById('searchInput');
+    const teacherFilter = document.getElementById('teacherFilter');
+    const rows = () => Array.from(document.querySelectorAll('#inchargeTable tbody tr'));
+
+    function applyFilters() {
+      const q = (searchInput.value || '').toLowerCase().trim();
+      const tf = (teacherFilter.value || '').toLowerCase().trim();
+
+      rows().forEach(row => {
+        const classText = (row.querySelector('.class-name')?.textContent || '').toLowerCase();
+        const teacherText = (row.querySelector('.current-teacher')?.textContent || '').toLowerCase();
+        const matchesSearch = !q || classText.includes(q) || teacherText.includes(q);
+
+        let matchesTeacher = true;
+        if (tf === '__unassigned__') {
+          matchesTeacher = teacherText.includes('not assigned');
+        } else if (tf) {
+          matchesTeacher = teacherText.includes(tf);
+        }
+
+        row.style.display = (matchesSearch && matchesTeacher) ? '' : 'none';
+      });
+    }
+
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (teacherFilter) teacherFilter.addEventListener('change', applyFilters);
+  })();
+</script>
+{% endblock %}
+

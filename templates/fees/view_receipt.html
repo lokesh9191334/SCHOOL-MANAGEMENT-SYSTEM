@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Payment Receipt</h3>
+          <div>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+              <i class="fas fa-print me-2"></i>Print
+            </button>
+            <a href="{{ url_for('fees.receipts') }}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="receipt-container" id="receipt-content">
+            <div class="row">
+              <div class="col-12">
+                <div class="d-flex" style="gap:20px; align-items:flex-start; justify-content:space-between; background:#fff;">
+                  {% for copy_label in ['Parent Copy', 'School Copy'] %}
+                  <div style="width:48%; border:1px solid #ddd; padding:12px; border-radius:6px; background:#fff; font-size:13px; box-sizing:border-box;">
+                    <div class="text-center mb-2">
+                      <div style="font-weight:700; font-size:14px;">School Management System</div>
+                      <div style="font-size:12px; color:#666;">{{ copy_label }}</div>
+                    </div>
+                    <hr style="border:1px dashed #eaeaea; margin:8px 0;">
+                    <div class="text-center fw-bold mb-2">PAYMENT RECEIPT</div>
+
+                    <div style="font-size:13px;">
+                      <div style="display:flex; justify-content:space-between;"><div>Receipt</div><div><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">{{ receipt.receipt_number }}</code></div></div>
+                      <div style="display:flex; justify-content:space-between;"><div>Date</div><div>{{ receipt.issued_date.strftime('%d %b %Y') }}</div></div>
+                      {% if receipt.payment and receipt.payment.transaction_id %}
+                      <div style="display:flex; justify-content:space-between;"><div>Txn ID</div><div><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">{{ receipt.payment.transaction_id }}</code></div></div>
+                      {% endif %}
+                      <hr style="border-top:1px solid #f0f0f0; margin:6px 0;">
+
+                      <div style="display:flex; justify-content:space-between;"><div>Student</div><div>{{ receipt.issued_to }}</div></div>
+                      {%- set student = (receipt.payment.fee.student if receipt.payment and receipt.payment.fee and receipt.payment.fee.student else None) -%}
+                      <div style="display:flex; justify-content:space-between;"><div>Class</div><div>
+                        {% if student %}
+                          {% set sc = student.current_class if student.current_class is defined else None %}
+                          {% if sc %}
+                            {% if sc.name is defined %}{{ sc.name }}{% elif sc.grade is defined %}{{ sc.grade }}{% else %}{{ sc }}{% endif %}
+                          {% elif student.enrollments and student.enrollments|length > 0 %}
+                            {% set cls_obj = student.enrollments[0].classroom %}
+                            {{ cls_obj.name or cls_obj.grade or '-' }}
+                          {% else %}
+                            -
+                          {% endif %}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </div></div>
+
+                      <div style="display:flex; justify-content:space-between; margin-top:6px;"><div>Fee Type</div><div><strong>{{ receipt.payment.fee.fee_type.name if receipt.payment and receipt.payment.fee and receipt.payment.fee.fee_type else '-' }}</strong></div></div>
+                      <div style="display:flex; justify-content:space-between; margin-top:4px;"><div>Amount</div><div><strong>₹{{ "%.2f"|format(receipt.total_amount) }}</strong></div></div>
+                      <div style="display:flex; justify-content:space-between; margin-top:4px;"><div>Method</div><div>{{ receipt.payment_method }}</div></div>
+                    </div>
+
+                    <div style="text-align:center; font-size:11px; color:#666; margin-top:8px;">This is a computer-generated receipt.</div>
+                  {% if loop.index0 == 0 %}
+                    <div style="text-align:center; font-weight:700; margin-top:10px; font-size:12px;">STUDENT COPY</div>
+                  {% else %}
+                    <div style="text-align:center; font-weight:700; margin-top:10px; font-size:12px;">SCHOOL COPY</div>
+                  {% endif %}
+                  </div>
+                  {% if not loop.last %}
+                    <div class="receipt-separator" style="width:42px; display:flex; align-items:center; justify-content:center;">
+                      <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                        <div style="font-size:16px; color:#999; line-height:1;">✂</div>
+                        <div style="font-size:11px; color:#999; letter-spacing:0.6px;">CUT HERE</div>
+                        <div style="width:1px; height:120px; border-right:1px dashed #cfcfcf; margin-top:6px;"></div>
+                      </div>
+                    </div>
+                  {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style media="print">
+  .card-header, .btn {
+    display: none !important;
+  }
+  .card-body {
+    border: none !important;
+    box-shadow: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  /* Ensure printed receipt area is white and copies are left/right */
+  #receipt-content { background: #fff !important; }
+  #receipt-content .d-flex { justify-content: space-between !important; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-print functionality can be added here if needed
+});
+</script>
+{% endblock %}

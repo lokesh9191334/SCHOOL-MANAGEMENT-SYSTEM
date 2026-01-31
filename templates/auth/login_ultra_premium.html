@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block content %}
+<style>
+.ultra-premium-login {
+    background: 
+        linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%),
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 219, 198, 0.2) 0%, transparent 50%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+.ultra-premium-login::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 50%);
+    animation: ultraBackgroundShift 15s ease-in-out infinite;
+}
+
+@keyframes ultraBackgroundShift {
+    0%, 100% { 
+        transform: translate(0, 0) rotate(0deg) scale(1); 
+        filter: hue-rotate(0deg);
+    }
+    25% { 
+        transform: translate(-30px, -20px) rotate(90deg) scale(1.1); 
+        filter: hue-rotate(30deg);
+    }
+    50% { 
+        transform: translate(20px, -30px) rotate(180deg) scale(0.95); 
+        filter: hue-rotate(-30deg);
+    }
+    75% { 
+        transform: translate(-20px, 20px) rotate(270deg) scale(1.05); 
+        filter: hue-rotate(15deg);
+    }
+}
+
+.ultra-premium-card {
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+    backdrop-filter: blur(25px) saturate(180%);
+    border-radius: 30px;
+    box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 0 40px rgba(255, 255, 255, 0.15),
+        0 0 100px rgba(99, 102, 241, 0.1);
+    overflow: hidden;
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+    transform: perspective(1200px) rotateX(3deg) rotateY(-2deg);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.ultra-premium-card:hover {
+    transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(-8px) scale(1.02);
+    box-shadow: 
+        0 40px 80px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.4),
+        inset 0 0 50px rgba(255, 255, 255, 0.2),
+        0 0 120px rgba(99, 102, 241, 0.15);
+}
+
+.ultra-premium-header {
+    background: 
+        linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    color: white;
+    padding: 50px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.ultra-premium-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="ultraGrain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1.5" fill="rgba(255,255,255,0.15)"/></pattern></defs><rect width="100" height="100" fill="url(%23ultraGrain)"/></svg>'),
+        linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+    opacity: 0.6;
+    animation: ultraGrain 10s linear infinite;
+}
+
+@keyframes ultraGrain {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-10%, -15%) rotate(90deg); }
+    50% { transform: translate(15%, -10%) rotate(180deg); }
+    75% { transform: translate(-15%, 15%) rotate(270deg); }
+}
+
+.ultra-premium-header h3 {
+    margin: 0;
+    font-size: 36px;
+    font-weight: 800;
+    position: relative;
+    z-index: 1;
+    text-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(255, 255, 255, 0.3);
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.ultra-premium-header p {
+    margin: 12px 0 0 0;
+    opacity: 0.95;
+    font-size: 16px;
+    position: relative;
+    z-index: 1;
+    font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ultra-premium-body {
+    padding: 50px 40px;
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+    position: relative;
+}
+
+.ultra-premium-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.ultra-premium-form .form-group {
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.ultra-premium-form .form-label {
+    color: #1e293b;
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 15px;
+    display: block;
+    letter-spacing: 0.3px;
+}
+
+.ultra-premium-form .form-control,
+.ultra-premium-form .form-select {
+    border: 2px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 18px 25px;
+    font-size: 16px;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    background: 
+        linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.05),
+        inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    position: relative;
+}
+
+.ultra-premium-form .form-control:focus,
+.ultra-premium-form .form-select:focus {
+    border-color: #6366f1;
+    box-shadow: 
+        0 0 0 5px rgba(99, 102, 241, 0.15),
+        0 12px 35px rgba(99, 102, 241, 0.25),
+        inset 0 2px 4px rgba(255, 255, 255, 0.9);
+    background: white;
+    transform: translateY(-3px) scale(1.01);
+}
+
+.ultra-premium-form .input-icon {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    font-size: 22px;
+    transition: all 0.4s ease;
+    z-index: 5;
+}
+
+.ultra-premium-form .form-control:focus + .input-icon {
+    color: #6366f1;
+    transform: translateY(-50%) scale(1.15);
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));
+}
+
+.ultra-premium-btn {
+    background: 
+        linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    border: none;
+    border-radius: 20px;
+    padding: 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    width: 100%;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-top: 20px;
+    box-shadow: 
+        0 15px 35px rgba(99, 102, 241, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ultra-premium-btn:hover {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 
+        0 20px 45px rgba(99, 102, 241, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.ultra-premium-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.8s ease;
+}
+
+.ultra-premium-btn:hover::before {
+    left: 100%;
+}
+
+.ultra-premium-btn:active {
+    transform: translateY(-2px) scale(1.01);
+}
+
+.ultra-premium-links {
+    text-align: center;
+    margin-top: 35px;
+    padding-top: 25px;
+    border-top: 2px solid #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.ultra-premium-links a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.ultra-premium-links a:hover {
+    color: #ec4899;
+    transform: translateY(-1px);
+}
+
+.ultra-google-signin-section {
+    margin-top: 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.ultra-divider {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.ultra-divider::before,
+.ultra-divider::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+.ultra-divider span {
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+    position: relative;
+}
+
+.ultra-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 16px 25px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 18px;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.ultra-google-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.7);
+    transform: translateY(-2px);
+    color: #1e293b;
+}
+
+.ultra-google-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: 15px;
+}
+
+.ultra-floating-shapes {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.ultra-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    animation: ultraFloat 8s ease-in-out infinite;
+}
+
+.ultra-shape1 {
+    width: 100px;
+    height: 100px;
+    top: 15%;
+    left: 8%;
+    animation-delay: 0s;
+}
+
+.ultra-shape2 {
+    width: 80px;
+    height: 80px;
+    top: 65%;
+    right: 12%;
+    animation-delay: 2.5s;
+}
+
+.ultra-shape3 {
+    width: 60px;
+    height: 60px;
+    bottom: 25%;
+    left: 25%;
+    animation-delay: 5s;
+}
+
+.ultra-shape4 {
+    width: 90px;
+    height: 90px;
+    top: 35%;
+    right: 25%;
+    animation-delay: 1.5s;
+}
+
+.ultra-shape5 {
+    width: 40px;
+    height: 40px;
+    bottom: 15%;
+    right: 18%;
+    animation-delay: 3.5s;
+}
+
+@keyframes ultraFloat {
+    0%, 100% { 
+        transform: translateY(0px) rotate(0deg); 
+        opacity: 0.8;
+    }
+    25% { 
+        transform: translateY(-30px) rotate(90deg); 
+        opacity: 0.6;
+    }
+    50% { 
+        transform: translateY(-15px) rotate(180deg); 
+        opacity: 0.9;
+    }
+    75% { 
+        transform: translateY(-25px) rotate(270deg); 
+        opacity: 0.7;
+    }
+}
+
+.alert {
+    border-radius: 15px;
+    border: none;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.form-select {
+    border: 2px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 18px 25px;
+    font-size: 16px;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.form-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.15);
+    background: white;
+    transform: translateY(-3px) scale(1.01);
+}
+</style>
+
+<div class="ultra-premium-login">
+    <div class="ultra-floating-shapes">
+        <div class="ultra-shape ultra-shape1"></div>
+        <div class="ultra-shape ultra-shape2"></div>
+        <div class="ultra-shape ultra-shape3"></div>
+        <div class="ultra-shape ultra-shape4"></div>
+        <div class="ultra-shape ultra-shape5"></div>
+    </div>
+    
+    <div class="ultra-premium-card">
+        <div class="ultra-premium-header">
+            <h3>Welcome Back</h3>
+            <p>Access Your School Management Portal</p>
+        </div>
+        
+        <div class="ultra-premium-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('auth.login') }}" class="ultra-premium-form">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           placeholder="Enter your email address" required>
+                    <i class="fas fa-envelope input-icon"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           placeholder="Enter your secure password" required>
+                    <i class="fas fa-lock input-icon"></i>
+                </div>
+                
+                <div class="form-group">
+                    <label for="account_type" class="form-label">Account Type</label>
+                    <select class="form-select" id="account_type" name="account_type" required>
+                        <option value="">Select Your Account Type</option>
+                        <option value="admin">Administrator</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="parent">Parent</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="ultra-premium-btn">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In Securely
+                </button>
+            </form>
+            
+            <div class="ultra-premium-links">
+                <p>
+                    <small>New to our platform?</small>
+                    <a href="{{ url_for('auth.register') }}">Create Account</a>
+                </p>
+                
+                <!-- Google Sign-In Section -->
+                <div class="ultra-google-signin-section">
+                    <div class="ultra-divider">
+                        <span>OR CONTINUE WITH</span>
+                    </div>
+                    <a href="{{ url_for('auth.google_login') }}" class="ultra-google-btn">
+                        <svg class="ultra-google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enhanced floating animation
+document.addEventListener('DOMContentLoaded', function() {
+    const shapes = document.querySelectorAll('.ultra-shape');
+    shapes.forEach((shape, index) => {
+        shape.style.animation = `ultraFloat ${8 + index * 2}s ease-in-out infinite`;
+        shape.style.animationDelay = `${index * 1.5}s`;
+    });
+});
+
+// Enhanced ripple effect
+document.querySelector('.ultra-premium-btn').addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('ultra-ripple');
+    
+    this.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 800);
+});
+</script>
+
+<style>
+.ultra-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ultra-ripple-animation 0.8s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ultra-ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}

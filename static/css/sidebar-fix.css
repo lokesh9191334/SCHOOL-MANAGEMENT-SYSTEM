@@ -1,0 +1,129 @@
+/* 
+ * UNIFIED SIDEBAR - Same sidebar on both mobile and desktop
+ * No more mobile-specific sidebar behavior
+ */
+
+/* Unified sidebar for all screen sizes */
+#sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    background: linear-gradient(180deg, #1a365d 0%, #2d3748 100%) !important;
+    color: #ffffff !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    transition: none !important;
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15) !important;
+    z-index: 1000 !important;
+    top: 0 !important;
+    padding-top: 0 !important;
+    overflow-y: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    margin-left: 0 !important;
+}
+
+/* Ensure sidebar is always visible */
+#sidebar.active,
+#sidebar.hidden {
+    position: fixed !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    margin-left: 0 !important;
+    transform: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Content area adjustment */
+#content {
+    margin-left: 280px !important;
+    padding: 20px !important;
+    transition: none !important;
+}
+
+.wrapper {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* Hide mobile navigation elements completely */
+.mobile-nav-toggle,
+.mobile-back-btn,
+.mobile-overlay {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Ensure wrapper maintains proper flex layout */
+.wrapper {
+    display: flex !important;
+    width: 100% !important;
+    align-items: stretch !important;
+}
+
+/* Override any mobile-specific sidebar styles */
+@media (max-width: 768px) {
+    #sidebar {
+        position: fixed !important;
+        left: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        margin-left: 0 !important;
+        transform: none !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        transition: none !important;
+        z-index: 1000 !important;
+    }
+    
+    #sidebar.active,
+    #sidebar.hidden {
+        left: 0 !important;
+        margin-left: 0 !important;
+        transform: none !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    #content {
+        margin-left: 280px !important;
+        padding: 20px !important;
+        transition: none !important;
+    }
+    
+    .wrapper {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        display: flex !important;
+        width: 100% !important;
+        align-items: stretch !important;
+    }
+    
+    .mobile-nav-toggle,
+    .mobile-back-btn,
+    .mobile-overlay {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1200px) {
+    #sidebar {
+        width: 280px !important;
+        min-width: 280px !important;
+        max-width: 280px !important;
+    }
+    
+    #content {
+        margin-left: 280px !important;
+    }
+}

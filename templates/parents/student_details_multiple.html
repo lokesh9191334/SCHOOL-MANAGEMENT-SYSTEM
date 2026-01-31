@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}My Children - Student Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>Parent Portal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="{{ url_for('static', filename='img/default-avatar.svg') }}"
+                             class="rounded-circle" width="60" height="60" alt="Parent Avatar">
+                        <h6 class="mt-2">{{ parent_profile.name if parent_profile else 'Parent' }}</h6>
+                        <small class="text-muted">{{ current_user.role | capitalize }}</small>
+                    </div>
+
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('parents.portal') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('parents.student_details') }}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-user-graduate me-2"></i>My Children
+                        </a>
+                        <a href="{{ url_for('parents.messages') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-envelope me-2"></i>Messages
+                        </a>
+                        <a href="{{ url_for('parents.announcements') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bullhorn me-2"></i>Announcements
+                        </a>
+                        <a href="{{ url_for('parents.documents') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-alt me-2"></i>Documents
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="mb-3">
+                        <i class="fas fa-users me-2"></i>My Children
+                    </h2>
+                    <p class="text-muted">
+                        Here are the details of all your children studying in our school.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Children Cards -->
+            {% if students %}
+                <div class="row">
+                    {% for student in students %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-user-graduate me-2"></i>{{ student.name }}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    {% if student.photo %}
+                                    <img src="{{ url_for('static', filename=student.photo) }}" 
+                                         class="rounded-circle" width="80" height="80" alt="{{ student.name }}">
+                                    {% else %}
+                                    <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" 
+                                         style="width: 80px; height: 80px;">
+                                        <i class="fas fa-user fa-2x text-white"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="student-info">
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <small class="text-muted">Roll Number</small>
+                                            <p class="mb-1 fw-bold">{{ student.roll_number or 'N/A' }}</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Class</small>
+                                            <p class="mb-1 fw-bold">{{ student.classroom.name if student.classroom else 'Not Assigned' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-6">
+                                            <small class="text-muted">Gender</small>
+                                            <p class="mb-1 fw-bold">{{ student.gender or 'N/A' }}</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Age</small>
+                                            <p class="mb-1 fw-bold">
+                                                {{ (current_date.year - student.date_of_birth.year) if student.date_of_birth else 'N/A' }} years
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Father Name</small>
+                                            <p class="mb-1 fw-bold">{{ student.father_name or 'N/A' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <small class="text-muted">Mother Name</small>
+                                            <p class="mb-1 fw-bold">{{ student.mother_name or 'N/A' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-12">
+                                            <small class="text-muted">Address</small>
+                                            <p class="mb-1">{{ student.address or 'N/A' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <span class="badge bg-primary">{{ student.gender or 'N/A' }}</span>
+                                        <span class="badge bg-{{ 'success' if student.is_active else 'secondary' }}">
+                                            {{ 'Active' if student.is_active else 'Inactive' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h4>No Children Found</h4>
+                        <p class="text-muted">
+                            No children are linked to your account yet. Please contact the school administration to link your children.
+                        </p>
+                        <a href="{{ url_for('parents.link_student') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Link Child
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

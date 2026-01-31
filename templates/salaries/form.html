@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-plus-circle mr-2"></i>Add Professional Salary Record
+                    </h3>
+                    <div class="card-tools">
+                        <a class="btn btn-light btn-sm" href="{{ url_for('salaries.list_salaries') }}">
+                            <i class="fas fa-arrow-left"></i> Back to Salaries
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="salaryForm">
+                        <!-- Employee Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-user-tie mr-2"></i>Employee Information
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="teacher_id" class="font-weight-bold">
+                                        <i class="fas fa-user mr-1"></i>Employee <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-control form-control-lg" id="teacher_id" name="teacher_id" required>
+                                        <option value="">Select Employee</option>
+                                        {% for teacher in teachers %}
+                                        <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Professional Salary Components -->
+                        <div class="row mb-4 mt-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-calculator mr-2"></i>Professional Salary Components
+                                </h5>
+                            </div>
+                        </div>
+
+                        <!-- Basic Salary -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="base_salary" class="font-weight-bold">
+                                        <i class="fas fa-home mr-1"></i>Basic Salary
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">₹</span>
+                                        </div>
+                                        <input type="number" class="form-control" id="base_salary" name="base_salary" step="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Special Allowances -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="special_allowance" class="font-weight-bold">
+                                        <i class="fas fa-star mr-1"></i>Special Allowance
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">₹</span>
+                                        </div>
+                                        <input type="number" class="form-control" id="special_allowance" name="special_allowance" step="0.01" value="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment & Administrative Details -->
+                        <div class="row mb-4 mt-4">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-credit-card mr-2"></i>Payment & Administrative Details
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="payment_date" class="font-weight-bold">
+                                        <i class="fas fa-calendar-alt mr-1"></i>Payment Date
+                                    </label>
+                                    <input type="date" class="form-control" id="payment_date" name="payment_date">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="status" class="font-weight-bold">
+                                        <i class="fas fa-info-circle mr-1"></i>Payment Status
+                                    </label>
+                                    <select class="form-control" id="status" name="status">
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="overdue">Overdue</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="pay_period" class="font-weight-bold">
+                                        <i class="fas fa-clock mr-1"></i>Pay Period
+                                    </label>
+                                    <select class="form-control" id="pay_period" name="pay_period">
+                                        <option value="monthly">Monthly</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="bi-weekly">Bi-weekly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="annually">Annually</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank & Payment Method -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="bank_account" class="font-weight-bold">
+                                        <i class="fas fa-university mr-1"></i>Bank Account Number
+                                    </label>
+                                    <input type="text" class="form-control" id="bank_account" name="bank_account" placeholder="Enter bank account number">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="payment_method" class="font-weight-bold">
+                                        <i class="fas fa-money-check mr-1"></i>Payment Method
+                                    </label>
+                                    <select class="form-control" id="payment_method" name="payment_method">
+                                        <option value="">Select Payment Method</option>
+                                        <option value="bank_transfer">Bank Transfer</option>
+                                        <option value="cheque">Cheque</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="direct_deposit">Direct Deposit</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Notes & Comments -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="notes" class="font-weight-bold">
+                                        <i class="fas fa-sticky-note mr-1"></i>Professional Notes & Comments
+                                    </label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="4" placeholder="Add any professional notes, performance reviews, or special considerations for this salary record"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Salary Calculation Preview -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0 text-primary">
+                                            <i class="fas fa-chart-line mr-2"></i>Professional Salary Calculation Preview
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="salary-breakdown">
+                                                    <h6 class="text-success">Earnings</h6>
+                                                    <div class="mb-2">
+                                                        <span class="salary-label">Basic Salary:</span>
+                                                        <span class="salary-value float-right">₹<span id="preview-base">0.00</span></span>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <span class="salary-label">Special Allowance:</span>
+                                                        <span class="salary-value float-right">₹<span id="preview-special">0.00</span></span>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="mb-2 font-weight-bold text-success">
+                                                        <span class="salary-label">Gross Earnings:</span>
+                                                        <span class="salary-value float-right">₹<span id="preview-gross">0.00</span></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-secondary btn-lg" onclick="resetForm()">
+                                        <i class="fas fa-undo mr-2"></i>Reset Form
+                                    </button>
+                                    <div>
+                                        <button type="button" class="btn btn-info btn-lg mr-2" onclick="previewSalary()">
+                                            <i class="fas fa-eye mr-2"></i>Preview
+                                        </button>
+                                        <button type="submit" class="btn btn-success btn-lg">
+                                            <i class="fas fa-save mr-2"></i>Save Professional Salary Record
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Professional salary calculation function
+function calculateProfessionalSalary() {
+    // Get all earnings
+    const baseSalary = parseFloat(document.getElementById('base_salary').value) || 0;
+    const specialAllowance = parseFloat(document.getElementById('special_allowance').value) || 0;
+
+    // Calculate gross earnings
+    const grossEarnings = baseSalary + specialAllowance;
+
+    // Calculate deductions (simplified - in real scenario, these would be calculated based on rules)
+    const professionalTax = grossEarnings > 21000 ? 235 : 0; // Simplified calculation
+    const providentFund = baseSalary * 0.12; // 12% of basic salary
+    const insurance = grossEarnings * 0.01; // 1% of gross earnings
+    const otherDeductions = 0; // Can be customized
+
+    const totalDeductions = professionalTax + providentFund + insurance + otherDeductions;
+
+    // Calculate net salary
+    const netSalary = grossEarnings - totalDeductions;
+
+    // Update preview display
+    document.getElementById('preview-base').textContent = baseSalary.toFixed(2);
+    document.getElementById('preview-special').textContent = specialAllowance.toFixed(2);
+    document.getElementById('preview-gross').textContent = grossEarnings.toFixed(2);
+
+    document.getElementById('preview-professional-tax').textContent = professionalTax.toFixed(2);
+    document.getElementById('preview-pf').textContent = providentFund.toFixed(2);
+    document.getElementById('preview-insurance').textContent = insurance.toFixed(2);
+    document.getElementById('preview-other-deductions').textContent = otherDeductions.toFixed(2);
+    document.getElementById('preview-total-deductions').textContent = totalDeductions.toFixed(2);
+    document.getElementById('preview-net').textContent = netSalary.toFixed(2);
+
+    // Update the readonly net salary amount field
+    document.getElementById('amount').value = netSalary.toFixed(2);
+}
+
+// Reset form function
+function resetForm() {
+    if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
+        document.getElementById('salaryForm').reset();
+        calculateProfessionalSalary(); // Reset preview to 0.00
+    }
+}
+
+// Preview salary function (additional validation can be added here)
+function previewSalary() {
+    calculateProfessionalSalary();
+    alert('Salary calculation updated! Please review the preview section.');
+}
+
+// Add event listeners to all salary input fields
+document.addEventListener('DOMContentLoaded', function() {
+    const salaryInputs = [
+        'base_salary', 'special_allowance'
+    ];
+
+    salaryInputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', calculateProfessionalSalary);
+    });
+
+    // Initial calculation
+    calculateProfessionalSalary();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .ip-container {
+        padding: 30px;
+    }
+    
+    .ip-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        margin-bottom: 20px;
+    }
+    
+    .ip-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .ip-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border-left: 4px solid #007bff;
+    }
+    
+    .ip-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #007bff;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .header-item {
+        background: white;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-custom {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 8px;
+        margin: 5px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+    }
+    
+    .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .alert-custom {
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .alert-danger {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ip-container">
+    <div class="ip-card">
+        <div class="ip-header">
+            <h1><i class="fas fa-network-wired"></i> IP Address Tracking System</h1>
+            <p>Real-time IP detection and security monitoring</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="ip-info">
+                    <h5><i class="fas fa-globe"></i> Primary IP Address</h5>
+                    <div class="ip-value" id="primary-ip">
+                        <span class="loading"></span> Loading...
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="ip-info">
+                    <h5><i class="fas fa-shield-alt"></i> IP Type</h5>
+                    <div class="ip-value" id="ip-type">
+                        <span class="loading"></span> Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="ip-info">
+                    <h5><i class="fas fa-server"></i> Remote Address</h5>
+                    <div class="ip-value" id="remote-addr">
+                        <span class="loading"></span> Loading...
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="ip-info">
+                    <h5><i class="fas fa-desktop"></i> User Agent</h5>
+                    <div class="ip-value" id="user-agent" style="font-size: 14px;">
+                        <span class="loading"></span> Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ip-card">
+            <h4><i class="fas fa-list"></i> All IP Headers</h4>
+            <div id="headers-list">
+                <div class="text-center py-3">
+                    <span class="loading"></span>
+                    <p>Loading headers...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <button class="btn-custom" onclick="refreshIPInfo()">
+                <i class="fas fa-sync"></i> Refresh IP Info
+            </button>
+            <button class="btn-custom" onclick="logTestActivity()">
+                <i class="fas fa-plus"></i> Log Test Activity
+            </button>
+        </div>
+        
+        <div id="notifications"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showNotification(message, type) {
+        const notifications = document.getElementById('notifications');
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
+        
+        notifications.innerHTML = `
+            <div class="alert-custom ${alertClass}">
+                <i class="fas fa-${icon}"></i> ${message}
+            </div>
+        `;
+        
+        setTimeout(() => {
+            notifications.innerHTML = '';
+        }, 5000);
+    }
+    
+    function refreshIPInfo() {
+        // Show loading state
+        document.getElementById('primary-ip').innerHTML = '<span class="loading"></span> Loading...';
+        document.getElementById('ip-type').innerHTML = '<span class="loading"></span> Loading...';
+        document.getElementById('remote-addr').innerHTML = '<span class="loading"></span> Loading...';
+        document.getElementById('user-agent').innerHTML = '<span class="loading"></span> Loading...';
+        document.getElementById('headers-list').innerHTML = '<div class="text-center py-3"><span class="loading"></span><p>Loading headers...</p></div>';
+        
+        fetch('/ip-tracker/ip-info')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update IP information
+                document.getElementById('primary-ip').innerHTML = data.primary_ip || 'Not detected';
+                document.getElementById('ip-type').innerHTML = data.ip_type || 'Unknown';
+                document.getElementById('remote-addr').innerHTML = data.remote_addr || 'Not detected';
+                
+                const userAgent = data.user_agent || 'Not detected';
+                document.getElementById('user-agent').innerHTML = userAgent.length > 100 ? userAgent.substring(0, 100) + '...' : userAgent;
+                
+                // Display headers
+                const headersList = document.getElementById('headers-list');
+                headersList.innerHTML = '';
+                
+                if (data.all_headers) {
+                    for (const [header, value] of Object.entries(data.all_headers)) {
+                        const headerItem = document.createElement('div');
+                        headerItem.className = 'header-item';
+                        headerItem.innerHTML = `
+                            <strong>${header}:</strong>
+                            <span style="font-family: monospace; background: #f8f9fa; padding: 5px 10px; border-radius: 5px;">
+                                ${value || 'Not present'}
+                            </span>
+                        `;
+                        headersList.appendChild(headerItem);
+                    }
+                } else {
+                    headersList.innerHTML = '<div class="alert-custom alert-danger">No headers detected</div>';
+                }
+                
+                showNotification('IP information updated successfully!', 'success');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('primary-ip').innerHTML = 'Error loading';
+                document.getElementById('ip-type').innerHTML = 'Error';
+                document.getElementById('remote-addr').innerHTML = 'Error';
+                document.getElementById('user-agent').innerHTML = 'Error';
+                document.getElementById('headers-list').innerHTML = '<div class="alert-custom alert-danger">Failed to load IP information</div>';
+                showNotification('Error loading IP information', 'error');
+            });
+    }
+    
+    function logTestActivity() {
+        fetch('/ip-tracker/log-test', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                showNotification('Test activity logged successfully!', 'success');
+                refreshIPInfo();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error logging activity', 'error');
+            });
+    }
+    
+    // Load IP info on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshIPInfo();
+    });
+</script>
+{% endblock %}

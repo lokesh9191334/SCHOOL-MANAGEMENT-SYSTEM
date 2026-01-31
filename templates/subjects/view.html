@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Subject Details: {{ subject.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('subjects.list_subjects') }}" class="btn-back">
+                            <i class="fas fa-arrow-left"></i> Back to Subjects
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Subject Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Subject Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Name:</strong> {{ subject.name }}</p>
+                                    <p><strong>Teacher:</strong>
+                                        {% if subject.teacher %}
+                                            <span class="badge badge-success">{{ subject.teacher.name }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">Unassigned</span>
+                                        {% endif %}
+                                    </p>
+                                    <p><strong>Class:</strong>
+                                        {% if subject.classroom %}
+                                            <span class="badge badge-info">{{ subject.classroom.name }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">Unassigned</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Quick Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <a href="{{ url_for('subjects.subject_schedule', subject_id=subject.id) }}"
+                                               class="btn btn-primary btn-block">View Schedule</a>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <a href="{{ url_for('subjects.subject_grades', subject_id=subject.id) }}"
+                                               class="btn btn-success btn-block">View Grades</a>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <a href="{{ url_for('subjects.subject_materials', subject_id=subject.id) }}"
+                                               class="btn btn-secondary btn-block">Materials</a>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <a href="{{ url_for('subjects.subject_assignments', subject_id=subject.id) }}"
+                                               class="btn btn-block"
+                                               style="background: linear-gradient(45deg,#6f42c1,#5a32a3); color:#fff; border:0;">
+                                               Assignments
+                                            </a>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <a href="{{ url_for('subjects.subject_performance', subject_id=subject.id) }}"
+                                               class="btn btn-outline-primary btn-block">Performance</a>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <a href="{{ url_for('subjects.edit_subject', subject_id=subject.id) }}"
+                                               class="btn btn-warning btn-block">Edit Subject</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enrolled Students -->
+                    {% if enrollments %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Enrolled Students ({{ enrollments|length }})</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Roll Number</th>
+                                            <th>Name</th>
+                                            <th>Recent Attendance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for enrollment in enrollments %}
+                                        <tr>
+                                            <td>{{ enrollment.student.roll_number or 'N/A' }}</td>
+                                            <td>{{ enrollment.student.full_name() }}</td>
+                                            <td>
+                                                {% set recent_attendance = recent_attendances | selectattr('student_id', 'equalto', enrollment.student_id) | list %}
+                                                {% if recent_attendance %}
+                                                    {% set attendance = recent_attendance[0] %}
+                                                    <span class="badge badge-{{ 'success' if attendance.present else 'danger' }}">
+                                                        {{ attendance.date.strftime('%Y-%m-%d') }} - {{ 'Present' if attendance.present else 'Absent' }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge badge-secondary">No recent attendance</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Recent Activity -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">Recent Attendance Activity</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_attendances %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Student</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for attendance in recent_attendances %}
+                                        <tr>
+                                            <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ attendance.student.full_name() }}</td>
+                                            <td>
+                                                <span class="badge badge-{{ 'success' if attendance.present else 'danger' }}">
+                                                    {{ 'Present' if attendance.present else 'Absent' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No recent attendance records found.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

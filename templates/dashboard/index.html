@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - School Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+.auto-refresh-indicator {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 1000;
+    font-weight: 600;
+    font-size: 0.85rem;
+    animation: slideInLeft 0.5s ease;
+}
+
+.auto-refresh-indicator i {
+    animation: spin 2s linear infinite;
+    font-size: 0.9rem;
+}
+
+.auto-refresh-indicator-inline {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    animation: slideInUp 0.5s ease;
+    text-align: center;
+    justify-content: center;
+    min-height: 100px;
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+.auto-refresh-indicator-inline i {
+    animation: spin 2s linear infinite;
+    font-size: 1.2rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes slideInLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-content" data-total-female-students="{{ total_female_students|default(0) }}" data-total-male-students="{{ total_male_students|default(0) }}">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">{{ current_user.name }}</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Students</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Total Teachers</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_teachers }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Total Classes</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">30</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-school fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Total Subjects</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_subjects }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-book fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto Refresh Indicator -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="auto-refresh-indicator-inline">
+                        <i class="fas fa-sync"></i>
+                        <span>Auto-refreshing...</span>
+                    </div>
+                </div>
+    </div>
+
+    <div class="row mb-4">
+                <div class="col-lg-12 mb-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Female Students</h6>
+                                </div>
+                                <div class="card-body">
+                                     <div class="chart-pie pt-4 pb-2">
+                                         <canvas id="femaleStudentsChart"></canvas>
+                                     </div>
+                                     <div class="mt-4 text-center">
+                                         <span class="text-primary font-weight-bold">Total Female Students: {{ total_female_students }}</span>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="col-md-6 mb-4">
+                             <div class="card shadow mb-4">
+                                 <div class="card-header py-3">
+                                     <h6 class="m-0 font-weight-bold text-success">Male Students</h6>
+                                 </div>
+                                 <div class="card-body">
+                                     <div class="chart-pie pt-4 pb-2">
+                                         <canvas id="maleStudentsChart"></canvas>
+                                     </div>
+                                     <div class="mt-4 text-center">
+                                         <span class="text-success font-weight-bold">Total Male Students: {{ total_male_students }}</span>
+                                     </div>
+                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+/* eslint-disable */
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize auto-refresh
+    console.log('🚀 Teacher Dashboard loaded - Initializing auto-refresh (hidden mode)...');
+    
+    // Check if auto-refresh indicator exists (but keep it hidden)
+    const indicator = document.querySelector('.auto-refresh-indicator-inline');
+    
+    if (indicator) {
+        console.log('✅ Auto-refresh indicator found and hidden:', indicator);
+        // Keep it hidden but functional
+        indicator.style.display = 'flex';
+        console.log('🔄 Auto-refresh is running in background (hidden)');
+    } else {
+        console.error('❌ Auto-refresh indicator not found!');
+    }
+    
+    // Start auto-refresh for dashboard (still works even when hidden)
+    let refreshInterval = setInterval(() => {
+        console.log('🔄 Refreshing dashboard (background mode)...');
+        fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                console.log('📡 Dashboard data fetched successfully');
+                // Update dashboard content
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                const newContent = tempDiv.querySelector('.dashboard-content');
+                const currentContent = document.querySelector('.dashboard-content');
+                
+                if (newContent && currentContent) {
+                    currentContent.innerHTML = newContent.innerHTML;
+                    console.log('✅ Dashboard content updated silently');
+                } else {
+                    console.error('❌ Could not find dashboard content');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error refreshing dashboard:', error);
+            });
+    }, 30000); // Refresh every 30 seconds
+    
+    // Clean up interval when page is unloaded
+    window.addEventListener('beforeunload', function() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            console.log('🔄 Dashboard auto-refresh stopped');
+        }
+    });
+    
+    // Add a function to show/hide for debugging (optional)
+    window.toggleAutoRefreshDebug = function() {
+        const indicator = document.querySelector('.auto-refresh-indicator-inline');
+        if (indicator) {
+            const isHidden = indicator.style.visibility === 'hidden';
+            indicator.style.visibility = isHidden ? 'visible' : 'hidden';
+            indicator.style.opacity = isHidden ? '1' : '0';
+            indicator.style.zIndex = isHidden ? '1000' : '-1';
+            console.log('🔄 Auto-refresh indicator:', isHidden ? 'VISIBLE' : 'HIDDEN');
+        }
+    };
+
+    // Get data from data attributes
+    var dashboardContent = document.querySelector('.dashboard-content');
+    var totalFemaleStudents = parseInt(dashboardContent.dataset.totalFemaleStudents || '0');
+    var totalMaleStudents = parseInt(dashboardContent.dataset.totalMaleStudents || '0');
+    
+    // Pie Chart for Female Students
+    var femaleCtx = document.getElementById("femaleStudentsChart");
+    if (femaleCtx) {
+        new Chart(femaleCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["Female Students"],
+                datasets: [{
+                    data: [totalFemaleStudents], // Dynamic data for Female
+                    backgroundColor: ['#4e73df'], // Blue for Female
+                    hoverBackgroundColor: ['#2e59d9'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 25,
+                        top: 25,
+                        bottom: 0
+                    }
+                },
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    caretPadding: 10,
+                },
+                legend: {
+                    display: false
+                },
+                cutoutPercentage: 80,
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                }
+            },
+        });
+    }
+
+    // Pie Chart for Male Students
+    var maleCtx = document.getElementById("maleStudentsChart");
+    if (maleCtx) {
+        new Chart(maleCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["Male Students"],
+                datasets: [{
+                    data: [totalMaleStudents], // Dynamic data for Male
+                    backgroundColor: ['#1cc88a'], // Green for Male
+                    hoverBackgroundColor: ['#17a673'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 25,
+                        top: 25,
+                        bottom: 0
+                    }
+                },
+                tooltips: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyFontColor: "#858796",
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    xPadding: 15,
+                    yPadding: 15,
+                    displayColors: false,
+                    caretPadding: 10,
+                },
+                legend: {
+                    display: false
+                },
+                cutoutPercentage: 80,
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                }
+            },
+        });
+    }
+});
+/* eslint-enable */
+
+</script>
+{% endblock %}

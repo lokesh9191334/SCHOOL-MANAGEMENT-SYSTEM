@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-0 rounded-xl overflow-hidden">
+                <div class="card-header bg-danger text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Server Error
+                    </h3>
+                </div>
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-server fa-4x text-danger"></i>
+                    </div>
+                    <h4 class="text-danger mb-3">500 - Internal Server Error</h4>
+                    <p class="text-muted mb-4">
+                        Something went wrong on our end. Please try again later or contact support.
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>
+                            Go to Dashboard
+                        </a>
+                        <a href="javascript:location.reload()" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync me-2"></i>
+                            Try Again
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

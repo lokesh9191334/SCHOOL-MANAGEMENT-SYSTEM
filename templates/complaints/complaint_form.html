@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}File Complaint - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>File a Complaint
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('complaints.complaints') }}">
+                        <!-- Complaint Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Complaint Title *</label>
+                                    <input type="text" name="title" id="title" class="form-control" 
+                                           placeholder="Brief title of your complaint" required maxlength="255">
+                                    <div class="form-text">Minimum 5 characters</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Category *</label>
+                                    <select name="category" id="category" class="form-select" required>
+                                        <option value="">Select category...</option>
+                                        <option value="academic">Academic Issues</option>
+                                        <option value="facility">Facility Issues</option>
+                                        <option value="behavior">Behavior Issues</option>
+                                        <option value="attendance">Attendance Issues</option>
+                                        <option value="fees">Fee Related</option>
+                                        <option value="other">Other Issues</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Detailed Description *</label>
+                            <textarea name="description" id="description" class="form-control" rows="6"
+                                      placeholder="Please provide detailed information about your complaint..." required></textarea>
+                            <div class="form-text">Minimum 20 characters. Be specific about dates, names, and details.</div>
+                        </div>
+
+                        <!-- Recipient Selection -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="recipient_type" class="form-label">Send To *</label>
+                                    <select name="recipient_type" id="recipient_type" class="form-select" required>
+                                        <option value="">Select recipient...</option>
+                                        <option value="admin">School Administration</option>
+                                        <option value="teacher">Specific Teacher</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="recipient_id" class="form-label">Select Teacher</label>
+                                    <select name="recipient_id" id="recipient_id" class="form-select" disabled>
+                                        <option value="">First select "Specific Teacher" above</option>
+                                        {% for teacher in teachers %}
+                                            <option value="{{ teacher.user_id }}">{{ teacher.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Student Selection -->
+                        <div class="mb-3">
+                            <label for="student_id" class="form-label">Related Student (if applicable)</label>
+                            <select name="student_id" id="student_id" class="form-select">
+                                <option value="">Not related to specific student</option>
+                                {% for student in students %}
+                                    <option value="{{ student.id }}">{{ student.full_name() }} (Class: {{ student.classroom.name if student.classroom else 'N/A' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Priority Level -->
+                        <div class="mb-3">
+                            <label class="form-label">Priority Level</label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="priority" id="normal" value="normal" checked>
+                                        <label class="form-check-label" for="normal">
+                                            <i class="fas fa-info-circle text-info me-1"></i>Normal
+                                            <small class="text-muted d-block">General issues, routine matters</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="priority" id="high" value="high">
+                                        <label class="form-check-label" for="high">
+                                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>High
+                                            <small class="text-muted d-block">Important issues needing attention</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="priority" id="urgent" value="urgent">
+                                        <label class="form-check-label" for="urgent">
+                                            <i class="fas fa-exclamation-circle text-danger me-1"></i>Urgent
+                                            <small class="text-muted d-block">Critical issues requiring immediate action</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guidelines -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Complaint Guidelines:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Be specific and provide accurate information</li>
+                                <li>Include relevant dates, times, and names</li>
+                                <li>Attach any supporting documents if available</li>
+                                <li>Use respectful and professional language</li>
+                                <li>You will receive a response within 24-48 hours</li>
+                            </ul>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('parents.portal') }}" class="btn-back">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Portal
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Submit Complaint
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle recipient type selection
+document.getElementById('recipient_type').addEventListener('change', function() {
+    const recipientIdSelect = document.getElementById('recipient_id');
+    
+    if (this.value === 'teacher') {
+        recipientIdSelect.disabled = false;
+        recipientIdSelect.required = true;
+    } else {
+        recipientIdSelect.disabled = true;
+        recipientIdSelect.required = false;
+        recipientIdSelect.value = '';
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const category = document.getElementById('category').value;
+    const recipientType = document.getElementById('recipient_type').value;
+    
+    if (title.length < 5) {
+        e.preventDefault();
+        alert('Title must be at least 5 characters long');
+        return;
+    }
+    
+    if (description.length < 20) {
+        e.preventDefault();
+        alert('Description must be at least 20 characters long');
+        return;
+    }
+    
+    if (!category) {
+        e.preventDefault();
+        alert('Please select a category');
+        return;
+    }
+    
+    if (!recipientType) {
+        e.preventDefault();
+        alert('Please select who to send this complaint to');
+        return;
+    }
+    
+    if (recipientType === 'teacher' && !document.getElementById('recipient_id').value) {
+        e.preventDefault();
+        alert('Please select a teacher when sending to specific teacher');
+        return;
+    }
+});
+
+// Auto-resize textarea
+document.getElementById('description').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+</script>
+
+<style>
+.form-check-label {
+    cursor: pointer;
+}
+
+.form-check-input:checked ~ .form-check-label {
+    font-weight: 500;
+}
+</style>
+{% endblock %}

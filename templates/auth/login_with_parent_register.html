@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Login - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100">
+    <div class="row h-100">
+        <div class="col-lg-6 mx-auto align-self-center">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </h4>
+                </div>
+                <div class="card-body p-5">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-bold">
+                                <i class="fas fa-envelope me-2"></i>Email Address
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-envelope text-primary"></i>
+                                </span>
+                                <input type="email" class="form-control border-primary" 
+                                       id="email" name="email" placeholder="Enter your email" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold">
+                                <i class="fas fa-lock me-2"></i>Password
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-lock text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-primary" 
+                                       id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="account_type" class="form-label fw-bold">
+                                <i class="fas fa-user-tag me-2"></i>Account Type
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary bg-opacity-10 border-primary">
+                                    <i class="fas fa-user-tag text-primary"></i>
+                                </span>
+                                <select class="form-control border-primary" id="account_type" name="account_type" required>
+                                    <option value="">Select Account Type</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="parent">Parent</option>
+                                    <option value="student">Student</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    Don't have an account? 
+                                    <a href="{{ url_for('auth.register') }}" class="text-primary">Register here</a>
+                                </small>
+                            </div>
+                            <div>
+                                <small class="text-primary fw-bold">
+                                    <i class="fas fa-key me-1"></i>
+                                    Parent Registration: 
+                                    <a href="{{ url_for('auth.parent_register') }}" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="fas fa-user-plus me-1"></i>Register with Key
+                                    </a>
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-select parent account type if coming from parent registration
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountType = urlParams.get('type');
+    if (accountType === 'parent') {
+        document.getElementById('account_type').value = 'parent';
+    }
+});
+</script>
+{% endblock %}

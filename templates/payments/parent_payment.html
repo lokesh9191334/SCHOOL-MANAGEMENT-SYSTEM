@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid payment-container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card premium-fade-in">
+        <div class="card-header">
+          <h3><i class="fas fa-credit-card me-2"></i>Fee Payment - {{ student.name }}</h3>
+        </div>
+        <div class="card-body">
+          <!-- Student Info -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="student-info premium-slide-in">
+                <h5><i class="fas fa-user-graduate me-2"></i>Student Information</h5>
+                <p><strong>Name:</strong> {{ student.name }}</p>
+                <p><strong>Class:</strong> {{ student.classroom.name if student.classroom else 'N/A' }}</p>
+                <p><strong>Roll Number:</strong> {{ student.roll_number or 'N/A' }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="payment-summary premium-slide-in">
+                <h5><i class="fas fa-chart-pie me-2"></i>Payment Summary</h5>
+                <p><strong>Total Due:</strong> ₹<span id="totalDue">0.00</span></p>
+                <p><strong>Total Paid:</strong> ₹<span id="totalPaid">0.00</span></p>
+                <p><strong>Advance Balance:</strong> ₹<span id="advanceBalance">0.00</span></p>
+                <p><strong>Net Balance:</strong> ₹<span id="netBalance">0.00</span></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fees List -->
+          <div class="row">
+            <div class="col-12">
+              <h4 class="mb-3"><i class="fas fa-list-alt me-2"></i>Outstanding Fees</h4>
+              <div class="table-responsive">
+                <table class="table table-striped premium-fade-in" id="feesTable">
+                  <thead>
+                    <tr>
+                      <th>Fee Type</th>
+                      <th>Total Amount</th>
+                      <th>Paid Amount</th>
+                      <th>Remaining</th>
+                      <th>Advance</th>
+                      <th>Status</th>
+                      <th>Due Date</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for fee in fees %}
+                    <tr data-fee-id="{{ fee.fee_id }}" data-remaining="{{ fee.remaining_amount }}" data-advance="{{ fee.advance_amount }}" class="premium-scale-in">
+                      <td>{{ fee.fee_id }} - {{ fee.fee_id }}</td>
+                      <td>₹{{ "%.2f"|format(fee.final_amount) }}</td>
+                      <td>₹{{ "%.2f"|format(fee.total_paid) }}</td>
+                      <td class="remaining-amount">₹{{ "%.2f"|format(fee.remaining_amount) }}</td>
+                      <td class="advance-amount">₹{{ "%.2f"|format(fee.advance_amount) }}</td>
+                      <td>
+                        <span class="badge badge-{{ 'success' if fee.status == 'paid' else 'warning' if fee.status == 'pending' else 'danger' if fee.status == 'overdue' else 'info' }}">
+                          {{ fee.status.title() }}
+                        </span>
+                      </td>
+                      <td>{{ fee.due_date or 'N/A' }}</td>
+                      <td>
+                        {% if fee.status != 'paid' %}
+                        <button class="btn btn-primary btn-sm pay-btn premium-scale-in" 
+                                data-fee-id="{{ fee.fee_id }}" 
+                                data-remaining="{{ fee.remaining_amount }}"
+                                data-advance="{{ fee.advance_amount }}">
+                          <i class="fas fa-credit-card me-1"></i>Pay Now
+                        </button>
+                        {% else %}
+                        <span class="text-success"><i class="fas fa-check-circle me-1"></i> Paid</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content premium-scale-in">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-credit-card me-2"></i>Process Payment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="paymentForm">
+          <input type="hidden" id="feeId" name="fee_id">
+          
+          <div class="mb-3">
+            <label for="paymentAmount" class="form-label"><i class="fas fa-rupee-sign me-1"></i>Payment Amount (₹)</label>
+            <input type="number" step="0.01" class="form-control" id="paymentAmount" name="payment_amount" required>
+            <small class="text-muted">Remaining amount: ₹<span id="remainingAmount">0.00</span></small>
+          </div>
+          
+          <div class="mb-3">
+            <label for="paymentMethod" class="form-label"><i class="fas fa-wallet me-1"></i>Payment Method</label>
+            <select class="form-select" id="paymentMethod" name="payment_method" required>
+              <option value="">Select payment method</option>
+              <option value="cash"><i class="fas fa-money-bill me-1"></i>Cash</option>
+              <option value="bank_transfer"><i class="fas fa-university me-1"></i>Bank Transfer</option>
+              <option value="upi"><i class="fas fa-mobile-alt me-1"></i>UPI</option>
+              <option value="cheque"><i class="fas fa-file-invoice me-1"></i>Cheque</option>
+              <option value="card"><i class="fas fa-credit-card me-1"></i>Card</option>
+            </select>
+          </div>
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Payment Processing:</strong> Your payment will be processed automatically and the fee balance will be updated immediately.
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="processPaymentBtn">
+          <i class="fas fa-spinner fa-spin me-2 d-none" id="paymentSpinner"></i>
+          <i class="fas fa-credit-card me-1"></i>Process Payment
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Result Modal -->
+<div class="modal fade" id="paymentResultModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content premium-scale-in">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-receipt me-2"></i>Payment Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="paymentResult"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="viewReceiptBtn">
+          <i class="fas fa-eye me-1"></i>View Receipt
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Payment processing
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate totals
+    calculateTotals();
+    
+    // Setup payment buttons
+    setupPaymentButtons();
+    
+    // Setup payment form
+    setupPaymentForm();
+});
+
+function calculateTotals() {
+    let totalDue = 0;
+    let totalPaid = 0;
+    let totalAdvance = 0;
+    
+    const rows = document.querySelectorAll('#feesTable tbody tr');
+    rows.forEach(row => {
+        const remaining = parseFloat(row.dataset.remaining) || 0;
+        const advance = parseFloat(row.dataset.advance) || 0;
+        const paid = parseFloat(row.querySelector('td:nth-child(3)').textContent.replace('₹', '')) || 0;
+        
+        totalDue += remaining;
+        totalPaid += paid;
+        totalAdvance += advance;
+    });
+    
+    document.getElementById('totalDue').textContent = totalDue.toFixed(2);
+    document.getElementById('totalPaid').textContent = totalPaid.toFixed(2);
+    document.getElementById('advanceBalance').textContent = totalAdvance.toFixed(2);
+    document.getElementById('netBalance').textContent = (totalDue - totalAdvance).toFixed(2);
+}
+
+function setupPaymentButtons() {
+    document.querySelectorAll('.pay-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const feeId = this.dataset.feeId;
+            const remaining = parseFloat(this.dataset.remaining);
+            const advance = parseFloat(this.dataset.advance);
+            
+            // Set modal values
+            document.getElementById('feeId').value = feeId;
+            document.getElementById('remainingAmount').textContent = remaining.toFixed(2);
+            document.getElementById('paymentAmount').value = remaining.toFixed(2);
+            document.getElementById('paymentAmount').min = '0.01';
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+        });
+    });
+}
+
+function setupPaymentForm() {
+    const form = document.getElementById('paymentForm');
+    const processBtn = document.getElementById('processPaymentBtn');
+    
+    processBtn.addEventListener('click', function() {
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const feeId = document.getElementById('feeId').value;
+        const amount = parseFloat(document.getElementById('paymentAmount').value);
+        const method = document.getElementById('paymentMethod').value;
+        
+        // Show loading
+        document.getElementById('paymentSpinner').classList.remove('d-none');
+        processBtn.disabled = true;
+        
+        // Process payment
+        fetch('/api/process-payment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fee_id: feeId,
+                payment_amount: amount,
+                payment_method: method
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showPaymentResult(data);
+                // Update table
+                updateFeeRow(feeId, data);
+                // Recalculate totals
+                calculateTotals();
+            } else {
+                showPaymentError(data.error);
+            }
+        })
+        .catch(error => {
+            showPaymentError('Payment processing failed. Please try again.');
+        })
+        .finally(() => {
+            // Hide loading
+            document.getElementById('paymentSpinner').classList.add('d-none');
+            processBtn.disabled = false;
+            
+            // Close payment modal
+            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        });
+    });
+}
+
+function showPaymentResult(data) {
+    const resultHtml = `
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Payment Successful!</strong>
+        </div>
+        <div class="payment-details">
+            <p><strong>Payment ID:</strong> ${data.payment_id}</p>
+            <p><strong>Amount Paid:</strong> ₹${data.remaining_amount.toFixed(2)}</p>
+            <p><strong>Remaining Balance:</strong> ₹${data.remaining_amount.toFixed(2)}</p>
+            <p><strong>Advance Amount:</strong> ₹${data.advance_amount.toFixed(2)}</p>
+            <p><strong>Status:</strong> ${data.status}</p>
+        </div>
+    `;
+    
+    document.getElementById('paymentResult').innerHTML = resultHtml;
+    document.getElementById('viewReceiptBtn').onclick = function() {
+        window.location.href = `/payment-receipt/${data.payment_id}`;
+    };
+    
+    const modal = new bootstrap.Modal(document.getElementById('paymentResultModal'));
+    modal.show();
+}
+
+function showPaymentError(error) {
+    const resultHtml = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Payment Failed!</strong>
+        </div>
+        <div class="payment-details">
+            <p><strong>Error:</strong> ${error}</p>
+            <p>Please try again or contact support.</p>
+        </div>
+    `;
+    
+    document.getElementById('paymentResult').innerHTML = resultHtml;
+    document.getElementById('viewReceiptBtn').style.display = 'none';
+    
+    const modal = new bootstrap.Modal(document.getElementById('paymentResultModal'));
+    modal.show();
+}
+
+function updateFeeRow(feeId, data) {
+    const row = document.querySelector(`tr[data-fee-id="${feeId}"]`);
+    if (row) {
+        // Update remaining amount
+        row.querySelector('.remaining-amount').textContent = `₹${data.remaining_amount.toFixed(2)}`;
+        row.querySelector('.advance-amount').textContent = `₹${data.advance_amount.toFixed(2)}`;
+        
+        // Update status
+        const statusCell = row.querySelector('td:nth-child(6) .badge');
+        statusCell.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+        statusCell.className = `badge badge-${getStatusClass(data.status)}`;
+        
+        // Update action button
+        const actionCell = row.querySelector('td:nth-child(8)');
+        if (data.status === 'paid' || data.remaining_amount === 0) {
+            actionCell.innerHTML = '<span class="text-success">✓ Paid</span>';
+        } else {
+            const btn = actionCell.querySelector('.pay-btn');
+            if (btn) {
+                btn.dataset.remaining = data.remaining_amount;
+                btn.dataset.advance = data.advance_amount;
+            }
+        }
+        
+        // Update row data attributes
+        row.dataset.remaining = data.remaining_amount;
+        row.dataset.advance = data.advance_amount;
+    }
+}
+
+function getStatusClass(status) {
+    switch(status) {
+        case 'paid': return 'success';
+        case 'pending': return 'warning';
+        case 'overdue': return 'danger';
+        case 'advance': return 'info';
+        default: return 'secondary';
+    }
+}
+</script>
+{% endblock %}

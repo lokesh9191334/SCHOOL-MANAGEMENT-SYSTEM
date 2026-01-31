@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <!-- Header -->
+    <header class="header safe-area">
+        <div class="header-content">
+            <!-- Hamburger Menu -->
+            <button class="hamburger-btn" id="hamburgerBtn">
+                <div class="hamburger-icon">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </div>
+            </button>
+
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="logo-container">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="app-name">School Management</div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Side Navigation -->
+    <nav class="side-nav" id="sideNav">
+        <div class="nav-header">
+            <div class="nav-header-content">
+                <div class="nav-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <div class="nav-title">School Management</div>
+                    <div class="nav-subtitle">Complete Education Solution</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-menu">
+            <!-- Main Navigation -->
+            <div class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a href="/" class="nav-item active">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="{{ url_for('students.list_students') }}" class="nav-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <span class="nav-text">Students</span>
+                    <span class="nav-badge">12</span>
+                </a>
+                <a href="{{ url_for('teachers.list_teachers') }}" class="nav-item">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span class="nav-text">Teachers</span>
+                </a>
+                <a href="{{ url_for('classes.list_classes') }}" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-text">Classes</span>
+                </a>
+                <a href="{{ url_for('subjects.list_subjects') }}" class="nav-item">
+                    <i class="fas fa-book"></i>
+                    <span class="nav-text">Subjects</span>
+                </a>
+            </div>
+
+            <!-- Management -->
+            <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <a href="{{ url_for('attendance.view_attendance') }}" class="nav-item">
+                    <i class="fas fa-calendar-check"></i>
+                    <span class="nav-text">Attendance</span>
+                </a>
+                <a href="{{ url_for('salaries.list_salaries') }}" class="nav-item">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span class="nav-text">Salaries</span>
+                </a>
+                <a href="{{ url_for('fees.list_fees') }}" class="nav-item">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span class="nav-text">Fees</span>
+                    <span class="nav-badge">3</span>
+                </a>
+            </div>
+
+            <!-- Other -->
+            <div class="nav-section">
+                <div class="nav-section-title">Other</div>
+                <a href="/events" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="nav-text">Events</span>
+                </a>
+                <a href="/profile" class="nav-item">
+                    <i class="fas fa-user"></i>
+                    <span class="nav-text">Profile</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+                <a href="{{ url_for('dashboard.help') }}" class="nav-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span class="nav-text">Help</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="nav-text">Logout</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <h1 class="welcome-title">Welcome back, Admin!</h1>
+            <p class="welcome-subtitle">Here's what's happening at your school today</p>
+        </section>
+
+        <!-- Simple Welcome Content - No Boxes -->
+        <section style="text-align: center; padding: 3rem 1rem; background: white; margin: 1rem 0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                <i class="fas fa-graduation-cap" style="color: white; font-size: 2.5rem;"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #1a202c; font-weight: 700;">School Management System</h2>
+            <p style="font-size: 1rem; color: #64748b;">Complete Education Solution</p>
+        </section>
+    </main>
+
+{% endblock %}{% block scripts %}
+    <script>
+        // Menu toggle functionality
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sideNav = document.getElementById('sideNav');
+
+        function toggleMenu() {
+            hamburgerBtn.classList.toggle('active');
+            sideNav.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            // Prevent body scroll when menu is open
+            if (sideNav.classList.contains('active')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+
+        hamburgerBtn.addEventListener('click', toggleMenu);
+        overlay.addEventListener('click', toggleMenu);
+
+
+
+        // Add ripple effect to action cards
+        const actionCards = document.querySelectorAll('.action-card');
+        actionCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+
+        // Add active state to navigation items based on current page
+        const navItems = document.querySelectorAll('.nav-item'); // Define navItems here
+        const currentPath = window.location.pathname;
+        navItems.forEach(item => {
+            if (item.getAttribute('href') === currentPath) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+
+        // Prevent zoom on double tap for mobile
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+{% endblock %}

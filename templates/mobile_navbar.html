@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Navigation System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Top Navigation Bar */
+        .top-navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #1a1a1a;
+            text-decoration: none;
+        }
+
+        .navbar-brand i {
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: #667eea;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h3 {
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .sidebar-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+
+        .nav-section {
+            margin-bottom: 30px;
+        }
+
+        .nav-section-title {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0 20px;
+            margin-bottom: 15px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 15px 20px;
+            color: #1a1a1a;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding-left: 25px;
+        }
+
+        .nav-item.active {
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+            border-left: 4px solid #667eea;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .user-info {
+                display: none;
+            }
+
+            .navbar-brand {
+                font-size: 1.3em;
+            }
+
+            .sidebar {
+                width: 280px;
+                left: -280px;
+            }
+
+            .main-content {
+                margin-top: 70px;
+                padding: 15px;
+            }
+
+            .content-card {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar-content {
+                padding: 12px 15px;
+            }
+
+            .navbar-brand {
+                font-size: 1.2em;
+            }
+
+            .sidebar {
+                width: 260px;
+                left: -260px;
+            }
+
+            .main-content {
+                margin-top: 60px;
+                padding: 10px;
+            }
+
+            .content-card {
+                padding: 15px;
+            }
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 769px) {
+            .sidebar {
+                left: 0;
+                width: 250px;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+
+            .main-content {
+                margin-left: 250px;
+                margin-top: 70px;
+            }
+
+            .menu-toggle {
+                display: none;
+            }
+
+            .user-info {
+                display: flex;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .overlay {
+                display: none;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1200px) {
+            .sidebar {
+                width: 280px;
+            }
+
+            .main-content {
+                margin-left: 280px;
+            }
+        }
+
+        /* Role-specific colors */
+        .role-admin .navbar-brand i,
+        .role-admin .nav-item:hover,
+        .role-admin .nav-item.active {
+            color: #e74c3c;
+        }
+
+        .role-teacher .navbar-brand i,
+        .role-teacher .nav-item:hover,
+        .role-teacher .nav-item.active {
+            color: #667eea;
+        }
+
+        .role-parent .navbar-brand i,
+        .role-parent .nav-item:hover,
+        .role-parent .nav-item.active {
+            color: #27ae60;
+        }
+
+        .role-admin .sidebar-header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .role-teacher .sidebar-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .role-parent .sidebar-header {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .role-admin .user-info {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .role-teacher .user-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .role-parent .user-info {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+        <div class="navbar-content">
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="#" class="navbar-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>School Management</span>
+            </a>
+            
+            <div class="navbar-actions">
+                <div class="user-info">
+                    <i class="fas fa-user"></i>
+                    <span id="userName">John Doe</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Navigation</h3>
+            <button class="sidebar-close" id="sidebarClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <!-- Dashboard -->
+            <div class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a href="#" class="nav-item active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+
+            <!-- Admin Section -->
+            <div class="nav-section" id="adminSection">
+                <div class="nav-section-title">Administration</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-users"></i>
+                    <span>Teachers</span>
+                    <span class="nav-badge">5</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Students</span>
+                    <span class="nav-badge">120</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chalkboard"></i>
+                    <span>Classes</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-door-open"></i>
+                    <span>Classrooms</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Timetable</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Exams</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Reports</span>
+                </a>
+            </div>
+
+            <!-- Teacher Section -->
+            <div class="nav-section" id="teacherSection">
+                <div class="nav-section-title">Teaching</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Leave Status</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span>Apply Leave</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>My Students</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-book"></i>
+                    <span>Subjects</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-tasks"></i>
+                    <span>Assignments</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Attendance</span>
+                </a>
+            </div>
+
+            <!-- Parent Section -->
+            <div class="nav-section" id="parentSection">
+                <div class="nav-section-title">Parent</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-child"></i>
+                    <span>My Children</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Performance</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Attendance</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Fees</span>
+                    <span class="nav-badge">2</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-comments"></i>
+                    <span>Messages</span>
+                </a>
+            </div>
+
+            <!-- Common Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Account</div>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-user-cog"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                    <span class="nav-badge">3</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-card">
+            <h1>Welcome to School Management System</h1>
+            <p>This is a demonstration of the mobile-responsive navigation system.</p>
+            <br>
+            <h3>Features:</h3>
+            <ul>
+                <li>✅ Responsive 3-bar hamburger menu for mobile</li>
+                <li>✅ Auto-adjusting sizes for mobile, tablet, and desktop</li>
+                <li>✅ Role-based navigation (Admin, Teacher, Parent)</li>
+                <li>✅ Smooth animations and transitions</li>
+                <li>✅ Professional design with glass-morphism effects</li>
+            </ul>
+            <br>
+            <h3>Test Instructions:</h3>
+            <ol>
+                <li>Resize your browser to see responsive behavior</li>
+                <li>On mobile: Click the 3-bar menu to open sidebar</li>
+                <li>On desktop: Sidebar stays open permanently</li>
+                <li>Test with different user roles</li>
+            </ol>
+        </div>
+    </main>
+
+    <script>
+        // Get elements
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const body = document.body;
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        // Close sidebar
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        // Event listeners
+        menuToggle.addEventListener('click', toggleSidebar);
+        sidebarClose.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+
+        // Handle window resize
+        function handleResize() {
+            if (window.innerWidth > 768) {
+                closeSidebar();
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+
+        // Set user role (for demonstration)
+        function setUserRole(role) {
+            body.className = `role-${role}`;
+            
+            // Show/hide relevant sections
+            const adminSection = document.getElementById('adminSection');
+            const teacherSection = document.getElementById('teacherSection');
+            const parentSection = document.getElementById('parentSection');
+            
+            adminSection.style.display = role === 'admin' ? 'block' : 'none';
+            teacherSection.style.display = role === 'teacher' ? 'block' : 'none';
+            parentSection.style.display = role === 'parent' ? 'block' : 'none';
+            
+            // Update user name
+            const userName = document.getElementById('userName');
+            userName.textContent = role === 'admin' ? 'Admin User' : 
+                               role === 'teacher' ? 'Teacher User' : 'Parent User';
+        }
+
+        // Initialize with teacher role (you can change this)
+        setUserRole('teacher');
+
+        // Add keyboard support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                closeSidebar();
+            }
+        });
+    </script>
+</body>
+</html>

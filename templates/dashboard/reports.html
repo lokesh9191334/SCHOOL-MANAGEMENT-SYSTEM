@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-file-alt text-primary me-2"></i>Reports & Exports
+                    </h1>
+                    <p class="text-muted mt-1">Generate and export comprehensive reports for your school data</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('dashboard.analytics') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line me-2"></i>View Analytics
+                    </a>
+                    <button onclick="refreshReports()" class="btn btn-outline-secondary">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Students Data
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ students_count or 0 }}</div>
+                            <div class="text-xs text-muted">Records available</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Fee Records
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ fees_count or 0 }}</div>
+                            <div class="text-xs text-muted">Payment records</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Attendance Data
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ attendance_count or 0 }}</div>
+                            <div class="text-xs text-muted">Attendance records</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Teachers Data
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ teachers_count or 0 }}</div>
+                            <div class="text-xs text-muted">Faculty records</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chalkboard-teacher fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Categories -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>Student Reports
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                    <h5 class="card-title">Complete Student List</h5>
+                                    <p class="card-text">Export all student information including personal details, class, and contact information.</p>
+                                    <a href="{{ url_for('dashboard.export_report', report_type='students') }}"
+                                       class="btn btn-primary">
+                                        <i class="fas fa-download me-2"></i>Export CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-graduate fa-3x text-success mb-3"></i>
+                                    <h5 class="card-title">Student Performance</h5>
+                                    <p class="card-text">Academic performance reports with grades, attendance, and progress tracking.</p>
+                                    <button class="btn btn-success" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-id-card fa-3x text-info mb-3"></i>
+                                    <h5 class="card-title">ID Card Data</h5>
+                                    <p class="card-text">Student ID card information with photos and personal details for printing.</p>
+                                    <button class="btn btn-info" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fee Reports -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-rupee-sign me-2"></i>Financial Reports
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-invoice-dollar fa-3x text-success mb-3"></i>
+                                    <h5 class="card-title">Fee Collection Report</h5>
+                                    <p class="card-text">Complete fee collection details with payment status, amounts, and outstanding balances.</p>
+                                    <a href="{{ url_for('dashboard.export_report', report_type='fees') }}"
+                                       class="btn btn-success">
+                                        <i class="fas fa-download me-2"></i>Export CSV
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                                    <h5 class="card-title">Outstanding Fees</h5>
+                                    <p class="card-text">List of all pending fee payments with student details and amounts due.</p>
+                                    <button class="btn btn-warning" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                                    <h5 class="card-title">Monthly Revenue</h5>
+                                    <p class="card-text">Monthly fee collection trends and revenue analysis over time.</p>
+                                    <button class="btn btn-info" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Reports -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-calendar-check me-2"></i>Attendance Reports
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-alt fa-3x text-info mb-3"></i>
+                                    <h5 class="card-title">Daily Attendance</h5>
+                                    <p class="card-text">Complete daily attendance records for all classes and students.</p>
+                                    <button class="btn btn-info" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-primary">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-percentage fa-3x text-primary mb-3"></i>
+                                    <h5 class="card-title">Attendance Summary</h5>
+                                    <p class="card-text">Monthly attendance percentages and trends for each student and class.</p>
+                                    <button class="btn btn-primary" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-danger">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                                    <h5 class="card-title">Defaulters List</h5>
+                                    <p class="card-text">Students with low attendance percentage requiring attention.</p>
+                                    <button class="btn btn-danger" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Reports -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>Staff & Faculty Reports
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-warning">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users fa-3x text-warning mb-3"></i>
+                                    <h5 class="card-title">Teacher Directory</h5>
+                                    <p class="card-text">Complete list of all teachers with subjects, contact details, and qualifications.</p>
+                                    <button class="btn btn-warning" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-success">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-money-bill-wave fa-3x text-success mb-3"></i>
+                                    <h5 class="card-title">Salary Reports</h5>
+                                    <p class="card-text">Monthly salary details, deductions, and payment status for all staff.</p>
+                                    <button class="btn btn-success" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-left-info">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tasks fa-3x text-info mb-3"></i>
+                                    <h5 class="card-title">Workload Analysis</h5>
+                                    <p class="card-text">Subject allocation and teaching load distribution among faculty members.</p>
+                                    <button class="btn btn-info" disabled>
+                                        <i class="fas fa-download me-2"></i>Coming Soon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Report Builder -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-secondary">
+                        <i class="fas fa-cogs me-2"></i>Custom Report Builder
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Advanced Reporting Feature:</strong> Create custom reports with specific filters, date ranges, and data fields. This feature allows you to generate tailored reports for specific school requirements and administrative needs.
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-secondary btn-lg" disabled>
+                            <i class="fas fa-plus me-2"></i>Build Custom Report
+                        </button>
+                        <p class="text-muted mt-2">Coming Soon - Advanced reporting capabilities</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-dark">
+                        <i class="fas fa-history me-2"></i>Recent Exports
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Report Type</th>
+                                    <th>Generated On</th>
+                                    <th>Records</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="fas fa-users text-primary me-2"></i>Students Report</td>
+                                    <td>{{ current_time or 'Just now' }}</td>
+                                    <td>{{ students_count or 0 }} records</td>
+                                    <td><span class="badge bg-success">Ready</span></td>
+                                    <td>
+                                        <a href="{{ url_for('dashboard.export_report', report_type='students') }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-rupee-sign text-success me-2"></i>Fees Report</td>
+                                    <td>{{ current_time or 'Just now' }}</td>
+                                    <td>{{ fees_count or 0 }} records</td>
+                                    <td><span class="badge bg-success">Ready</span></td>
+                                    <td>
+                                        <a href="{{ url_for('dashboard.export_report', report_type='fees') }}"
+                                           class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-download me-1"></i>Download
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshReports() {
+    location.reload();
+}
+
+// Add loading animation for export buttons
+document.querySelectorAll('a[href*="export_report"]').forEach(link => {
+    link.addEventListener('click', function(e) {
+        const btn = this;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        btn.disabled = true;
+
+        // Re-enable after 3 seconds (in case of slow download)
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }, 3000);
+    });
+});
+</script>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-danger {
+    border-left: 0.25rem solid #e74a3b !important;
+}
+.text-primary {
+    color: #5a5c69 !important;
+}
+.text-gray-800 {
+    color: #5a5c69 !important;
+}
+</style>
+{% endblock %}

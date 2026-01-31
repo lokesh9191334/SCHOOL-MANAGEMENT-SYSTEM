@@ -1,0 +1,899 @@
+{% extends "base.html" %}
+
+{% block title %}Register - School Management System{% endblock %}
+
+{% block content %}
+<style>
+.ultra-premium-register {
+    background: 
+        linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%),
+        radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 10% 10%, rgba(168, 85, 247, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 90% 90%, rgba(251, 146, 60, 0.25) 0%, transparent 50%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.ultra-premium-register::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 25% 75%, rgba(168, 85, 247, 0.18) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(251, 146, 60, 0.18) 0%, transparent 50%);
+    animation: ultraRegisterBackgroundShift 25s ease-in-out infinite;
+}
+
+@keyframes ultraRegisterBackgroundShift {
+    0%, 100% { 
+        transform: translate(0, 0) rotate(0deg) scale(1); 
+        filter: hue-rotate(0deg) brightness(1) saturate(1);
+    }
+    16.67% { 
+        transform: translate(-50px, -40px) rotate(60deg) scale(1.15); 
+        filter: hue-rotate(60deg) brightness(1.2) saturate(1.3);
+    }
+    33.33% { 
+        transform: translate(40px, -50px) rotate(120deg) scale(0.85); 
+        filter: hue-rotate(120deg) brightness(0.8) saturate(0.7);
+    }
+    50% { 
+        transform: translate(-40px, 40px) rotate(180deg) scale(1.1); 
+        filter: hue-rotate(180deg) brightness(1.1) saturate(1.2);
+    }
+    66.67% { 
+        transform: translate(50px, 30px) rotate(240deg) scale(0.9); 
+        filter: hue-rotate(240deg) brightness(0.9) saturate(0.8);
+    }
+    83.33% { 
+        transform: translate(-30px, 50px) rotate(300deg) scale(1.05); 
+        filter: hue-rotate(300deg) brightness(1.05) saturate(1.1);
+    }
+}
+
+.ultra-premium-card {
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.97) 50%, rgba(241, 245, 249, 0.95) 100%);
+    backdrop-filter: blur(40px) saturate(250%) contrast(1.1);
+    border-radius: 40px;
+    box-shadow: 
+        0 50px 100px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.5),
+        inset 0 0 60px rgba(255, 255, 255, 0.3),
+        0 0 200px rgba(59, 130, 246, 0.2),
+        0 0 100px rgba(236, 72, 153, 0.15),
+        inset 0 0 30px rgba(168, 85, 247, 0.1);
+    overflow: hidden;
+    max-width: 650px;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+    transform: perspective(2000px) rotateX(5deg) rotateY(-4deg);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 3px solid rgba(255, 255, 255, 0.6);
+}
+
+.ultra-premium-card:hover {
+    transform: perspective(2000px) rotateX(0deg) rotateY(0deg) translateY(-15px) scale(1.05);
+    box-shadow: 
+        0 60px 120px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.7),
+        inset 0 0 80px rgba(255, 255, 255, 0.4),
+        0 0 250px rgba(59, 130, 246, 0.3),
+        0 0 150px rgba(236, 72, 153, 0.2),
+        inset 0 0 40px rgba(168, 85, 247, 0.15);
+}
+
+.ultra-premium-header {
+    background: 
+        linear-gradient(135deg, #3b82f6 0%, #06b6d4 25%, #22c55e 50%, #eab308 75%, #ef4444 100%);
+    color: white;
+    padding: 65px 55px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.ultra-premium-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="registerGrain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="2.5" fill="rgba(255,255,255,0.25)"/></pattern></defs><rect width="100" height="100" fill="url(%23registerGrain)"/></svg>'),
+        linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%),
+        linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.15) 60%, transparent 80%);
+    opacity: 0.8;
+    animation: ultraRegisterGrain 15s linear infinite;
+}
+
+@keyframes ultraRegisterGrain {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    12.5% { transform: translate(-15%, -22%) rotate(45deg); }
+    25% { transform: translate(22%, -15%) rotate(90deg); }
+    37.5% { transform: translate(-22%, 22%) rotate(135deg); }
+    50% { transform: translate(15%, 22%) rotate(180deg); }
+    62.5% { transform: translate(22%, -22%) rotate(225deg); }
+    75% { transform: translate(-22%, 15%) rotate(270deg); }
+    87.5% { transform: translate(15%, 15%) rotate(315deg); }
+}
+
+.ultra-premium-header h3 {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 900;
+    position: relative;
+    z-index: 1;
+    text-shadow: 
+        0 8px 16px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(255, 255, 255, 0.5),
+        0 0 80px rgba(255, 255, 255, 0.3);
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.ultra-premium-header p {
+    margin: 20px 0 0 0;
+    opacity: 0.95;
+    font-size: 20px;
+    position: relative;
+    z-index: 1;
+    font-weight: 700;
+    text-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.ultra-premium-body {
+    padding: 65px 55px;
+    background: 
+        linear-gradient(135deg, rgba(255, 255, 255, 0.995) 0%, rgba(248, 250, 252, 0.98) 50%, rgba(241, 245, 249, 0.97) 100%);
+    position: relative;
+}
+
+.ultra-premium-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 25% 25%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(34, 197, 94, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 15% 85%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 85% 15%, rgba(251, 146, 60, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.ultra-premium-form .form-group {
+    margin-bottom: 25px;
+    position: relative;
+    z-index: 1;
+}
+
+.ultra-premium-form .form-label {
+    color: #0f172a;
+    font-weight: 800;
+    margin-bottom: 15px;
+    font-size: 17px;
+    display: block;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    position: relative;
+}
+
+.ultra-premium-form .form-label::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 30px;
+    height: 3px;
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #22c55e 100%);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.ultra-premium-form .form-group:hover .form-label::after {
+    width: 60px;
+}
+
+.ultra-premium-form .form-control,
+.ultra-premium-form .form-select {
+    border: 3px solid #e2e8f0;
+    border-radius: 25px;
+    padding: 24px 32px;
+    font-size: 18px;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    background: 
+        linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.08),
+        inset 0 4px 8px rgba(255, 255, 255, 0.95),
+        0 0 0 1px rgba(255, 255, 255, 0.8);
+    position: relative;
+}
+
+.ultra-premium-form .form-control:focus,
+.ultra-premium-form .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 
+        0 0 0 8px rgba(59, 130, 246, 0.2),
+        0 20px 50px rgba(59, 130, 246, 0.4),
+        inset 0 4px 8px rgba(255, 255, 255, 0.95),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    background: white;
+    transform: translateY(-6px) scale(1.03);
+}
+
+.ultra-premium-form .input-icon {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    font-size: 28px;
+    transition: all 0.6s ease;
+    z-index: 5;
+}
+
+.ultra-premium-form .form-control:focus + .input-icon {
+    color: #3b82f6;
+    transform: translateY(-50%) scale(1.25);
+    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.6));
+}
+
+.ultra-premium-form textarea.form-control {
+    resize: vertical;
+    min-height: 110px;
+}
+
+.ultra-premium-btn {
+    background: 
+        linear-gradient(135deg, #3b82f6 0%, #06b6d4 25%, #22c55e 50%, #eab308 75%, #ef4444 100%);
+    border: none;
+    border-radius: 25px;
+    padding: 25px;
+    font-size: 20px;
+    font-weight: 900;
+    color: white;
+    width: 100%;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-top: 25px;
+    box-shadow: 
+        0 25px 50px rgba(59, 130, 246, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.4),
+        inset 0 4px 8px rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    position: relative;
+}
+
+.ultra-premium-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ultra-premium-btn:hover::before {
+    opacity: 1;
+}
+
+.ultra-premium-btn:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 
+        0 35px 70px rgba(59, 130, 246, 0.8),
+        0 0 0 1px rgba(255, 255, 255, 0.5),
+        inset 0 4px 8px rgba(255, 255, 255, 0.5);
+}
+
+.ultra-premium-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    transition: left 1.2s ease;
+}
+
+.ultra-premium-btn:hover::after {
+    left: 100%;
+}
+
+.ultra-premium-btn:active {
+    transform: translateY(-4px) scale(1.02);
+}
+
+.ultra-premium-links {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 2px solid #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.ultra-premium-links a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.4s ease;
+    position: relative;
+}
+
+.ultra-premium-links a:hover {
+    color: #22c55e;
+    transform: translateY(-2px);
+}
+
+.ultra-special-key-field {
+    background: 
+        linear-gradient(135deg, #ec4899 0%, #f43f5e 25%, #ef4444 50%, #dc2626 75%, #b91c1c 100%);
+    border-radius: 30px;
+    padding: 30px;
+    margin-bottom: 30px;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    display: none;
+    animation: ultraSlideIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 15px 35px rgba(236, 72, 153, 0.4),
+        inset 0 4px 8px rgba(255, 255, 255, 0.3),
+        0 0 50px rgba(236, 72, 153, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.ultra-special-key-field::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+    animation: ultraKeyShimmer 3s ease-in-out infinite;
+}
+
+@keyframes ultraKeyShimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.8; }
+}
+
+.ultra-special-key-field.show {
+    display: block;
+}
+
+.ultra-special-key-field .form-label {
+    color: white;
+    font-weight: 900;
+    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+.ultra-special-key-field .form-control {
+    background: rgba(255, 255, 255, 0.98);
+    border: 3px solid rgba(255, 255, 255, 0.7);
+    color: #0f172a;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 4px;
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.15),
+        inset 0 4px 8px rgba(255, 255, 255, 0.95),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    font-size: 1.4em;
+}
+
+.ultra-special-key-field .form-control:focus {
+    background: white;
+    border-color: #ec4899;
+    box-shadow: 
+        0 0 0 8px rgba(236, 72, 153, 0.3),
+        0 20px 50px rgba(236, 72, 153, 0.4),
+        inset 0 4px 8px rgba(255, 255, 255, 0.95),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    transform: translateY(-6px) scale(1.03);
+}
+
+.ultra-special-key-field small {
+    color: rgba(255, 255, 255, 0.98);
+    font-size: 14px;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.ultra-google-signin-section {
+    margin-top: 50px;
+    position: relative;
+    z-index: 1;
+}
+
+.ultra-divider {
+    display: flex;
+    align-items: center;
+    margin: 35px 0;
+    color: #64748b;
+    font-weight: 700;
+}
+
+.ultra-divider::before,
+.ultra-divider::after {
+    content: '';
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+.ultra-divider span {
+    padding: 0 30px;
+    font-size: 17px;
+    font-weight: 800;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.995) 0%, rgba(248, 250, 252, 0.98) 50%, rgba(241, 245, 249, 0.97) 100%);
+    position: relative;
+    letter-spacing: 1px;
+}
+
+.ultra-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 20px 32px;
+    background: white;
+    border: 3px solid #e2e8f0;
+    border-radius: 22px;
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.7);
+    position: relative;
+    overflow: hidden;
+}
+
+.ultra-google-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(59, 130, 246, 0.05) 50%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ultra-google-btn:hover::before {
+    opacity: 1;
+}
+
+.ultra-google-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: 
+        0 12px 30px rgba(0, 0, 0, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.9);
+    transform: translateY(-4px);
+    color: #0f172a;
+}
+
+.ultra-google-icon {
+    width: 26px;
+    height: 26px;
+    margin-right: 20px;
+    transition: transform 0.3s ease;
+}
+
+.ultra-google-btn:hover .ultra-google-icon {
+    transform: scale(1.1);
+}
+
+.ultra-floating-shapes {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.ultra-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    animation: ultraRegisterFloat 12s ease-in-out infinite;
+}
+
+.ultra-shape1 {
+    width: 140px;
+    height: 140px;
+    top: 8%;
+    left: 3%;
+    animation-delay: 0s;
+}
+
+.ultra-shape2 {
+    width: 110px;
+    height: 110px;
+    top: 75%;
+    right: 5%;
+    animation-delay: 3.5s;
+}
+
+.ultra-shape3 {
+    width: 90px;
+    height: 90px;
+    bottom: 15%;
+    left: 18%;
+    animation-delay: 7s;
+}
+
+.ultra-shape4 {
+    width: 120px;
+    height: 120px;
+    top: 25%;
+    right: 15%;
+    animation-delay: 1.8s;
+}
+
+.ultra-shape5 {
+    width: 60px;
+    height: 60px;
+    bottom: 8%;
+    right: 12%;
+    animation-delay: 5.3s;
+}
+
+.ultra-shape6 {
+    width: 100px;
+    height: 100px;
+    top: 45%;
+    left: 8%;
+    animation-delay: 8.8s;
+}
+
+.ultra-shape7 {
+    width: 80px;
+    height: 80px;
+    top: 60%;
+    left: 25%;
+    animation-delay: 2.5s;
+}
+
+@keyframes ultraRegisterFloat {
+    0%, 100% { 
+        transform: translateY(0px) rotate(0deg) scale(1); 
+        opacity: 0.8;
+    }
+    14.29% { 
+        transform: translateY(-50px) rotate(51deg) scale(1.15); 
+        opacity: 0.6;
+    }
+    28.57% { 
+        transform: translateY(-25px) rotate(103deg) scale(0.9); 
+        opacity: 0.9;
+    }
+    42.86% { 
+        transform: translateY(-40px) rotate(154deg) scale(1.1); 
+        opacity: 0.7;
+    }
+    57.14% { 
+        transform: translateY(-30px) rotate(206deg) scale(0.95); 
+        opacity: 0.8;
+    }
+    71.43% { 
+        transform: translateY(-35px) rotate(257deg) scale(1.05); 
+        opacity: 0.6;
+    }
+    85.71% { 
+        transform: translateY(-20px) rotate(308deg) scale(0.85); 
+        opacity: 0.9;
+    }
+}
+
+@keyframes ultraSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .ultra-premium-card {
+        margin: 20px;
+    }
+    
+    .ultra-premium-body {
+        padding: 40px 30px;
+    }
+}
+
+.alert {
+    border-radius: 18px;
+    border: none;
+    margin-bottom: 30px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+</style>
+
+<div class="ultra-premium-register">
+    <div class="ultra-floating-shapes">
+        <div class="ultra-shape ultra-shape1"></div>
+        <div class="ultra-shape ultra-shape2"></div>
+        <div class="ultra-shape ultra-shape3"></div>
+        <div class="ultra-shape ultra-shape4"></div>
+        <div class="ultra-shape ultra-shape5"></div>
+        <div class="ultra-shape ultra-shape6"></div>
+    </div>
+    
+    <div class="ultra-premium-card">
+        <div class="ultra-premium-header">
+            <h3>Create Account</h3>
+            <p>Join Our Advanced School Management Platform</p>
+        </div>
+        
+        <div class="ultra-premium-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('auth.register') }}" class="ultra-premium-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Enter your complete name" required>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               placeholder="Enter your email address" required>
+                        <i class="fas fa-envelope input-icon"></i>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" 
+                               placeholder="Enter your phone number" required>
+                        <i class="fas fa-phone input-icon"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="account_type" class="form-label">Account Type</label>
+                        <select class="form-select" id="account_type" name="account_type" required>
+                            <option value="">Select Your Account Type</option>
+                            <option value="admin">Administrator</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="parent">Parent</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address" class="form-label">Complete Address</label>
+                    <textarea class="form-control" id="address" name="address" 
+                              placeholder="Enter your complete residential address" rows="4" required></textarea>
+                    <i class="fas fa-map-marker-alt" style="position: absolute; right: 28px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 24px; transition: all 0.5s ease; z-index: 5;"></i>
+                </div>
+                
+                <!-- Special Key Field - Only show for Parent -->
+                <div class="ultra-special-key-field" id="special_key_field">
+                    <label for="special_key" class="form-label">
+                        <i class="fas fa-key me-2"></i>Special Registration Key
+                    </label>
+                    <input type="text" class="form-control" id="special_key" name="special_key" 
+                           placeholder="6-DIGIT KEY" maxlength="6" style="font-size: 1.3em; letter-spacing: 3px;">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        Required for Parent accounts only (6-digit key provided by school administration)
+                    </small>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password" class="form-label">Secure Password</label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="Create a strong password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                               placeholder="Re-enter your password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                    </div>
+                </div>
+                
+                <button type="submit" class="ultra-premium-btn">
+                    <i class="fas fa-user-plus me-2"></i>Create Secure Account
+                </button>
+            </form>
+            
+            <div class="ultra-premium-links">
+                <p>
+                    <small>Already have an account?</small>
+                    <a href="{{ url_for('auth.login') }}">Sign In Here</a>
+                </p>
+                
+                <!-- Google Sign-In Section -->
+                <div class="ultra-google-signin-section">
+                    <div class="ultra-divider">
+                        <span>OR CONTINUE WITH</span>
+                    </div>
+                    <a href="{{ url_for('auth.google_login') }}" class="ultra-google-btn">
+                        <svg class="ultra-google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enhanced floating animation
+document.addEventListener('DOMContentLoaded', function() {
+    const shapes = document.querySelectorAll('.ultra-shape');
+    shapes.forEach((shape, index) => {
+        shape.style.animation = `ultraRegisterFloat ${10 + index * 2.5}s ease-in-out infinite`;
+        shape.style.animationDelay = `${index * 2}s`;
+    });
+});
+
+// Show/hide special key field based on account type
+document.getElementById('account_type').addEventListener('change', function() {
+    const accountType = this.value;
+    const specialKeyField = document.getElementById('special_key_field');
+    
+    if (accountType === 'parent') {
+        specialKeyField.classList.add('show');
+        document.getElementById('special_key').setAttribute('required', 'required');
+    } else {
+        specialKeyField.classList.remove('show');
+        document.getElementById('special_key').removeAttribute('required');
+        document.getElementById('special_key').value = '';
+    }
+});
+
+// Validate special key format
+document.getElementById('special_key').addEventListener('input', function(e) {
+    const value = e.target.value.toUpperCase();
+    const keyPattern = /^[A-Z0-9!@#$%&*]{6}$/;  // 6 characters: letters, numbers, special chars
+    
+    if (value.length > 0 && !keyPattern.test(value)) {
+        e.target.setCustomValidity('Invalid key format. Expected: 6 characters (letters, numbers, special chars)');
+    } else {
+        e.target.setCustomValidity('');
+    }
+});
+
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+// Auto-format key to uppercase
+document.getElementById('special_key').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+
+// Enhanced ripple effect
+document.querySelector('.ultra-premium-btn').addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('ultra-ripple');
+    
+    this.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 1000);
+});
+</script>
+
+<style>
+.ultra-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(0);
+    animation: ultra-ripple-animation 1s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ultra-ripple-animation {
+    to {
+        transform: scale(5);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}

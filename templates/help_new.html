@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Support - School Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 50%, #e2e8f0 100%);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            padding-top: 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar .nav-link {
+            color: #2d3748;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem 1rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar .nav-link i {
+            color: #3182ce;
+            width: 20px;
+            text-align: center;
+            margin-right: 0.75rem;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+
+        .sidebar .nav-link:hover {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #3182ce;
+            border-left-color: #3182ce;
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(49, 130, 206, 0.2);
+        }
+
+        .sidebar .nav-link:hover i {
+            color: #2c5282;
+            transform: scale(1.1);
+        }
+
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            color: #ffffff;
+            border-left-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(49, 130, 206, 0.3);
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link.active i {
+            color: #ffffff;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        /* Help Cards */
+        .help-card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            margin-bottom: 2rem;
+        }
+
+        .help-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .help-card .card-header {
+            background: transparent;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 700;
+            color: #1a365d;
+            padding: 1.5rem;
+        }
+
+        .step-card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            background: #ffffff;
+            margin-bottom: 1rem;
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Logout Button */
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+
+        .logout-btn .btn {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <nav class="nav flex-column">
+            <a class="nav-link" href="/">
+                <i class="fas fa-home"></i>Dashboard
+            </a>
+            <a class="nav-link" href="/students/add">
+                <i class="fas fa-user-plus"></i>Add Student
+            </a>
+            <a class="nav-link" href="/students">
+                <i class="fas fa-user-graduate"></i>Students
+            </a>
+            <a class="nav-link" href="/teachers">
+                <i class="fas fa-chalkboard-teacher"></i>Teachers
+            </a>
+            <a class="nav-link" href="/classes">
+                <i class="fas fa-users"></i>Classes
+            </a>
+            <a class="nav-link" href="/subjects">
+                <i class="fas fa-book"></i>Subjects
+            </a>
+            <a class="nav-link" href="/attendance">
+                <i class="fas fa-calendar-check"></i>Attendance
+            </a>
+            <a class="nav-link" href="/salaries">
+                <i class="fas fa-money-bill-wave"></i>Salaries
+            </a>
+            <a class="nav-link" href="/fees">
+                <i class="fas fa-dollar-sign"></i>Fees
+            </a>
+            <a class="nav-link" href="/events">
+                <i class="fas fa-calendar-alt"></i>Events
+            </a>
+            <a class="nav-link" href="/reports">
+                <i class="fas fa-file-alt"></i>Reports
+            </a>
+            <a class="nav-link" href="/settings">
+                <i class="fas fa-cog"></i>Settings
+            </a>
+            <a class="nav-link active" href="/help">
+                <i class="fas fa-question-circle"></i>Help
+            </a>
+        </nav>
+    </div>
+
+    <!-- Logout Button -->
+    <div class="logout-btn">
+        <a href="/auth/logout" class="btn btn-danger btn-sm">
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Help & Support</h1>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary btn-sm">
+                    <i class="fas fa-download"></i> Download Guide
+                </button>
+                <button class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+
+        <!-- Getting Started -->
+        <div class="help-card fade-in-up">
+            <div class="card-header">
+                <h4><i class="fas fa-rocket me-2"></i>Getting Started</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">Welcome to School Management System! Follow these steps to get started quickly.</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">1</div>
+                                <div>
+                                    <h6>Login to System</h6>
+                                    <p class="text-muted small">Use your email and password to login to the system.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">2</div>
+                                <div>
+                                    <h6>Explore Dashboard</h6>
+                                    <p class="text-muted small">View your dashboard to see statistics and quick actions.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">3</div>
+                                <div>
+                                    <h6>Add Students</h6>
+                                    <p class="text-muted small">Navigate to Students section and add new students.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">4</div>
+                                <div>
+                                    <h6>Manage Classes</h6>
+                                    <p class="text-muted small">Create classes and assign students to them.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Management -->
+        <div class="help-card fade-in-up">
+            <div class="card-header">
+                <h4><i class="fas fa-user-graduate me-2"></i>Student Management</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">1</div>
+                                <div>
+                                    <h6>Add New Student</h6>
+                                    <p class="text-muted small">Go to Students section → Click "Add Student" → Fill in required information (name, email, phone, class, etc.) → Click Save</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">2</div>
+                                <div>
+                                    <h6>Edit Student Information</h6>
+                                    <p class="text-muted small">Navigate to Students list → Click on student name → Click "Edit" → Update information → Save changes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">3</div>
+                                <div>
+                                    <h6>View Student Details</h6>
+                                    <p class="text-muted small">Students list → Click on student name → View complete profile including attendance, fees, and performance</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Management -->
+        <div class="help-card fade-in-up">
+            <div class="card-header">
+                <h4><i class="fas fa-calendar-check me-2"></i>Attendance Management</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">1</div>
+                                <div>
+                                    <h6>Mark Daily Attendance</h6>
+                                    <p class="text-muted small">Attendance section → Select date → Select class → Mark present/absent for each student → Submit</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">2</div>
+                                <div>
+                                    <h6>View Attendance Reports</h6>
+                                    <p class="text-muted small">Attendance section → Select date range → Select class → Click "Generate Report" → View or export</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">3</div>
+                                <div>
+                                    <h6>Update Attendance</h6>
+                                    <p class="text-muted small">Attendance reports → Find the date → Click "Edit" → Update attendance status → Save changes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Management -->
+        <div class="help-card fade-in-up">
+            <div class="card-header">
+                <h4><i class="fas fa-dollar-sign me-2"></i>Fee Management</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">1</div>
+                                <div>
+                                    <h6>Create Fee Structure</h6>
+                                    <p class="text-muted small">Fees section → Click "Add Fee" → Select student → Enter amount and due date → Save</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">2</div>
+                                <div>
+                                    <h6>Record Payment</h6>
+                                    <p class="text-muted small">Fees list → Find student fee → Click "Pay Now" → Enter payment details → Save payment</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="step-card">
+                            <div class="d-flex">
+                                <div class="step-number me-3">3</div>
+                                <div>
+                                    <h6>Generate Fee Reports</h6>
+                                    <p class="text-muted small">Fees section → Click "Reports" → Select date range → Generate report → Export PDF/Excel</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Issues -->
+        <div class="help-card fade-in-up">
+            <div class="card-header">
+                <h4><i class="fas fa-exclamation-triangle me-2"></i>Common Issues & Solutions</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <h6><i class="fas fa-lock me-2"></i>Forgot Password?</h6>
+                            <p class="text-muted small">Contact administrator to reset your password. You can also use the "Forgot Password" link on login page.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <h6><i class="fas fa-sync me-2"></i>Data Not Updating?</h6>
+                            <p class="text-muted small">Refresh the page or clear browser cache. If issue persists, contact technical support.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <h6><i class="fas fa-download me-2"></i>Reports Not Downloading?</h6>
+                            <p class="text-muted small">Check browser download settings and ensure pop-ups are allowed for this site.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="step-card">
+                            <h6><i class="fas fa-mobile-alt me-2"></i>Mobile Access Issues?</h6>
+                            <p class="text-muted small">Use mobile browser or PWA app. Ensure you have stable internet connection.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Support -->
+        <div class="help-card fade-in-up">
+            <div class="card-header">
+                <h4><i class="fas fa-headset me-2"></i>Contact Support</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="step-number mx-auto mb-3">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <h6>Phone Support</h6>
+                            <p class="text-muted">+91-XXXXXXXXXX<br>Mon-Fri: 9AM-6PM</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="step-number mx-auto mb-3">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <h6>Email Support</h6>
+                            <p class="text-muted">support@schoolms.com<br>24/7 Support</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="step-number mx-auto mb-3">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h6>Live Chat</h6>
+                            <p class="text-muted">Available on website<br>Business Hours</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

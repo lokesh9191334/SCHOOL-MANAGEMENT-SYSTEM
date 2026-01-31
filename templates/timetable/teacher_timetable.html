@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}My Timetable - {{ teacher.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>My Timetable
+                    </h2>
+                    <p class="text-muted mb-0">{{ teacher.name }} - {{ teacher.subject.name if teacher.subject else 'Teacher' }}</p>
+                </div>
+                <div>
+                    <button class="btn btn-info" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i>Print Timetable
+                    </button>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Quick Info Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetable_by_day|length }}</h4>
+                            <p class="mb-0">Working Days</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-week fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetable_by_day.values()|map('length')|sum }}</h4>
+                            <p class="mb-0">Total Periods</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetable_by_day.values()|selectattr('0.is_lab_period')|list|length }}</h4>
+                            <p class="mb-0">Lab Periods</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-flask fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ timetable_by_day.values()|selectattr('0.is_break_period')|list|length }}</h4>
+                            <p class="mb-0">Break Periods</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-coffee fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable Grid -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-week me-2"></i>Weekly Schedule
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if timetable_by_day %}
+                <div class="table-responsive">
+                    <table class="table table-bordered timetable-grid">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="80">Period</th>
+                                <th width="120">Time</th>
+                                <th>Monday</th>
+                                <th>Tuesday</th>
+                                <th>Wednesday</th>
+                                <th>Thursday</th>
+                                <th>Friday</th>
+                                <th>Saturday</th>
+                                <th>Sunday</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set max_periods = 8 %}
+                            {% for period in range(1, max_periods + 1) %}
+                            <tr>
+                                <td class="text-center">
+                                    <strong>Period {{ period }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    {% set period_times = {
+                                        1: ('08:00', '08:45'),
+                                        2: ('08:50', '09:35'),
+                                        3: ('09:55', '10:40'),
+                                        4: ('10:45', '11:30'),
+                                        5: ('11:35', '12:20'),
+                                        6: ('13:00', '13:45'),
+                                        7: ('13:50', '14:35'),
+                                        8: ('14:40', '15:25')
+                                    } %}
+                                    {% if period_times[period] %}
+                                        <small>{{ period_times[period][0] }} - {{ period_times[period][1] }}</small>
+                                    {% endif %}
+                                </td>
+                                {% for day_name in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                <td class="timetable-cell">
+                                    {% set day_entries = timetable_by_day.get(day_name, []) %}
+                                    {% set period_entry = day_entries|selectattr('period_number', 'equalto', period)|first %}
+                                    {% if period_entry %}
+                                        <div class="entry-card {{ 'lab-period' if period_entry.is_lab_period else '' }} {{ 'break-period' if period_entry.is_break_period else '' }}">
+                                            <div class="entry-header">
+                                                <strong>{{ period_entry.subject.name }}</strong>
+                                            </div>
+                                            <div class="entry-body">
+                                                <small class="text-muted">{{ period_entry.classroom.name if period_entry.classroom else 'N/A' }}</small><br>
+                                                {% if period_entry.room_number %}
+                                                    <small class="text-info">Room: {{ period_entry.room_number }}</small><br>
+                                                {% endif %}
+                                                {% if period_entry.is_lab_period %}
+                                                    <span class="badge bg-info">Lab</span>
+                                                {% endif %}
+                                                {% if period_entry.is_break_period %}
+                                                    <span class="badge bg-warning">Break</span>
+                                                {% endif %}
+                                                {% if period_entry.notes %}
+                                                    <small class="text-muted">{{ period_entry.notes }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="empty-cell">
+                                            <small class="text-muted">Free</small>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Timetable Available</h4>
+                    <p class="text-muted">Your timetable hasn't been created yet. Please contact the administrator.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Day-wise Details -->
+    {% if timetable_by_day %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Detailed Schedule
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="accordion" id="dayAccordion">
+                {% for day_name, entries in timetable_by_day.items() %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading{{ loop.index }}">
+                        <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                            <strong>{{ day_name }}</strong>
+                            <span class="badge bg-primary ms-2">{{ entries|length }} Periods</span>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                         data-bs-parent="#dayAccordion">
+                        <div class="accordion-body">
+                            {% if entries %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Period</th>
+                                                <th>Time</th>
+                                                <th>Subject</th>
+                                                <th>Class</th>
+                                                <th>Room</th>
+                                                <th>Type</th>
+                                                <th>Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for entry in entries|sort(attribute='period_number') %}
+                                            <tr>
+                                                <td>{{ entry.period_number }}</td>
+                                                <td>{{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}</td>
+                                                <td><strong>{{ entry.subject.name }}</strong></td>
+                                                <td>{{ entry.classroom.name if entry.classroom else 'N/A' }}</td>
+                                                <td>{{ entry.room_number or 'N/A' }}</td>
+                                                <td>
+                                                    {% if entry.is_lab_period %}
+                                                        <span class="badge bg-info">Lab</span>
+                                                    {% endif %}
+                                                    {% if entry.is_break_period %}
+                                                        <span class="badge bg-warning">Break</span>
+                                                    {% endif %}
+                                                    {% if not entry.is_lab_period and not entry.is_break_period %}
+                                                        <span class="badge bg-success">Regular</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ entry.notes or '-' }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No periods scheduled for {{ day_name }}.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Today's Schedule -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-day me-2"></i>Today's Schedule
+            </h5>
+        </div>
+        <div class="card-body">
+            {% set today_name = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][current_datetime.weekday()] %}
+            {% set today_entries = timetable_by_day.get(today_name, []) %}
+            
+            {% if today_entries %}
+                <div class="timeline">
+                    {% for entry in today_entries|sort(attribute='period_number') %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker {{ 'bg-info' if entry.is_lab_period else 'bg-success' if not entry.is_break_period else 'bg-warning' }}"></div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">
+                                        {{ entry.start_time.strftime('%H:%M') }} - {{ entry.end_time.strftime('%H:%M') }}
+                                        <span class="badge bg-secondary ms-2">Period {{ entry.period_number }}</span>
+                                    </h6>
+                                    <p class="mb-1"><strong>{{ entry.subject.name }}</strong></p>
+                                    <p class="mb-1 text-muted">
+                                        {{ entry.classroom.name if entry.classroom else 'N/A' }}
+                                        {% if entry.room_number %} • Room {{ entry.room_number }}{% endif %}
+                                    </p>
+                                    {% if entry.is_lab_period %}
+                                        <span class="badge bg-info">Lab Period</span>
+                                    {% endif %}
+                                    {% if entry.is_break_period %}
+                                        <span class="badge bg-warning">Break Period</span>
+                                    {% endif %}
+                                    {% if entry.notes %}
+                                        <small class="text-muted">{{ entry.notes }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-coffee fa-3x text-muted mb-2"></i>
+                    <p class="text-muted">No classes scheduled for today. Enjoy your free time!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.timetable-grid {
+    font-size: 0.9em;
+}
+
+.timetable-cell {
+    min-width: 150px;
+    vertical-align: top;
+    padding: 5px !important;
+}
+
+.entry-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
+    background: #f8f9fa;
+    min-height: 60px;
+}
+
+.entry-card.lab-period {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.entry-card.break-period {
+    background: #fff3cd;
+    border-color: #ffc107;
+}
+
+.empty-cell {
+    min-height: 60px;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid #007bff;
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .btn {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #ccc;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+    
+    .timeline-item {
+        page-break-inside: avoid;
+    }
+    
+    .timeline-content {
+        page-break-inside: avoid;
+    }
+    
+    .timetable-grid {
+        font-size: 8pt;
+    }
+    
+    .timetable-cell {
+        min-width: 100px;
+        padding: 2px !important;
+    }
+    
+    .entry-card {
+        page-break-inside: avoid;
+        border: 1px solid #000;
+        margin-bottom: 2px;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid notifications-container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card premium-fade-in">
+        <div class="card-header">
+          <h2><i class="fas fa-bell me-2"></i>Notifications</h2>
+        </div>
+        <div class="card-body">
+          {% if notifications %}
+            {% for notification in notifications %}
+            <div class="notification-item {% if not notification.is_read %}unread{% endif %} premium-fade-in">
+              <div class="notification-header">
+                <span class="notification-type {{ notification.type }}">{{ notification.type }}</span>
+                <span class="notification-time">{{ notification.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+              </div>
+              <div class="notification-message">
+                {{ notification.message }}
+              </div>
+              {% if notification.sender %}
+              <div class="notification-actions">
+                <small class="text-muted">From: {{ notification.sender.name }}</small>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-5 premium-fade-in">
+              <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+              <h4 class="text-muted">No Notifications</h4>
+              <p class="text-muted">You're all caught up! No new notifications.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

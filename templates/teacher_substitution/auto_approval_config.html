@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Auto Approval Configuration - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>Automatic Leave Approval Configuration
+                </h2>
+                <div>
+                    <a href="{{ url_for('teacher_substitution.leave_management') }}" class="btn btn-info">
+                        <i class="fas fa-calendar-times me-2"></i>Leave Management
+                    </a>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sliders-h me-2"></i>Auto Approval Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="auto_approval_enabled" 
+                                               name="auto_approval_enabled" {{ 'checked' if config.auto_approval_enabled else '' }}>
+                                        <label class="form-check-label" for="auto_approval_enabled">
+                                            <strong>Enable Automatic Leave Approval</strong>
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        When enabled, leave applications will be automatically approved after the specified time if not reviewed by admin.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="approval_time_minutes" class="form-label">
+                                        <i class="fas fa-clock me-2"></i>Auto Approval Time (Minutes)
+                                    </label>
+                                    <input type="number" class="form-control" id="approval_time_minutes" 
+                                           name="approval_time_minutes" value="{{ config.approval_time_minutes }}" 
+                                           min="5" max="1440" required>
+                                    <div class="form-text">
+                                        Time in minutes after which leave will be auto-approved (5-1440 minutes).
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-hourglass-half me-2"></i>Current Setting
+                                    </label>
+                                    <div class="alert alert-info">
+                                        <strong>{{ config.approval_time_minutes }} minutes</strong> = 
+                                        {% if config.approval_time_minutes < 60 %}
+                                            {{ config.approval_time_minutes }} minutes
+                                        {% elif config.approval_time_minutes < 1440 %}
+                                            {{ (config.approval_time_minutes / 60)|round(1) }} hours
+                                        {% else %}
+                                            {{ (config.approval_time_minutes / 1440)|round(1) }} days
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-list me-2"></i>Leave Types for Auto Approval
+                                    </label>
+                                    <div class="row">
+                                        {% for leave_type in all_leave_types %}
+                                        <div class="col-md-4 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="leave_type_{{ leave_type }}" 
+                                                       name="leave_types" 
+                                                       value="{{ leave_type }}"
+                                                       {{ 'checked' if leave_type in current_leave_types else '' }}>
+                                                <label class="form-check-label" for="leave_type_{{ leave_type }}">
+                                                    {{ leave_type.title() }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="form-text">
+                                        Select which leave types should be automatically approved.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notify_admin" 
+                                               name="notify_admin" {{ 'checked' if config.notify_admin_before_auto_approval else '' }}>
+                                        <label class="form-check-label" for="notify_admin">
+                                            <i class="fas fa-bell me-2"></i>Notify Admin Before Auto Approval
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        Send notification to admin when leave is about to be auto-approved.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notify_teacher" 
+                                               name="notify_teacher" {{ 'checked' if config.notify_teacher_on_auto_approval else '' }}>
+                                        <label class="form-check-label" for="notify_teacher">
+                                            <i class="fas fa-bell me-2"></i>Notify Teacher on Auto Approval
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        Send notification to teacher when leave is auto-approved.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Important Notes:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Auto-approval only applies to selected leave types</li>
+                                <li>Emergency and sick leaves are typically auto-approved</li>
+                                <li>Admin can still manually approve or reject any leave</li>
+                                <li>Auto-approved leaves will automatically create substitutions</li>
+                                <li>All auto-approvals are logged for audit purposes</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Configuration
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-undo me-2"></i>Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Current Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Current Status
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Auto Approval</span>
+                            <span class="badge bg-{{ 'success' if config.auto_approval_enabled else 'secondary' }}">
+                                {{ 'Enabled' if config.auto_approval_enabled else 'Disabled' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Approval Time</span>
+                            <span class="badge bg-info">{{ config.approval_time_minutes }} min</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Leave Types</span>
+                            <span class="badge bg-warning">{{ current_leave_types|length }} types</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Last Updated</span>
+                            <small>{{ config.last_updated.strftime('%d-%m-%Y %H:%M') if config.last_updated else 'Never' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Recent Activity
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-history fa-3x mb-3"></i>
+                        <p>Auto-approval statistics will appear here</p>
+                        <small class="text-muted">Track auto-approvals and manual overrides</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="testAutoApproval()">
+                            <i class="fas fa-play me-2"></i>Test Auto-Approval
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="viewLogs()">
+                            <i class="fas fa-list me-2"></i>View Approval Logs
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="exportConfig()">
+                            <i class="fas fa-download me-2"></i>Export Config
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testAutoApproval() {
+    // This would typically make an AJAX call to test the auto-approval system
+    alert('Auto-approval test functionality would be implemented here');
+}
+
+function viewLogs() {
+    // This would typically open a modal or navigate to logs page
+    alert('Approval logs viewer would be implemented here');
+}
+
+function exportConfig() {
+    // This would typically export the current configuration
+    const config = {
+        enabled: {{ config.auto_approval_enabled|tojson }},
+        minutes: {{ config.approval_time_minutes|tojson }},
+        leaveTypes: {{ current_leave_types|tojson }},
+        notifyAdmin: {{ config.notify_admin_before_auto_approval|tojson }},
+        notifyTeacher: {{ config.notify_teacher_on_auto_approval|tojson }}
+    };
+    
+    const dataStr = JSON.stringify(config, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = 'auto_approval_config.json';
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
+
+// Auto-save functionality
+let form = document.querySelector('form');
+let originalData = new FormData(form);
+
+form.addEventListener('change', function() {
+    // Show unsaved changes warning
+    if (!document.querySelector('.unsaved-warning')) {
+        const warning = document.createElement('div');
+        warning.className = 'alert alert-warning unsaved-warning alert-dismissible fade show mt-3';
+        warning.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            You have unsaved changes. Don't forget to save your configuration.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        form.appendChild(warning);
+    }
+});
+
+form.addEventListener('submit', function() {
+    // Remove unsaved changes warning
+    const warning = document.querySelector('.unsaved-warning');
+    if (warning) {
+        warning.remove();
+    }
+});
+</script>
+{% endblock %}

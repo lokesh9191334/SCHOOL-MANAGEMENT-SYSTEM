@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid message-container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card premium-fade-in">
+        <div class="card-header">
+          <h2><i class="fas fa-envelope me-2"></i>Messages</h2>
+        </div>
+        <div class="card-body">
+          {% if messages %}
+            {% for message in messages %}
+            <div class="message-item {% if message.sender_id == current_user.id %}message-sent{% else %}message-received{% endif %} premium-scale-in">
+              <div class="message-header">
+                <span>
+                  {% if message.sender_id == current_user.id %}
+                    To: {{ message.recipient.name if message.recipient else 'Unknown' }}
+                  {% else %}
+                    From: {{ message.sender.name if message.sender else 'Unknown' }}
+                  {% endif %}
+                </span>
+                <span>{{ message.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+              </div>
+              <div class="message-content">
+                {{ message.message }}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-5 premium-fade-in">
+              <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+              <h4 class="text-muted">No Messages</h4>
+              <p class="text-muted">No messages found. Start a conversation!</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

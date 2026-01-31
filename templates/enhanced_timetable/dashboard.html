@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .grade-section {
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .grade-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    .class-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .class-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .class-grade {
+        background: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    .timetable-status {
+        font-size: 0.8rem;
+    }
+    .has-timetable {
+        color: #28a745;
+    }
+    .no-timetable {
+        color: #dc3545;
+    }
+    .quick-actions {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    .quick-action-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1><i class="fas fa-calendar-alt me-2"></i>Enhanced Timetable Management</h1>
+                        <p class="text-muted">Manage timetables for all classes from Nursery to 12th grade</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('enhanced_timetable_v2.bulk_create_timetables') }}" class="btn btn-success btn-lg">
+                            <i class="fas fa-plus-circle me-2"></i>Bulk Create Timetables
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                {% set total_classes = 0 %}
+                                {% for classes in classes_by_grade.values() %}
+                                    {% set total_classes = total_classes + classes | length %}
+                                {% endfor %}
+                                <h4>{{ total_classes }}</h4>
+                                <p class="mb-0">Total Classes</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ timetables | selectattr('is_published') | list | length }}</h4>
+                                        <p class="mb-0">Published Timetables</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-check-circle fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ timetables | rejectattr('is_published') | list | length }}</h4>
+                                        <p class="mb-0">Draft Timetables</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-edit fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h4>{{ classes_by_grade | length }}</h4>
+                                        <p class="mb-0">Grade Levels</p>
+                                    </div>
+                                    <div class="align-self-center">
+                                        <i class="fas fa-layer-group fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classes by Grade -->
+                {% for grade, classes in classes_by_grade.items() %}
+                <div class="grade-section">
+                    <div class="grade-header">
+                        <i class="fas fa-graduation-cap me-2"></i>Grade {{ grade }}
+                        <span class="badge bg-light text-dark ms-2">{{ classes | length }} sections</span>
+                    </div>
+                    <div class="p-3">
+                        <div class="row">
+                            {% for classroom in classes %}
+                            <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="card class-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">{{ classroom.name }}</h6>
+                                            <span class="class-grade">{{ classroom.grade }}</span>
+                                        </div>
+                                        
+                                        <p class="card-text text-muted small mb-2">
+                                            <i class="fas fa-users me-1"></i>Capacity: {{ classroom.capacity or 40 }} students
+                                            {% if classroom.room %}
+                                            <br><i class="fas fa-door-open me-1"></i>Room: {{ classroom.room }}
+                                            {% endif %}
+                                        </p>
+                                        
+                                        <!-- Timetable Status -->
+                                        {% set class_timetable = timetables | selectattr('classroom_id', 'equalto', classroom.id) | first %}
+                                        {% if class_timetable %}
+                                        <div class="timetable-status mb-3">
+                                            {% if class_timetable.is_published %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>Published
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-edit me-1"></i>Draft
+                                            </span>
+                                            {% endif %}
+                                            <small class="text-muted d-block">{{ class_timetable.academic_year }}</small>
+                                        </div>
+                                        {% else %}
+                                        <div class="timetable-status mb-3">
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times-circle me-1"></i>No Timetable
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Action Buttons -->
+                                        <div class="d-grid gap-2">
+                                            {% if class_timetable %}
+                                            <a href="{{ url_for('enhanced_timetable_v2.view_class_timetable', timetable_id=class_timetable.id) }}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>View Timetable
+                                            </a>
+                                            {% else %}
+                                            <a href="{{ url_for('enhanced_timetable_v2.create_class_timetable', classroom_id=classroom.id) }}" 
+                                               class="btn btn-primary btn-sm">
+                                                <i class="fas fa-plus me-1"></i>Create Timetable
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Recent Timetables -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Timetables</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if timetables %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Class</th>
+                                        <th>Academic Year</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for timetable in timetables[:10] %}
+                                    <tr>
+                                        <td>
+                                            {% if timetable.classroom %}
+                                            {{ timetable.classroom.name }}
+                                            {% else %}
+                                            General
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ timetable.academic_year }}</td>
+                                        <td>
+                                            {% if timetable.is_published %}
+                                            <span class="badge bg-success">Published</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">Draft</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ timetable.created_at.strftime('%d %b %Y') }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('enhanced_timetable_v2.view_class_timetable', timetable_id=timetable.id) }}" 
+                                                   class="btn btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('timetable.timetable_entries', timetable_id=timetable.id) }}" 
+                                                   class="btn btn-outline-secondary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center">No timetables created yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <a href="{{ url_for('enhanced_timetable_v2.bulk_create_timetables') }}" 
+           class="btn btn-success quick-action-btn" 
+           title="Bulk Create Timetables">
+            <i class="fas fa-plus"></i>
+        </a>
+        <a href="{{ url_for('dashboard.index') }}" 
+           class="btn btn-secondary quick-action-btn" 
+           title="Back to Dashboard">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Auto-refresh every 30 seconds
+    setInterval(function() {
+        location.reload();
+    }, 30000);
+    
+    // Add tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+</script>
+{% endblock %}
+{% endblock %}

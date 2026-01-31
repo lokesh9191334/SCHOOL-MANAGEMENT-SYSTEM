@@ -1,0 +1,1282 @@
+/* Ultra Premium Professional Profile Styles */
+:root {
+  --premium-primary: #2563eb;
+  --premium-secondary: #1e40af;
+  --premium-accent: #7c3aed;
+  --premium-gold: #f59e0b;
+  --premium-dark: #1e293b;
+  --premium-light: #f8fafc;
+  --premium-shadow: rgba(37, 99, 235, 0.15);
+  --premium-glow: rgba(37, 99, 235, 0.3);
+}
+
+/* Ultra Premium Background */
+.premium-gradient-bg {
+  background: 
+    radial-gradient(ellipse at top left, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e1b4b 100%);
+  background-size: 400% 400%;
+  animation: premiumGradientShift 25s ease infinite;
+}
+
+@keyframes premiumGradientShift {
+  0% { background-position: 0% 50%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Ultra Premium Background Effects - Fixed */
+.floating-shapes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--premium-primary), var(--premium-accent));
+  animation: premiumFloat 30s infinite ease-in-out;
+  filter: blur(1px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shape-1 {
+  width: 120px;
+  height: 120px;
+  top: 10%;
+  left: 5%;
+  animation-delay: 0s;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shape-2 {
+  width: 80px;
+  height: 80px;
+  top: 60%;
+  right: 10%;
+  animation-delay: 10s;
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shape-3 {
+  width: 150px;
+  height: 150px;
+  bottom: 10%;
+  left: 60%;
+  animation-delay: 20s;
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shape-4 {
+  width: 60px;
+  height: 60px;
+  top: 30%;
+  right: 30%;
+  animation-delay: 15s;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes premiumFloat {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg) scale(1); 
+    opacity: 0.3;
+  }
+  25% { 
+    transform: translateY(-40px) rotate(90deg) scale(1.1); 
+    opacity: 0.5;
+  }
+  50% { 
+    transform: translateY(20px) rotate(180deg) scale(0.9); 
+    opacity: 0.4;
+  }
+  75% { 
+    transform: translateY(-20px) rotate(270deg) scale(1.05); 
+    opacity: 0.35;
+  }
+}
+
+/* Ultra Premium Header - Fixed */
+.bg-gradient-premium {
+  background: 
+    linear-gradient(135deg, var(--premium-dark) 0%, var(--premium-primary) 50%, var(--premium-secondary) 100%);
+  position: relative;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.bg-gradient-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.1), 
+    rgba(255,255,255,0.05), 
+    transparent
+  );
+  animation: premiumShimmer 6s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes premiumShimmer {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: -100%; }
+}
+
+/* Ultra Premium Avatar */
+.premium-avatar-shadow {
+  box-shadow: 
+    0 0 0 8px rgba(37, 99, 235, 0.2),
+    0 30px 60px var(--premium-shadow),
+    0 0 30px rgba(37, 99, 235, 0.1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 6px solid rgba(255,255,255,0.2);
+  position: relative;
+}
+
+.premium-avatar-shadow::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.3);
+  animation: premiumGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes premiumGlow {
+  0% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.2); }
+  100% { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0.4); }
+}
+
+.premium-avatar-shadow:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 
+    0 0 0 10px rgba(37, 99, 235, 0.3),
+    0 40px 80px var(--premium-shadow),
+    0 0 40px rgba(37, 99, 235, 0.15);
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* Ultra Premium Button Container - Complete Fix */
+.d-flex.gap-3.flex-wrap {
+  position: relative;
+  z-index: 10000 !important;
+  pointer-events: auto;
+  overflow: visible;
+}
+
+.d-flex.gap-3.flex-wrap button {
+  position: relative;
+  z-index: 10000 !important;
+  pointer-events: auto;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  overflow: visible;
+}
+
+/* Remove any hover effects that might hide buttons */
+.d-flex.gap-3.flex-wrap:hover button {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Force buttons to stay visible in all states */
+.d-flex.gap-3.flex-wrap button,
+.d-flex.gap-3.flex-wrap button:hover,
+.d-flex.gap-3.flex-wrap button:active,
+.d-flex.gap-3.flex-wrap button:focus,
+.d-flex.gap-3.flex-wrap button:visited {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+  position: relative !important;
+}
+
+/* Ultra Premium Buttons - Enhanced Visibility */
+.btn-premium {
+  background: linear-gradient(135deg, var(--premium-primary) 0%, var(--premium-secondary) 100%);
+  border: none;
+  color: white;
+  position: relative;
+  overflow: visible;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 12px;
+  padding: 14px 28px;
+  cursor: pointer !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 15px rgba(37, 99, 235, 0.3),
+    0 0 0 1px rgba(255,255,255,0.1) inset;
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.3), 
+    rgba(255,255,255,0.1), 
+    transparent
+  );
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.btn-premium:hover::before {
+  left: 100%;
+}
+
+.btn-premium:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(37, 99, 235, 0.4),
+    0 0 0 2px rgba(255,255,255,0.2) inset;
+  background: linear-gradient(135deg, var(--premium-secondary) 0%, var(--premium-accent) 100%);
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium:active {
+  transform: translateY(-1px) scale(0.98);
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium:focus {
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  outline: none;
+  box-shadow: 
+    0 8px 25px rgba(37, 99, 235, 0.4),
+    0 0 0 2px rgba(255,255,255,0.2) inset;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Ultra Premium Gold Button - Enhanced Visibility */
+.btn-premium-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  color: #1a1a1a;
+  position: relative;
+  overflow: visible;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 12px;
+  padding: 14px 28px;
+  cursor: pointer !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 15px rgba(245, 158, 11, 0.3),
+    0 0 0 1px rgba(255,255,255,0.2) inset;
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-gold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.5), 
+    rgba(255,255,255,0.2), 
+    transparent
+  );
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.btn-premium-gold:hover::before {
+  left: 100%;
+}
+
+.btn-premium-gold:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(245, 158, 11, 0.4),
+    0 0 0 2px rgba(255,255,255,0.3) inset;
+  background: linear-gradient(135deg, #f59e0b 50%, #d97706 100%);
+  color: #1a1a1a !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-gold:active {
+  transform: translateY(-1px) scale(0.98);
+  color: #1a1a1a !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-gold:focus {
+  color: #1a1a1a !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  outline: none;
+  box-shadow: 
+    0 8px 25px rgba(245, 158, 11, 0.4),
+    0 0 0 2px rgba(255,255,255,0.3) inset;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Ultra Premium Silver Button - Enhanced Visibility */
+.btn-premium-silver {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 50%, #4b5563 100%);
+  color: white;
+  position: relative;
+  overflow: visible;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 12px;
+  padding: 14px 28px;
+  cursor: pointer !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 15px rgba(107, 114, 128, 0.3),
+    0 0 0 1px rgba(255,255,255,0.1) inset;
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-silver::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.4), 
+    rgba(255,255,255,0.2), 
+    transparent
+  );
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.btn-premium-silver:hover::before {
+  left: 100%;
+}
+
+.btn-premium-silver:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(107, 114, 128, 0.4),
+    0 0 0 2px rgba(255,255,255,0.2) inset;
+  background: linear-gradient(135deg, #6b7280 50%, #4b5563 100%);
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-silver:active {
+  transform: translateY(-1px) scale(0.98);
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-silver:focus {
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  outline: none;
+  box-shadow: 
+    0 8px 25px rgba(107, 114, 128, 0.4),
+    0 0 0 2px rgba(255,255,255,0.2) inset;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Ultra Premium Outline Button - Enhanced Visibility */
+.btn-premium-outline {
+  background: transparent;
+  border: 3px solid var(--premium-primary);
+  color: var(--premium-primary);
+  position: relative;
+  overflow: visible;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 12px;
+  padding: 14px 28px;
+  cursor: pointer !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-outline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(37, 99, 235, 0.3), 
+    rgba(37, 99, 235, 0.1), 
+    transparent
+  );
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.btn-premium-outline:hover::before {
+  left: 100%;
+}
+
+.btn-premium-outline:hover {
+  background: var(--premium-primary);
+  color: white !important;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-outline:active {
+  transform: translateY(-1px) scale(0.98);
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+.btn-premium-outline:focus {
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  outline: none;
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Force all buttons to stay visible on any hover */
+.d-flex.gap-3.flex-wrap button:hover,
+.d-flex.gap-3.flex-wrap button:active,
+.d-flex.gap-3.flex-wrap button:focus {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Remove any conflicting hover effects */
+.text-white:hover button,
+.text-white:hover .btn,
+.text-white:hover .btn-premium,
+.text-white:hover .btn-premium-gold,
+.text-white:hover .btn-premium-silver,
+.text-white:hover .btn-premium-outline {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Override any Bootstrap or other framework hover effects */
+.btn:hover,
+.btn:focus,
+.btn:active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Force visibility for all button elements */
+button,
+button:hover,
+button:focus,
+button:active,
+button:visited {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  pointer-events: auto !important;
+}
+
+/* Force visibility for all button content */
+button i,
+button span,
+button:hover i,
+button:hover span,
+button:focus i,
+button:focus span {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10001 !important;
+}
+
+/* Ultra Premium Cards */
+.premium-stat-card {
+  backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+  cursor: pointer !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(37, 99, 235, 0.05) 50%, 
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.premium-stat-card:hover {
+  transform: translateY(-12px) scale(1.03);
+  box-shadow: 
+    0 25px 50px rgba(37, 99, 235, 0.4),
+    0 0 0 2px rgba(255,255,255,0.2) inset;
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.15);
+}
+
+/* Ultra Premium Card Container */
+.premium-card {
+  border-radius: 30px;
+  overflow: hidden;
+  position: relative;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,0.1) inset,
+    0 50px 100px rgba(0, 0, 0, 0.3);
+}
+
+.premium-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(37, 99, 235, 0.4), 
+    rgba(124, 58, 237, 0.3), 
+    transparent
+  );
+  animation: premiumCardShimmer 8s infinite;
+}
+
+@keyframes premiumCardShimmer {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: -100%; }
+}
+
+/* Ultra Premium Badges */
+.premium-badges {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.bg-premium-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  color: #1a1a1a;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Ultra Premium Profile Completion */
+.progress-circle {
+  position: relative;
+  display: inline-block;
+}
+
+.progress-circle svg {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.3));
+}
+
+.progress-circle .percentage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 800;
+  font-size: 16px;
+  color: white;
+  z-index: 3;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Ultra Premium Hover Effects */
+.hover-scale {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer !important;
+}
+
+.hover-scale:hover {
+  transform: scale(1.1);
+}
+
+.hover-lift {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer !important;
+}
+
+.hover-lift:hover {
+  transform: translateY(-15px) scale(1.02);
+}
+
+/* Ultra Premium Form Styles */
+.form-control {
+  border-radius: 15px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: var(--premium-light);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(15px);
+  font-size: 16px;
+  padding: 16px 20px;
+}
+
+.form-control:focus {
+  border-color: var(--premium-primary);
+  box-shadow: 
+    0 0 0 0.3rem rgba(37, 99, 235, 0.4),
+    0 0 0 1px rgba(255,255,255,0.2) inset;
+  background: rgba(255,255,255,0.12);
+  color: var(--premium-light);
+  transform: scale(1.02);
+}
+
+.input-group-text {
+  border-radius: 15px 0 0 15px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(37, 99, 235, 0.15);
+  color: white;
+  backdrop-filter: blur(15px);
+  font-weight: 600;
+}
+
+.input-group .form-control {
+  border-radius: 0 15px 15px 0;
+}
+
+/* Ultra Premium Modal */
+.modal-content {
+  border-radius: 30px;
+  border: none;
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,0.1) inset,
+    0 50px 100px rgba(0, 0, 0, 0.5);
+  background: rgba(30, 41, 59, 0.98);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.modal-header {
+  border-radius: 30px 30px 0 0;
+  border: none;
+  background: linear-gradient(135deg, var(--premium-dark) 0%, var(--premium-primary) 100%);
+  padding: 20px;
+}
+
+/* Ultra Premium Cursor Styles - Comprehensive Fix */
+button {
+  cursor: pointer !important;
+  transition: all 0.3s ease;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+button:hover {
+  cursor: pointer !important;
+  transform: translateY(-2px);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+button:active {
+  cursor: pointer !important;
+  transform: translateY(0);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+button:focus {
+  cursor: pointer !important;
+  outline: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+/* Ultra Premium Interactive Elements */
+[onclick] {
+  cursor: pointer !important;
+  transition: all 0.3s ease;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[onclick]:hover {
+  cursor: pointer !important;
+  transform: translateY(-2px);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[onclick]:active {
+  cursor: pointer !important;
+  transform: translateY(0);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[onclick]:focus {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[data-bs-toggle] {
+  cursor: pointer !important;
+  transition: all 0.3s ease;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[data-bs-toggle]:hover {
+  cursor: pointer !important;
+  transform: translateY(-2px);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[data-bs-toggle]:active {
+  cursor: pointer !important;
+  transform: translateY(0);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+[data-bs-toggle]:focus {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+/* Specific button class fixes */
+.btn {
+  cursor: pointer !important;
+  transition: all 0.3s ease;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn:hover {
+  cursor: pointer !important;
+  transform: translateY(-2px);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn:active {
+  cursor: pointer !important;
+  transform: translateY(0);
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn:focus {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+/* Premium button specific fixes */
+.btn-premium,
+.btn-premium-gold,
+.btn-premium-silver,
+.btn-premium-outline {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+  color: inherit !important;
+}
+
+.btn-premium:hover,
+.btn-premium-gold:hover,
+.btn-premium-silver:hover,
+.btn-premium-outline:hover {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn-premium:active,
+.btn-premium-gold:active,
+.btn-premium-silver:active,
+.btn-premium-outline:active {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn-premium:focus,
+.btn-premium-gold:focus,
+.btn-premium-silver:focus,
+.btn-premium-outline:focus {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+/* Prevent white color on hover - Complete Fix */
+.btn-premium:hover,
+.btn-premium-gold:hover,
+.btn-premium-silver:hover,
+.btn-premium-outline:hover {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn-premium:hover *,
+.btn-premium-gold:hover *,
+.btn-premium-silver:hover *,
+.btn-premium-outline:hover * {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Specific text color fixes */
+.btn-premium:hover i,
+.btn-premium-gold:hover i,
+.btn-premium-silver:hover i,
+.btn-premium-outline:hover i {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.btn-premium:hover span,
+.btn-premium-gold:hover span,
+.btn-premium-silver:hover span,
+.btn-premium-outline:hover span {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force specific colors for each button type */
+.btn-premium:hover {
+  color: white !important;
+}
+
+.btn-premium:hover i,
+.btn-premium:hover span {
+  color: white !important;
+}
+
+.btn-premium-gold:hover {
+  color: #1a1a1a !important;
+}
+
+.btn-premium-gold:hover i,
+.btn-premium-gold:hover span {
+  color: #1a1a1a !important;
+}
+
+.btn-premium-silver:hover {
+  color: white !important;
+}
+
+.btn-premium-silver:hover i,
+.btn-premium-silver:hover span {
+  color: white !important;
+}
+
+.btn-premium-outline:hover {
+  color: white !important;
+}
+
+.btn-premium-outline:hover i,
+.btn-premium-outline:hover span {
+  color: white !important;
+}
+
+/* Active states */
+.btn-premium:active,
+.btn-premium-gold:active,
+.btn-premium-silver:active,
+.btn-premium-outline:active {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn-premium:active i,
+.btn-premium-gold:active i,
+.btn-premium-silver:active i,
+.btn-premium-outline:active i {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.btn-premium:active span,
+.btn-premium-gold:active span,
+.btn-premium-silver:active span,
+.btn-premium-outline:active span {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Focus states */
+.btn-premium:focus,
+.btn-premium-gold:focus,
+.btn-premium-silver:focus,
+.btn-premium-outline:focus {
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+.btn-premium:focus i,
+.btn-premium-gold:focus i,
+.btn-premium-silver:focus i,
+.btn-premium-outline:focus i {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.btn-premium:focus span,
+.btn-premium-gold:focus span,
+.btn-premium-silver:focus span,
+.btn-premium-outline:focus span {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Fix for any overlay issues */
+.floating-shapes {
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shape {
+  pointer-events: none;
+}
+
+/* Ensure buttons stay on top */
+.d-flex button {
+  position: relative;
+  z-index: 10;
+}
+
+.d-flex button:hover {
+  position: relative;
+  z-index: 10;
+}
+
+/* Prevent any parent container from hiding buttons */
+.card button,
+.premium-card button,
+.modal-content button {
+  position: relative;
+  z-index: 10;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.card button:hover,
+.premium-card button:hover,
+.modal-content button:hover {
+  position: relative;
+  z-index: 10;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ultra Premium Profile Details */
+.profile-detail-item {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 15px;
+  padding: 16px;
+  cursor: pointer !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-detail-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(37, 99, 235, 0.05) 50%, 
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.profile-detail-item:hover {
+  transform: translateX(12px) scale(1.02);
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 15px;
+  padding: 16px;
+  margin: 0 -16px;
+}
+
+/* Ultra Premium Avatar */
+.avatar-circle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 8px solid rgba(255,255,255,0.2);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-circle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(37, 99, 235, 0.3);
+  animation: premiumAvatarGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes premiumAvatarGlow {
+  0% { border-color: rgba(37, 99, 235, 0.3); }
+  100% { border-color: rgba(37, 99, 235, 0.6); }
+}
+
+.avatar-circle:hover {
+  transform: translateY(-10px) scale(1.05);
+  border-color: rgba(255,255,255,0.4);
+  box-shadow: 
+    0 0 0 10px rgba(37, 99, 235, 0.3),
+    0 40px 80px rgba(0, 0, 0, 0.4);
+}
+
+/* Ultra Premium Animations */
+@keyframes premiumPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.premium-pulse {
+  animation: premiumPulse 4s infinite;
+}
+
+/* Ultra Premium Status Indicators */
+.badge {
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,0.3);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bg-success {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+  color: white !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+}
+
+/* Ultra Premium Responsive */
+@media (max-width: 768px) {
+  .avatar-circle {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .btn-premium-gold,
+  .btn-premium-silver,
+  .btn-premium-outline {
+    font-size: 14px;
+    padding: 12px 24px;
+  }
+  
+  .premium-card {
+    border-radius: 20px;
+  }
+}

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Student Complaints - Teacher{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
+            <i class="fas fa-exclamation-triangle me-2"></i>Student Complaints
+        </h3>
+        <div>
+            <span class="me-2">Filter:</span>
+            <a href="{{ url_for('complaints.teacher_complaints', status='all') }}" class="btn btn-sm btn-outline-secondary {% if status == 'all' %}active{% endif %}">All</a>
+            <a href="{{ url_for('complaints.teacher_complaints', status='pending') }}" class="btn btn-sm btn-outline-warning {% if status == 'pending' %}active{% endif %}">Pending</a>
+            <a href="{{ url_for('complaints.teacher_complaints', status='in_progress') }}" class="btn btn-sm btn-outline-info {% if status == 'in_progress' %}active{% endif %}">In Progress</a>
+            <a href="{{ url_for('complaints.teacher_complaints', status='resolved') }}" class="btn btn-sm btn-outline-success {% if status == 'resolved' %}active{% endif %}">Resolved</a>
+            <a href="{{ url_for('complaints.teacher_complaints', status='rejected') }}" class="btn btn-sm btn-outline-danger {% if status == 'rejected' %}active{% endif %}">Rejected</a>
+        </div>
+    </div>
+
+    {% if teacher %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Showing complaints sent directly to <strong>{{ teacher.name }}</strong>. 
+            For general complaints, please check with school administration.
+        </div>
+    {% endif %}
+
+    {% if complaints %}
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Priority</th>
+                                <th>Parent</th>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for complaint in complaints %}
+                            <tr id="complaint-{{ complaint.id }}">
+                                <td>{{ complaint.id }}</td>
+                                <td>
+                                    <strong>{{ complaint.title }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ complaint.category.title() }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if complaint.priority == 'urgent' %}bg-danger
+                                        {% elif complaint.priority == 'high' %}bg-warning
+                                        {% else %}bg-info{% endif %}">
+                                        {{ complaint.priority.title() }}
+                                    </span>
+                                </td>
+                                <td>{{ complaint.sender.name if complaint.sender else 'N/A' }}</td>
+                                <td>{{ complaint.student.full_name() if complaint.student else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if complaint.status == 'pending' %}bg-warning text-dark
+                                        {% elif complaint.status == 'in_progress' %}bg-info
+                                        {% elif complaint.status == 'resolved' %}bg-success
+                                        {% elif complaint.status == 'rejected' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ complaint.status.replace('_', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td>{{ complaint.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="viewComplaint({{ complaint.id }})">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    {% if complaint.status != 'resolved' and complaint.status != 'rejected' %}
+                                    <button class="btn btn-sm btn-outline-success" onclick="respondComplaint({{ complaint.id }})">
+                                        <i class="fas fa-reply"></i> Respond
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No complaints found</h5>
+            <p class="text-muted">No complaints have been sent to you yet</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Complaint Details Modal -->
+<div class="modal fade" id="complaintModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complaint Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="complaintDetails">
+                <!-- Complaint details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Response Modal -->
+<div class="modal fade" id="responseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Respond to Complaint</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="responseForm">
+                <div class="modal-body">
+                    <input type="hidden" id="complaintId" name="complaint_id">
+                    <div class="mb-3">
+                        <label for="response" class="form-label">Response</label>
+                        <textarea name="response" id="response" class="form-control" rows="5" required
+                                  placeholder="Enter your response here..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Update Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Response</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewComplaint(complaintId) {
+    const modal = new bootstrap.Modal(document.getElementById('complaintModal'));
+    const detailsDiv = document.getElementById('complaintDetails');
+    
+    detailsDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    
+    // Mock data for demo - in real implementation, fetch from API
+    setTimeout(() => {
+        detailsDiv.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Complaint ID:</strong> #${complaintId}<br>
+                    <strong>Category:</strong> Academic Issues<br>
+                    <strong>Priority:</strong> Normal<br>
+                    <strong>Status:</strong> Pending<br>
+                    <strong>Submitted:</strong> ${new Date().toLocaleDateString()}
+                </div>
+                <div class="col-md-6">
+                    <strong>Parent:</strong> Parent Name<br>
+                    <strong>Student:</strong> Student Name<br>
+                    <strong>Responded By:</strong> Not yet<br>
+                    <strong>Response Date:</strong> Not yet
+                </div>
+            </div>
+            <hr>
+            <div class="mt-3">
+                <strong>Description:</strong>
+                <p class="mt-2">Complaint description would appear here...</p>
+            </div>
+            <div class="alert alert-warning mt-3">No response yet.</div>
+        `;
+        modal.show();
+    }, 500);
+}
+
+function respondComplaint(complaintId) {
+    const modal = new bootstrap.Modal(document.getElementById('responseModal'));
+    document.getElementById('complaintId').value = complaintId;
+    document.getElementById('response').value = '';
+    document.getElementById('status').value = 'in_progress';
+    modal.show();
+}
+
+document.getElementById('responseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const complaintId = document.getElementById('complaintId').value;
+    const response = document.getElementById('response').value;
+    const status = document.getElementById('status').value;
+    
+    if (!response.trim()) {
+        alert('Please enter a response');
+        return;
+    }
+    
+    // Submit response
+    const formData = new FormData();
+    formData.append('response', response);
+    formData.append('status', status);
+    
+    fetch(`/complaint/${complaintId}/respond`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('responseModal')).hide();
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to submit response');
+        }
+    })
+    .catch(error => {
+        alert('Error submitting response');
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}Leave Status - Teacher Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium Design System - Matching Apply Leave */
+    :root {
+        --premium-primary: #6366f1;
+        --premium-primary-dark: #4f46e5;
+        --premium-bg: #0f172a;
+        --premium-surface: rgba(30, 41, 59, 0.7);
+        --premium-border: rgba(255, 255, 255, 0.1);
+        --premium-text: #f8fafc;
+        --premium-text-muted: #94a3b8;
+        --status-pending: #f59e0b;
+        --status-approved: #10b981;
+        --status-rejected: #ef4444;
+        --sidebar-width: 280px;
+    }
+
+    /* Layout Overrides to Remove White Space */
+    body .wrapper {
+        display: flex !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: var(--premium-bg) !important;
+        min-height: 100vh !important;
+    }
+
+    body #content {
+        margin-left: var(--sidebar-width) !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        margin-right: 0 !important;
+        padding: 0 !important;
+        width: calc(100% - var(--sidebar-width)) !important;
+        background: var(--premium-bg) !important;
+        min-height: 100vh !important;
+        position: relative !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .main-wrapper {
+        flex: 1 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 40px !important;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent),
+                    radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.15), transparent);
+        position: relative;
+    }
+
+    /* Premium Card Container - Matching Apply Leave */
+    .premium-card {
+        background: var(--premium-surface);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--premium-border);
+        border-radius: 24px;
+        width: 100%;
+        max-width: 1100px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+        padding: 40px;
+        background: linear-gradient(to right, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+        border-bottom: 1px solid var(--premium-border);
+        text-align: center;
+    }
+
+    .card-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(to right, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+
+    .card-header p {
+        color: var(--premium-text-muted);
+        font-size: 1.1rem;
+    }
+
+    /* Stats Section - Redesigned to match Premium look */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        padding: 30px 40px;
+        background: rgba(15, 23, 42, 0.3);
+    }
+
+    .stat-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--premium-border);
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-box:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: var(--premium-primary);
+        transform: translateY(-3px);
+    }
+
+    .stat-val {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .stat-name {
+        font-size: 0.8rem;
+        color: var(--premium-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    .total-box .stat-val { color: #fff; }
+    .pending-box .stat-val { color: var(--status-pending); }
+    .approved-box .stat-val { color: var(--status-approved); }
+    .rejected-box .stat-val { color: var(--status-rejected); }
+
+    /* Leave Items List */
+    .card-body {
+        padding: 40px;
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .list-header h2 {
+        color: var(--premium-text);
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .refresh-btn {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        color: var(--premium-primary);
+        padding: 10px 20px;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+        background: var(--premium-primary);
+        color: white;
+    }
+
+    /* Leave Cards */
+    .leave-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--premium-border);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .leave-card:hover {
+        border-color: rgba(99, 102, 241, 0.3);
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .type-info h3 {
+        color: var(--premium-text);
+        font-size: 1.2rem;
+        margin-bottom: 4px;
+    }
+
+    .applied-on {
+        color: var(--premium-text-muted);
+        font-size: 0.85rem;
+    }
+
+    .status-pill {
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pill-pending { background: rgba(245, 158, 11, 0.1); color: var(--status-pending); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .pill-approved { background: rgba(16, 185, 129, 0.1); color: var(--status-approved); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .pill-rejected { background: rgba(239, 68, 68, 0.1); color: var(--status-rejected); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+    .details-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+        padding: 16px;
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 16px;
+    }
+
+    .detail-grp {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .detail-label {
+        color: var(--premium-text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .detail-val {
+        color: var(--premium-text);
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .reason-area {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 16px;
+        border-left: 3px solid var(--premium-primary);
+    }
+
+    .reason-area h4 {
+        color: var(--premium-text-muted);
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .reason-area p {
+        color: var(--premium-text);
+        line-height: 1.5;
+        font-size: 0.95rem;
+    }
+
+    .response-area {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 12px;
+        background: rgba(16, 185, 129, 0.05);
+        border: 1px dashed rgba(16, 185, 129, 0.2);
+    }
+
+    .response-area.rejected {
+        background: rgba(239, 68, 68, 0.05);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .action-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+    }
+
+    .action-by {
+        font-weight: 700;
+        color: var(--premium-text);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .action-at {
+        color: var(--premium-text-muted);
+    }
+
+    /* States */
+    .loader-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+    }
+
+    .spin {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: var(--premium-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--premium-text-muted);
+        opacity: 0.2;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        body #content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        .main-wrapper {
+            padding: 80px 20px 20px 20px !important;
+        }
+        .stats-container { 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 12px;
+            padding: 15px; 
+        }
+        .details-row { 
+            grid-template-columns: 1fr; 
+        }
+        .premium-card {
+            padding: 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-wrapper">
+    <div class="premium-card">
+        <div class="card-header">
+            <h1>My Leave Status</h1>
+            <p>Track your leave applications with real-time status updates</p>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-container">
+            <div class="stat-box total-box">
+                <span class="stat-val" id="totalCount">0</span>
+                <span class="stat-name">Total</span>
+            </div>
+            <div class="stat-box pending-box">
+                <span class="stat-val" id="pendingCount">0</span>
+                <span class="stat-name">Pending</span>
+            </div>
+            <div class="stat-box approved-box">
+                <span class="stat-val" id="approvedCount">0</span>
+                <span class="stat-name">Approved</span>
+            </div>
+            <div class="stat-box rejected-box">
+                <span class="stat-val" id="rejectedCount">0</span>
+                <span class="stat-name">Rejected</span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="list-header">
+                <h2>Application History</h2>
+                <button class="refresh-btn" onclick="loadLeaves()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+
+            <div id="leavesContainer">
+                <div class="loader-wrap">
+                    <div class="spin"></div>
+                    <p style="color: var(--premium-text-muted);">Loading history...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function loadLeaves() {
+        const container = document.getElementById('leavesContainer');
+        const refreshIcon = document.querySelector('.refresh-btn i');
+        
+        if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+        fetch('/api/leave-status')
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                
+                if (data.error) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3 style="color: var(--premium-text);">Error Loading Data</h3>
+                            <p style="color: var(--premium-text-muted);">${data.error}</p>
+                            <button onclick="loadLeaves()" class="btn-premium" style="margin-top: 15px; padding: 8px 20px;">
+                                <i class="fas fa-redo"></i> Retry
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Update Stats
+                if (data.stats) {
+                    document.getElementById('totalCount').textContent = data.stats.total || 0;
+                    document.getElementById('pendingCount').textContent = data.stats.pending || 0;
+                    document.getElementById('approvedCount').textContent = data.stats.approved || 0;
+                    document.getElementById('rejectedCount').textContent = data.stats.rejected || 0;
+                }
+
+                if (!data.leaves || data.leaves.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3 style="color: var(--premium-text);">No History Found</h3>
+                            <p style="color: var(--premium-text-muted);">You haven't applied for any leave yet.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                data.leaves.forEach(leave => {
+                    const s = (leave.status || 'pending').toLowerCase();
+                    const icon = s === 'pending' ? 'fa-clock' : s === 'approved' ? 'fa-check-circle' : 'fa-times-circle';
+                    const type = (leave.leave_type || 'General').replace(/_/g, ' ').toUpperCase();
+                    
+                    html += `
+                        <div class="leave-card">
+                            <div class="card-top">
+                                <div class="type-info">
+                                    <h3>${type} LEAVE</h3>
+                                    <span class="applied-on">Submitted: ${leave.applied_on || 'N/A'}</span>
+                                </div>
+                                <div class="status-pill pill-${s}">
+                                    <i class="fas ${icon}"></i>
+                                    ${leave.status || 'Pending'}
+                                </div>
+                            </div>
+
+                            <div class="details-row">
+                                <div class="detail-grp">
+                                    <span class="detail-label">Start Date</span>
+                                    <span class="detail-val">${leave.start_date || '-'}</span>
+                                </div>
+                                <div class="detail-grp">
+                                    <span class="detail-label">End Date</span>
+                                    <span class="detail-val">${leave.end_date || '-'}</span>
+                                </div>
+                                <div class="detail-grp">
+                                    <span class="detail-label">Duration</span>
+                                    <span class="detail-val">${leave.duration || '-'}</span>
+                                </div>
+                            </div>
+
+                            <div class="reason-box">
+                                <span class="detail-label">Reason</span>
+                                <p class="detail-val">${leave.reason || 'No reason provided'}</p>
+                            </div>
+
+                            ${leave.admin_comment ? `
+                            <div class="admin-note">
+                                <i class="fas fa-reply"></i>
+                                <div>
+                                    <span class="detail-label">Admin Response</span>
+                                    <p class="detail-val">${leave.admin_comment}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${leave.approved_by ? `
+                            <div class="admin-note">
+                                <i class="fas fa-user-shield"></i>
+                                <div>
+                                    <span class="detail-label">Status Update</span>
+                                    <p class="detail-val">
+                                        Action by <strong>${leave.approved_by}</strong> on ${leave.approved_at}
+                                    </p>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-wifi"></i>
+                        <h3 style="color: var(--premium-text);">Connection Error</h3>
+                        <p style="color: var(--premium-text-muted);">Failed to load leave history. Please check your connection.</p>
+                        <button onclick="loadLeaves()" class="btn-premium" style="margin-top: 15px; padding: 8px 20px;">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </div>
+                `;
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLeaves();
+        setInterval(loadLeaves, 60000); // Auto-refresh every minute
+    });
+</script>
+{% endblock %}

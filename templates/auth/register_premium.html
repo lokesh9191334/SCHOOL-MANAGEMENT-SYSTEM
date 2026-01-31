@@ -1,0 +1,1557 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - School Management System{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0f0f23;
+    color: #fff;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+.premium-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(circle at 20% 20%, #6366f1 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, #8b5cf6 0%, transparent 50%),
+        radial-gradient(circle at 40% 60%, #a855f7 0%, transparent 50%),
+        linear-gradient(135deg, #000 0%, #0f0f23 100%);
+    z-index: -1;
+}
+
+.floating-particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: float 15s infinite ease-in-out;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+}
+
+.main-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.register-container {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(50px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    padding: 60px;
+    width: 100%;
+    max-width: 700px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 50px 100px -20px rgba(99, 102, 241, 0.3),
+        0 0 200px rgba(139, 92, 246, 0.1);
+    animation: slideUp 1s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(60px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.premium-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.premium-logo {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.premium-logo i {
+    font-size: 32px;
+    color: white;
+}
+
+.brand-name {
+    font-size: 32px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    letter-spacing: -1px;
+}
+
+.brand-tagline {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.form-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.form-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 40px;
+}
+
+/* Custom Notification System */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+}
+
+.notification {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    overflow: hidden;
+}
+
+.notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+.notification.success::before {
+    background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.notification.danger::before {
+    background: linear-gradient(135deg, #ef4444, #f87171);
+}
+
+.notification.warning::before {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
+.notification.info::before {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+}
+
+.notification-content {
+    flex: 1;
+    font-weight: 600;
+    color: #1f2937;
+    margin-left: 15px;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+    opacity: 0.7;
+    padding: 0;
+    margin-left: 15px;
+    transition: all 0.3s ease;
+}
+
+.notification-close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification.hiding {
+    animation: slideOutRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.input-group {
+    position: relative;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.form-input {
+    width: 100%;
+    padding: 18px 20px 18px 50px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.form-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 400;
+}
+
+.form-input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    padding: 18px 20px 18px 50px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    outline: none;
+    cursor: pointer;
+}
+
+.form-select::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 400;
+}
+
+.form-select:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.form-select option {
+    background: #1f2937;
+    color: #fff;
+    padding: 10px;
+}
+
+.input-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+    transition: color 0.3s ease;
+}
+
+.form-input:focus + .input-icon,
+.form-select:focus + .input-icon {
+    color: #6366f1;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: #6366f1;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    border-radius: 16px;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.submit-btn:hover::before {
+    left: 100%;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 30px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+.login-link a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.login-link a:hover {
+    color: #8b5cf6;
+    text-decoration: underline;
+}
+
+.help-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .register-container {
+        padding: 40px 30px;
+        margin: 20px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .brand-name {
+        font-size: 28px;
+    }
+}
+
+/* Special styling for dynamic fields */
+#schoolIdGroup, #specialKeyGroup {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% block content %}
+<div class="premium-bg">
+    <div class="floating-particles" id="particles"></div>
+</div>
+
+<div class="main-container">
+    <div class="register-container">
+        <div class="premium-header">
+            <div class="premium-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h1 class="brand-name">SCHOOL MANAGEMENT</h1>
+            <p class="brand-tagline">Join Our Educational Community</p>
+        </div>
+
+        <div class="register-form">
+            <h2 class="form-title">Create Your Account</h2>
+            <p class="form-subtitle">Fill in your details to get started</p>
+
+            <!-- Custom Notification Container -->
+            <div id="notification-container" class="notification-container"></div>
+            
+            <!-- Hidden Flash Messages (for JavaScript to read) -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} d-none" style="display: none !important;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Registration Form -->
+            <form method="POST" enctype="multipart/form-data" id="registerForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-user input-icon"></i>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                class="form-input"
+                                placeholder="Full Name"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-input"
+                                placeholder="Email Address"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                class="form-input"
+                                placeholder="Phone Number"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-map-marker-alt input-icon"></i>
+                            <input
+                                type="text"
+                                id="address"
+                                name="address"
+                                class="form-input"
+                                placeholder="Address"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <div class="input-wrapper">
+                            <i class="fas fa-user-shield input-icon"></i>
+                            <select id="account_type" name="account_type" class="form-select" required>
+                                <option value="" disabled selected>Choose your role</option>
+                                <option value="admin">Administrator</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="parent">Parent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- School ID field (shown only for teachers) -->
+                    <div class="input-group full-width" id="schoolIdGroup" style="display: none;">
+                        <div class="input-wrapper">
+                            <i class="fas fa-school input-icon"></i>
+                            <input
+                                type="text"
+                                id="school_id"
+                                name="school_id"
+                                class="form-input"
+                                placeholder="5-Digit School ID (from administrator)"
+                                maxlength="5"
+                                pattern="[0-9]{5}"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div class="help-text">Enter the 5-digit School ID provided by your administrator</div>
+                    </div>
+
+                    <!-- Teacher Secret Key (for pre-added teachers) -->
+                    <div class="input-group full-width" id="teacherSecretGroup" style="display: none;">
+                        <div class="input-wrapper">
+                            <i class="fas fa-key input-icon"></i>
+                            <input
+                                type="text"
+                                id="teacher_secret_key"
+                                name="teacher_secret_key"
+                                class="form-input"
+                                placeholder="5-Digit Secret Key (from admin)"
+                                maxlength="5"
+                                pattern="[0-9]{5}"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div class="help-text">Enter the 5-digit secret key provided by your administrator</div>
+                    </div>
+
+                    <!-- Special Key field (shown only for parents) -->
+                    <div class="input-group full-width" id="specialKeyGroup" style="display: none;">
+                        <div class="input-wrapper">
+                            <i class="fas fa-key input-icon"></i>
+                            <input
+                                type="text"
+                                id="special_key"
+                                name="special_key"
+                                class="form-input"
+                                placeholder="Registration Key"
+                                style="text-transform: uppercase;"
+                            >
+                        </div>
+                        <div class="help-text">Contact school administration for parent registration key</div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Create Password"
+                                required
+                            >
+                            <i class="fas fa-eye-slash password-toggle" onclick="togglePassword('password')"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                class="form-input"
+                                placeholder="Confirm Password"
+                                required
+                            >
+                            <i class="fas fa-eye-slash password-toggle" onclick="togglePassword('confirm_password')"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-user-plus me-2"></i>Create Account
+                </button>
+            </form>
+
+            <div class="login-link">
+                Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Generate floating particles
+function createParticles() {
+    const particlesContainer = document.getElementById('particles');
+    const particleCount = 50;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 15 + 's';
+        particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+        particlesContainer.appendChild(particle);
+    }
+}
+
+// Custom Notification System
+class NotificationManager {
+    constructor() {
+        this.container = document.getElementById('notification-container');
+        this.currentNotification = null;
+        this.timeout = null;
+    }
+
+    show(message, type = 'info') {
+        // Clear any existing notification and timeout
+        this.clear();
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">${message}</div>
+            <button class="notification-close">&times;</button>
+        `;
+
+        // Add close button functionality
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => this.clear());
+
+        // Add to container
+        this.container.appendChild(notification);
+        this.currentNotification = notification;
+
+        // Auto-hide after 10 seconds
+        this.timeout = setTimeout(() => {
+            this.hide();
+        }, 10000);
+    }
+
+    hide() {
+        if (this.currentNotification) {
+            this.currentNotification.classList.add('hiding');
+            setTimeout(() => {
+                this.clear();
+            }, 400);
+        }
+    }
+
+    clear() {
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        if (this.currentNotification) {
+            this.currentNotification.remove();
+            this.currentNotification = null;
+        }
+    }
+}
+
+// Initialize notification manager
+const notificationManager = new NotificationManager();
+
+// Show flash messages as notifications
+document.addEventListener('DOMContentLoaded', function() {
+    // Create particles
+    createParticles();
+    
+    // Check for flash messages in the page
+    const flashAlerts = document.querySelectorAll('.alert');
+    if (flashAlerts.length > 0) {
+        const firstAlert = flashAlerts[0];
+        const message = firstAlert.textContent.trim();
+        const type = firstAlert.classList.contains('alert-danger') ? 'danger' : 
+                    firstAlert.classList.contains('alert-success') ? 'success' : 
+                    firstAlert.classList.contains('alert-warning') ? 'warning' : 'info';
+        
+        notificationManager.show(message, type);
+        
+        // Hide all original alerts
+        flashAlerts.forEach(alert => alert.style.display = 'none');
+    }
+});
+
+// Override the default showAlert function
+window.showAlert = function(message, type = 'info') {
+    if (window.notificationManager) {
+        window.notificationManager.show(message, type);
+    }
+};
+
+// Show/hide fields based on account type
+document.getElementById('account_type').addEventListener('change', function() {
+    const accountType = this.value;
+    const specialKeyGroup = document.getElementById('specialKeyGroup');
+    const schoolIdGroup = document.getElementById('schoolIdGroup');
+    
+    // Reset all fields
+    specialKeyGroup.style.display = 'none';
+    schoolIdGroup.style.display = 'none';
+    document.getElementById('special_key').required = false;
+    document.getElementById('school_id').required = false;
+    
+    if (accountType === 'parent') {
+        specialKeyGroup.style.display = 'block';
+        document.getElementById('special_key').required = true;
+    } else if (accountType === 'teacher') {
+        schoolIdGroup.style.display = 'block';
+        document.getElementById('school_id').required = true;
+        document.getElementById('teacherSecretGroup').style.display = 'block';
+        document.getElementById('teacher_secret_key').required = true;
+    }
+    // Admin doesn't need any additional fields
+});
+
+// Autofill teacher details when school_id + teacher_secret_key entered
+(function() {
+    const secretEl = document.getElementById('teacher_secret_key');
+    const schoolEl = document.getElementById('school_id');
+    const nameEl = document.getElementById('name');
+    const emailEl = document.getElementById('email');
+    const phoneEl = document.getElementById('phone');
+    const addressEl = document.getElementById('address');
+
+    if (!secretEl || !schoolEl) return;
+    let timer = null;
+    function debounceLookup() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            const secret = (secretEl.value || '').trim();
+            const school = (schoolEl.value || '').trim();
+            if (!/^[0-9]{5}$/.test(secret) || !/^[0-9]{5}$/.test(school)) return;
+            const url = `/auth/teacher-lookup?school_id=${encodeURIComponent(school)}&secret_key=${encodeURIComponent(secret)}`;
+            fetch(url, { credentials: 'same-origin' })
+                .then(r => r.json().then(b => ({status: r.status, body: b})))
+                .then(({status, body}) => {
+                    if (status === 200 && body.found) {
+                        if (!nameEl.value) nameEl.value = body.name || '';
+                        if (!emailEl.value) emailEl.value = body.email || '';
+                        if (!phoneEl.value) phoneEl.value = body.phone || '';
+                        if (!addressEl.value && body.address) addressEl.value = body.address || '';
+                    }
+                })
+                .catch(() => {});
+        }, 400);
+    }
+
+    secretEl.addEventListener('input', debounceLookup);
+    schoolEl.addEventListener('input', debounceLookup);
+})();
+
+// Form validation
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    const accountType = document.getElementById('account_type').value;
+    const specialKey = document.getElementById('special_key').value.trim();
+    const schoolId = document.getElementById('school_id').value.trim();
+    
+    // Name validation
+    if (!name) {
+        e.preventDefault();
+        showAlert('Please enter your full name', 'danger');
+        return false;
+    }
+
+    if (name.length < 2) {
+        e.preventDefault();
+        showAlert('Name must be at least 2 characters long', 'danger');
+        return false;
+    }
+
+    // Account type validation
+    if (!accountType) {
+        e.preventDefault();
+        showAlert('Please select your account type', 'danger');
+        return false;
+    }
+
+    // Password validation
+    if (!password) {
+        e.preventDefault();
+        showAlert('Please create a password', 'danger');
+        return false;
+    }
+
+    if (password.length < 6) {
+        e.preventDefault();
+        showAlert('Password must be at least 6 characters long', 'warning');
+        return false;
+    }
+
+    // Password strength validation temporarily disabled
+    // if (!isPasswordStrong(password)) {
+    //     e.preventDefault();
+    //     showAlert('Password must contain uppercase, lowercase, and numbers', 'warning');
+    //     return false;
+    // }
+
+    // Confirm password validation
+    if (!confirmPassword) {
+        e.preventDefault();
+        showAlert('Please confirm your password', 'danger');
+        return false;
+    }
+
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        showAlert('Passwords do not match', 'danger');
+        return false;
+    }
+
+    // Special key validation for parents
+    if (accountType === 'parent' && !specialKey) {
+        e.preventDefault();
+        showAlert('Special registration key is required for parent accounts', 'danger');
+        return false;
+    }
+
+    // School ID validation for teachers
+    if (accountType === 'teacher' && !schoolId) {
+        e.preventDefault();
+        showAlert('School ID is required for teacher accounts. Please get it from your administrator.', 'danger');
+        return false;
+    }
+
+    if (accountType === 'teacher' && schoolId) {
+        if (schoolId.length !== 5 || !/^\d{5}$/.test(schoolId)) {
+            e.preventDefault();
+            showAlert('School ID must be exactly 5 digits', 'danger');
+            return false;
+        }
+    }
+
+    // Teacher secret key validation for pre-added teachers
+    const teacherSecret = document.getElementById('teacher_secret_key').value.trim();
+    if (accountType === 'teacher' && teacherSecret) {
+        if (!/^\d{5}$/.test(teacherSecret)) {
+            e.preventDefault();
+            showAlert('Secret key must be exactly 5 digits', 'danger');
+            return false;
+        }
+    }
+
+    return true;
+});
+
+function isPasswordStrong(password) {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    return hasUpperCase && hasLowerCase && hasNumbers;
+}
+
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    }
+}
+</script>
+{% endblock %}
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
+}
+
+.premium-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px 30px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.premium-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.4;
+    animation: grain 8s linear infinite;
+}
+
+@keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-5%, -10%); }
+    20% { transform: translate(-15%, 5%); }
+    30% { transform: translate(7%, -25%); }
+    40% { transform: translate(-5%, 25%); }
+    50% { transform: translate(-15%, 10%); }
+    60% { transform: translate(15%, 0%); }
+    70% { transform: translate(0%, 15%); }
+    80% { transform: translate(3%, 35%); }
+    90% { transform: translate(-10%, 10%); }
+}
+
+.premium-header h3 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.5px;
+}
+
+.premium-header p {
+    margin: 10px 0 0 0;
+    opacity: 0.9;
+    font-size: 15px;
+    position: relative;
+    z-index: 1;
+    font-weight: 400;
+}
+
+.premium-body {
+    padding: 45px 35px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+.premium-form .form-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.premium-form .form-label {
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 14px;
+    display: block;
+}
+
+.premium-form .form-control,
+.premium-form .form-select {
+    border: 2px solid #e1e5e9;
+    border-radius: 15px;
+    padding: 15px 20px;
+    font-size: 16px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    position: relative;
+}
+
+.premium-form .form-control:focus,
+.premium-form .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 
+        0 0 0 4px rgba(102, 126, 234, 0.15),
+        0 8px 25px rgba(102, 126, 234, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    background: white;
+    transform: translateY(-2px);
+}
+
+.premium-form .input-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    z-index: 5;
+}
+
+.premium-form .form-control:focus + .input-icon {
+    color: #667eea;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.premium-form textarea.form-control {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.premium-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 15px;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 600;
+    color: white;
+    width: 100%;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-top: 15px;
+    box-shadow: 
+        0 10px 25px rgba(102, 126, 234, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.premium-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 
+        0 15px 35px rgba(102, 126, 234, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.premium-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.premium-btn:hover::before {
+    left: 100%;
+}
+
+.premium-btn:active {
+    transform: translateY(-1px) scale(1.01);
+}
+
+.premium-links {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e5e9;
+}
+
+.premium-links a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.premium-links a:hover {
+    color: #764ba2;
+}
+
+.google-signin-section {
+    margin-top: 30px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: #6c757d;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e1e5e9;
+}
+
+.divider span {
+    padding: 0 15px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px 20px;
+    background: white;
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    color: #3c4043;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.google-btn:hover {
+    background: #f8f9fa;
+    border-color: #dadce0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    color: #3c4043;
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 20px;
+}
+
+.special-key-field {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 2px solid rgba(245, 87, 108, 0.3);
+    display: none;
+    animation: slideIn 0.5s ease-out;
+}
+
+.special-key-field.show {
+    display: block;
+}
+
+.special-key-field .form-label {
+    color: white;
+    font-weight: 600;
+}
+
+.special-key-field .form-control {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: #333;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+.special-key-field .form-control:focus {
+    background: white;
+    border-color: #f5576c;
+    box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.2);
+}
+
+.special-key-field small {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+}
+
+.floating-shapes {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    animation: float 6s ease-in-out infinite;
+}
+
+.shape1 {
+    width: 80px;
+    height: 80px;
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.shape2 {
+    width: 60px;
+    height: 60px;
+    top: 60%;
+    right: 10%;
+    animation-delay: 2s;
+}
+
+.shape3 {
+    width: 40px;
+    height: 40px;
+    bottom: 20%;
+    left: 20%;
+    animation-delay: 4s;
+}
+
+.shape4 {
+    width: 50px;
+    height: 50px;
+    top: 40%;
+    right: 30%;
+    animation-delay: 1s;
+}
+
+.shape5 {
+    width: 30px;
+    height: 30px;
+    bottom: 30%;
+    right: 20%;
+    animation-delay: 3s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.row {
+    margin: 0 -10px;
+}
+
+.col-md-6 {
+    padding: 0 10px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .premium-card {
+        margin: 20px;
+    }
+    
+    .premium-body {
+        padding: 30px 20px;
+    }
+}
+</style>
+
+<div class="premium-register">
+    <div class="floating-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+        <div class="shape shape4"></div>
+        <div class="shape shape5"></div>
+    </div>
+    
+    <div class="premium-card">
+        <div class="premium-header">
+            <h3>Create Account</h3>
+            <p>Join our School Management System</p>
+        </div>
+        
+        <div class="premium-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('auth.register') }}" class="premium-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Enter your full name" required>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               placeholder="Enter your email" required>
+                        <i class="fas fa-envelope input-icon"></i>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" 
+                               placeholder="Enter your phone" required>
+                        <i class="fas fa-phone input-icon"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="account_type" class="form-label">Account Type</label>
+                        <select class="form-select" id="account_type" name="account_type" required>
+                            <option value="">Select Account Type</option>
+                            <option value="admin">Administrator</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="parent">Parent</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" name="address" 
+                              placeholder="Enter your complete address" rows="3" required></textarea>
+                    <i class="fas fa-map-marker-alt" style="position: absolute; right: 15px; top: 42px; color: #6c757d; font-size: 18px;"></i>
+                </div>
+                
+                <!-- Special Key Field - Only show for Parent -->
+                <div class="special-key-field" id="special_key_field">
+                    <label for="special_key" class="form-label">
+                        <i class="fas fa-key me-2"></i>Special Registration Key
+                    </label>
+                    <input type="text" class="form-control" id="special_key" name="special_key" 
+                           placeholder="6-DIGIT KEY" maxlength="6" style="font-size: 1.2em; letter-spacing: 2px;">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        Required for Parent accounts only (6-digit key provided by school)
+                    </small>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="Create a strong password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                               placeholder="Confirm your password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                    </div>
+                </div>
+                
+                <button type="submit" class="premium-btn">
+                    <i class="fas fa-user-plus me-2"></i>Create Account
+                </button>
+            </form>
+            
+            <div class="premium-links">
+                <p>
+                    <small>Already have an account?</small>
+                    <a href="{{ url_for('auth.login') }}">Login here</a>
+                </p>
+                
+                <!-- Google Sign-In Section -->
+                <div class="google-signin-section">
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
+                    <a href="{{ url_for('auth.google_login') }}" class="google-btn">
+                        <svg class="google-icon" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide special key field based on account type
+document.getElementById('account_type').addEventListener('change', function() {
+    const accountType = this.value;
+    const specialKeyField = document.getElementById('special_key_field');
+    
+    if (accountType === 'parent') {
+        specialKeyField.classList.add('show');
+        document.getElementById('special_key').setAttribute('required', 'required');
+    } else {
+        specialKeyField.classList.remove('show');
+        document.getElementById('special_key').removeAttribute('required');
+        document.getElementById('special_key').value = '';
+    }
+});
+
+// Validate special key format
+document.getElementById('special_key').addEventListener('input', function(e) {
+    const value = e.target.value.toUpperCase();
+    const keyPattern = /^[A-Z0-9!@#$%&*]{6}$/;  // 6 characters: letters, numbers, special chars
+    
+    if (value.length > 0 && !keyPattern.test(value)) {
+        e.target.setCustomValidity('Invalid key format. Expected: 6 characters (letters, numbers, special chars)');
+    } else {
+        e.target.setCustomValidity('');
+    }
+});
+
+// Password confirmation validation
+document.getElementById('confirm_password').addEventListener('input', function() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = this.value;
+    
+    if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+// Auto-format key to uppercase
+document.getElementById('special_key').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+
+// Add floating animation to shapes
+document.addEventListener('DOMContentLoaded', function() {
+    const shapes = document.querySelectorAll('.shape');
+    shapes.forEach(shape => {
+        shape.style.animation = `float ${6 + Math.random() * 4}s ease-in-out infinite`;
+    });
+});
+
+// Add ripple effect to button
+document.querySelector('.premium-btn').addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('ripple');
+    
+    this.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 600);
+});
+</script>
+
+<style>
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(0);
+    animation: ripple-animation 0.6s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}

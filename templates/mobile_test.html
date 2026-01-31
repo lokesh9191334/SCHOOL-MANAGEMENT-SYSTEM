@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Test - School Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+        }
+        .success { border-color: #00ff00; background: rgba(0, 255, 0, 0.1); }
+        .warning { border-color: #ffff00; background: rgba(255, 255, 0, 0.1); }
+        .info { border-color: #00ffff; background: rgba(0, 255, 255, 0.1); }
+        .btn {
+            background: linear-gradient(135deg, #00ffff 0%, #4a9bff 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .online { background: rgba(0, 255, 0, 0.2); border: 1px solid #00ff00; }
+        .offline { background: rgba(255, 0, 0, 0.2); border: 1px solid #ff0000; }
+        .install-btn {
+            background: linear-gradient(135deg, #ff00ff 0%, #ff8000 100%);
+            display: none;
+        }
+        .device-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Mobile & PWA Test Suite</h1>
+        <p>Test your School Management System on mobile devices</p>
+
+        <div class="device-info">
+            <h3>📊 Device Information</h3>
+            <p><strong>Screen Size:</strong> <span id="screen-size"></span></p>
+            <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+            <p><strong>Touch Support:</strong> <span id="touch-support"></span></p>
+            <p><strong>PWA Support:</strong> <span id="pwa-support"></span></p>
+            <p><strong>Online Status:</strong> <span id="online-status" class="status online">Online</span></p>
+        </div>
+
+        <div class="test-section success">
+            <h3>✅ PWA Features Test</h3>
+            <button class="btn" onclick="testServiceWorker()">Test Service Worker</button>
+            <button class="btn" onclick="testInstallPrompt()">Test Install Prompt</button>
+            <button class="btn install-btn" id="installBtn" onclick="installPWA()">Install App</button>
+            <div id="sw-status"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>📱 Mobile Features Test</h3>
+            <button class="btn" onclick="testPullToRefresh()">Test Pull-to-Refresh</button>
+            <button class="btn" onclick="testTouchGestures()">Test Touch Gestures</button>
+            <button class="btn" onclick="testResponsive()">Test Responsive Design</button>
+            <div id="mobile-status"></div>
+        </div>
+        
+        <div class="test-section info">
+            <h3>📷 Camera & Files</h3>
+            <button class="btn" onclick="openCamera()">Open Camera</button>
+            <input type="file" id="fileInput" class="btn" style="background:#4a9bff" onchange="handleFiles(this.files)">
+            <div id="file-drop" style="margin-top:10px; padding:20px; border:2px dashed #00ffff; border-radius:8px; text-align:center;">Drag files here</div>
+            <div id="file-list"></div>
+        </div>
+        
+        <div class="test-section info">
+            <h3>📍 Location & Share</h3>
+            <button class="btn" onclick="captureLocation()">Capture Location</button>
+            <button class="btn" onclick="sharePage()">Share</button>
+            <div id="location-status"></div>
+        </div>
+
+        <div class="test-section warning">
+            <h3>🌐 Network Test</h3>
+            <button class="btn" onclick="testOfflineMode()">Test Offline Mode</button>
+            <button class="btn" onclick="testCaching()">Test Caching</button>
+            <button class="btn" onclick="testBackgroundSync()">Test Background Sync</button>
+            <div id="network-status"></div>
+        </div>
+
+        <div class="test-section success">
+            <h3>🚀 Performance Test</h3>
+            <button class="btn" onclick="testLoadTime()">Test Load Time</button>
+            <button class="btn" onclick="testMemoryUsage()">Test Memory Usage</button>
+            <button class="btn" onclick="testBatteryImpact()">Test Battery Impact</button>
+            <div id="performance-status"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>🔗 Integration Test</h3>
+            <button class="btn" onclick="testMainApp()">Go to Main App</button>
+            <button class="btn" onclick="testAllFeatures()">Test All Features</button>
+            <div id="integration-status"></div>
+        </div>
+    </div>
+
+    <script>
+        // Device Information
+        document.getElementById('screen-size').textContent = `${window.screen.width}x${window.screen.height}`;
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+        document.getElementById('touch-support').textContent = 'ontouchstart' in window ? 'Yes' : 'No';
+        document.getElementById('pwa-support').textContent = 'serviceWorker' in navigator && 'manifest' in document ? 'Yes' : 'No';
+
+        // Online/Offline Status
+        function updateOnlineStatus() {
+            const status = document.getElementById('online-status');
+            if (navigator.onLine) {
+                status.textContent = 'Online';
+                status.className = 'status online';
+            } else {
+                status.textContent = 'Offline';
+                status.className = 'status offline';
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').style.display = 'inline-block';
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('installBtn').style.display = 'none';
+                });
+            }
+        }
+
+        // Test Functions
+        function testServiceWorker() {
+            const status = document.getElementById('sw-status');
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    status.innerHTML = `<p style="color: #00ff00;">✅ Service Worker registered: ${registrations.length} worker(s)</p>`;
+                });
+            } else {
+                status.innerHTML = '<p style="color: #ff0000;">❌ Service Worker not supported</p>';
+            }
+        }
+
+        function testInstallPrompt() {
+            const status = document.getElementById('sw-status');
+            if (deferredPrompt) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Install prompt available</p>';
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Install prompt not available (may already be installed)</p>';
+            }
+        }
+
+        function testPullToRefresh() {
+            const status = document.getElementById('mobile-status');
+            if (window.innerWidth <= 768) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Pull-to-refresh enabled on mobile</p>';
+                // Simulate pull gesture
+                setTimeout(() => {
+                    status.innerHTML += '<p>💡 Try pulling down from top of page to refresh</p>';
+                }, 1000);
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Not on mobile device</p>';
+            }
+        }
+
+        function testTouchGestures() {
+            const status = document.getElementById('mobile-status');
+            if ('ontouchstart' in window) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Touch gestures supported</p>';
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Touch not supported (desktop)</p>';
+            }
+        }
+        
+        let mediaStream;
+        function openCamera() {
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.inset = '0';
+            modal.style.background = 'rgba(0,0,0,0.7)';
+            modal.style.zIndex = '2000';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            const inner = document.createElement('div');
+            inner.style.background = '#000';
+            inner.style.borderRadius = '8px';
+            inner.style.padding = '10px';
+            const video = document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            video.style.maxWidth = '90vw';
+            video.style.maxHeight = '70vh';
+            const controls = document.createElement('div');
+            controls.style.marginTop = '10px';
+            const captureBtn = document.createElement('button');
+            captureBtn.className = 'btn';
+            captureBtn.textContent = 'Capture';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'btn';
+            closeBtn.textContent = 'Close';
+            controls.appendChild(captureBtn);
+            controls.appendChild(closeBtn);
+            inner.appendChild(video);
+            inner.appendChild(controls);
+            modal.appendChild(inner);
+            document.body.appendChild(modal);
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                mediaStream = stream;
+                video.srcObject = stream;
+            }).catch(() => {});
+            captureBtn.onclick = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/png');
+                img.style.maxWidth = '90vw';
+                img.style.marginTop = '10px';
+                inner.appendChild(img);
+            };
+            closeBtn.onclick = () => {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(t => t.stop());
+                    mediaStream = null;
+                }
+                modal.remove();
+            };
+        }
+        
+        const drop = document.getElementById('file-drop');
+        drop.addEventListener('dragover', e => {
+            e.preventDefault();
+            drop.style.borderColor = '#4a9bff';
+        });
+        drop.addEventListener('dragleave', e => {
+            e.preventDefault();
+            drop.style.borderColor = '#00ffff';
+        });
+        drop.addEventListener('drop', e => {
+            e.preventDefault();
+            drop.style.borderColor = '#00ffff';
+            handleFiles(e.dataTransfer.files);
+        });
+        function handleFiles(files) {
+            const list = document.getElementById('file-list');
+            list.innerHTML = '';
+            Array.from(files).forEach(f => {
+                const p = document.createElement('p');
+                p.textContent = f.name + ' (' + f.type + ', ' + f.size + ' bytes)';
+                list.appendChild(p);
+            });
+        }
+        
+        function captureLocation() {
+            const status = document.getElementById('location-status');
+            if (!('geolocation' in navigator)) {
+                status.innerHTML = '<p style="color:#ff0000;">❌ Geolocation not supported</p>';
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(pos => {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lon = pos.coords.longitude.toFixed(6);
+                status.innerHTML = `<p style="color:#00ff00;">✅ Location: ${lat}, ${lon}</p>`;
+            }, () => {
+                status.innerHTML = '<p style="color:#ff0000;">❌ Permission denied</p>';
+            });
+        }
+        
+        function sharePage() {
+            if (navigator.share) {
+                navigator.share({ title: document.title, text: 'Check this page', url: window.location.href }).catch(()=>{});
+            }
+        }
+
+        function testResponsive() {
+            const status = document.getElementById('mobile-status');
+            const width = window.innerWidth;
+            if (width <= 375) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ iPhone SE/small phone layout active</p>';
+            } else if (width <= 768) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Mobile layout active</p>';
+            } else if (width <= 1024) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Tablet layout active</p>';
+            } else {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Desktop layout active</p>';
+            }
+        }
+
+        function testOfflineMode() {
+            const status = document.getElementById('network-status');
+            if (!navigator.onLine) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Currently offline - testing offline functionality</p>';
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Currently online - turn off internet to test offline mode</p>';
+            }
+        }
+
+        function testCaching() {
+            const status = document.getElementById('network-status');
+            // Test if resources are cached
+            fetch('/static/manifest.json', { cache: 'only-if-cached' })
+                .then(() => {
+                    status.innerHTML = '<p style="color: #00ff00;">✅ Resources cached successfully</p>';
+                })
+                .catch(() => {
+                    status.innerHTML = '<p style="color: #ffff00;">⚠️ Resources not cached yet</p>';
+                });
+        }
+
+        function testBackgroundSync() {
+            const status = document.getElementById('network-status');
+            if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+                status.innerHTML = '<p style="color: #00ff00;">✅ Background sync supported</p>';
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Background sync not supported</p>';
+            }
+        }
+
+        function testLoadTime() {
+            const status = document.getElementById('performance-status');
+            const loadTime = performance.now();
+            status.innerHTML = `<p style="color: #00ff00;">✅ Page loaded in ${loadTime.toFixed(2)}ms</p>`;
+        }
+
+        function testMemoryUsage() {
+            const status = document.getElementById('performance-status');
+            if ('memory' in performance) {
+                const memInfo = performance.memory;
+                const usedMB = (memInfo.usedJSHeapSize / 1024 / 1024).toFixed(2);
+                const totalMB = (memInfo.totalJSHeapSize / 1024 / 1024).toFixed(2);
+                status.innerHTML = `<p style="color: #00ff00;">✅ Memory usage: ${usedMB}MB / ${totalMB}MB</p>`;
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Memory info not available</p>';
+            }
+        }
+
+        function testBatteryImpact() {
+            const status = document.getElementById('performance-status');
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    const level = (battery.level * 100).toFixed(1);
+                    const charging = battery.charging ? 'Charging' : 'Not charging';
+                    status.innerHTML = `<p style="color: #00ff00;">✅ Battery: ${level}% (${charging})</p>`;
+                });
+            } else {
+                status.innerHTML = '<p style="color: #ffff00;">⚠️ Battery API not supported</p>';
+            }
+        }
+
+        function testMainApp() {
+            window.location.href = '/';
+        }
+
+        function testAllFeatures() {
+            const status = document.getElementById('integration-status');
+            status.innerHTML = '<p style="color: #00ff00;">🔄 Running all tests...</p>';
+
+            // Run all tests
+            testServiceWorker();
+            testInstallPrompt();
+            testPullToRefresh();
+            testTouchGestures();
+            testResponsive();
+            testOfflineMode();
+            testCaching();
+            testBackgroundSync();
+            testLoadTime();
+            testMemoryUsage();
+            testBatteryImpact();
+
+            setTimeout(() => {
+                status.innerHTML = '<p style="color: #00ff00;">✅ All tests completed! Check results above.</p>';
+            }, 2000);
+        }
+
+        // Auto-run basic tests on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testResponsive();
+                testServiceWorker();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

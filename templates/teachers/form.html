@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0">
+          <i class="fas fa-{{ 'plus' if not teacher else 'edit' }} me-2 text-primary"></i>
+          {{ 'Add New Teacher' if not teacher else 'Edit Teacher' }}
+        </h4>
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          <div class="row">
+            <!-- Personal Information -->
+            <div class="col-md-6">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-user me-2"></i>Personal Information
+              </h5>
+
+              <div class="mb-3">
+                <label for="name" class="form-label">Full Name *</label>
+                <input type="text" class="form-control" id="name" name="name"
+                       value="{{ teacher.name if teacher else '' }}" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="employee_id" class="form-label">Employee ID</label>
+                <input type="text" class="form-control" id="employee_id" name="employee_id"
+                       value="{{ teacher.employee_id if teacher else '' }}" placeholder="e.g., TCH-2025-001">
+              </div>
+
+              <div class="mb-3">
+                <label for="school_id" class="form-label">School ID</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="school_id" name="school_id" maxlength="5" value="{{ teacher.school_id if teacher else (admin_school_id if admin_school_id else '') }}" placeholder="5-digit school id">
+                  <button type="button" class="btn btn-outline-secondary" id="useMySchoolId">Use my School ID</button>
+                </div>
+                <div class="form-text">Admin can auto-fill their school id here.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="secret_key" class="form-label">Teacher Secret Key (5 digits)</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="secret_key" name="secret_key" maxlength="5" value="{{ teacher.secret_key if teacher else (generated_secret if generated_secret else '') }}" placeholder="Auto-generated 5-digit key">
+                  <button type="button" class="btn btn-outline-secondary" id="regenerateKey">Regenerate</button>
+                </div>
+                <div class="form-text">Share this 5-digit key with the teacher for account creation.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="date_of_birth" class="form-label">Date of Birth *</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                       value="{{ teacher.date_of_birth.strftime('%Y-%m-%d') if teacher and teacher.date_of_birth else '' }}"
+                       max="{{ (datetime.now() - relativedelta(years=18)).strftime('%Y-%m-%d') }}"
+                       min="{{ (datetime.now() - relativedelta(years=65)).strftime('%Y-%m-%d') }}"
+                       required>
+                <div class="form-text">
+                    <i class="fas fa-info-circle text-info me-1"></i>
+                    Teacher age should be between 18-65 years as of today
+                </div>
+                <div id="teacher-dob-error" class="text-danger small mt-1" style="display: none;"></div>
+              </div>
+
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ teacher.email if teacher else '' }}" placeholder="name@school.edu">
+              </div>
+
+              <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phone" name="phone"
+                       value="{{ teacher.phone if teacher else '' }}" placeholder="+91-XXXXXXXXXX">
+              </div>
+
+              <div class="mb-3">
+                <label for="aadhaar" class="form-label">Aadhaar (12 digits)</label>
+                <input type="text" pattern="^\d{12}$" maxlength="12" class="form-control" id="aadhaar" name="aadhaar"
+                       value="{{ teacher.aadhaar if teacher else '' }}" placeholder="12-digit Aadhaar number">
+              </div>
+
+              <div class="mb-3">
+                <label for="photo" class="form-label">Teacher Photo</label>
+                <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                {% if teacher and teacher.photo %}
+                <div class="mt-2">
+                  <img src="{{ url_for('static', filename=teacher.photo) }}" alt="Current Photo" class="img-thumbnail" style="max-width: 110px; max-height: 110px;">
+                  <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo" value="1">
+                    <label class="form-check-label" for="remove_photo">
+                      Remove current photo
+                    </label>
+                  </div>
+                  <small class="text-muted d-block">Upload new photo to replace current one</small>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="mb-3">
+                <label for="pan" class="form-label">PAN</label>
+                <input type="text" class="form-control" id="pan" name="pan"
+                       value="{{ teacher.pan if teacher else '' }}" placeholder="ABCDE1234F">
+              </div>
+
+            </div>
+
+            <!-- Professional Information -->
+            <div class="col-md-6">
+              <h5 class="text-primary mb-3">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Professional Information
+              </h5>
+
+              <div class="mb-3">
+                <label for="subject" class="form-label">Subject / Specialization</label>
+                <input type="text" class="form-control" id="subject" name="subject"
+                       value="{{ teacher.subject if teacher else '' }}" placeholder="e.g., Mathematics, Physics">
+              </div>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="qualification" class="form-label">Qualification</label>
+                  <input type="text" class="form-control" id="qualification" name="qualification"
+                         value="{{ teacher.qualification if teacher else '' }}" placeholder="e.g., M.Sc, B.Ed">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="documents" class="form-label">Qualification Certificates (PDF)</label>
+                  <input type="file" class="form-control" id="documents" name="documents" accept="application/pdf" multiple>
+                  <small class="text-muted">You can select multiple files.</small>
+                  
+                  {% if teacher and teacher.documents %}
+                  <div class="mt-2 p-2 border rounded bg-light">
+                    <h6 class="small fw-bold mb-2">Current Documents:</h6>
+                    <ul class="list-unstyled small mb-0">
+                        {% for doc in teacher.documents %}
+                        <li class="mb-2 d-flex justify-content-between align-items-center bg-white p-1 rounded border">
+                            <a href="{{ url_for('static', filename=doc.file_path) }}" target="_blank" class="text-decoration-none text-truncate" style="max-width: 200px;">
+                                <i class="fas fa-file-pdf text-danger me-1"></i>{{ doc.filename }}
+                            </a>
+                            <div class="form-check form-check-inline ms-2 m-0">
+                                <input class="form-check-input" type="checkbox" id="del_doc_{{ doc.id }}" name="delete_documents" value="{{ doc.id }}">
+                                <label class="form-check-label text-danger" for="del_doc_{{ doc.id }}"><i class="fas fa-trash-alt"></i></label>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <small class="text-muted d-block mt-1 text-end fst-italic">Check box to delete on save</small>
+                  </div>
+                  {% endif %}
+                  
+                  {# Fallback for legacy single document #}
+                  {% if teacher and teacher.qualification_document and not teacher.documents %}
+                  <div class="mt-2">
+                    <small>
+                      <a href="{{ url_for('static', filename=teacher.qualification_document) }}" target="_blank" class="text-decoration-none">
+                        <i class="fas fa-file-pdf text-danger me-1"></i>View Legacy Certificate
+                      </a>
+                    </small>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="experience_years" class="form-label">Experience (Years)</label>
+                <input type="number" class="form-control" id="experience_years" name="experience_years"
+                       value="{{ teacher.experience_years if teacher else '' }}" min="0" step="1">
+              </div>
+
+              <div class="mb-3">
+                <label for="class_teacher_of" class="form-label">Class Teacher Of</label>
+                <select id="class_teacher_of" name="class_teacher_of" class="form-select">
+                  <option value="">-- Select class --</option>
+                  {% if classrooms %}
+                    {% for cls in classrooms %}
+                      <option value="{{ cls.name }}" {% if teacher and teacher.class_teacher_of==cls.name %}selected{% endif %}>{{ cls.name }}{% if cls.stream %} - {{ cls.stream }}{% endif %}</option>
+                    {% endfor %}
+                  {% else %}
+                    {# Fallback defaults: Nursery, LKG, UKG, 1-12 with sections A/B #}
+                    {% set sections = ['A', 'B'] %}
+                    {% for g in ['Nursery', 'LKG', 'UKG'] %}
+                      {% for s in sections %}
+                        {% set name = g ~ ' - ' ~ s %}
+                        <option value="{{ name }}" {% if teacher and teacher.class_teacher_of==name %}selected{% endif %}>{{ name }}</option>
+                      {% endfor %}
+                    {% endfor %}
+                    {% for i in range(1,13) %}
+                      {% for s in sections %}
+                        {% set name = i ~ ' - ' ~ s %}
+                        <option value="{{ name }}" {% if teacher and teacher.class_teacher_of==name %}selected{% endif %}>{{ name }}</option>
+                      {% endfor %}
+                    {% endfor %}
+                  {% endif %}
+                </select>
+                <div class="form-text">Select a class to assign this teacher as class teacher.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="date_of_joining" class="form-label">Joining Date</label>
+                <input type="date" class="form-control" id="date_of_joining" name="date_of_joining"
+                       value="{{ teacher.date_of_joining.strftime('%Y-%m-%d') if teacher and teacher.date_of_joining else '' }}">
+              </div>
+
+              <div class="mb-3">
+                <label for="bank_account" class="form-label">Bank Account</label>
+                <input type="text" class="form-control" id="bank_account" name="bank_account"
+                       value="{{ teacher.bank_account if teacher else '' }}" placeholder="Account Number">
+              </div>
+
+              <div class="mb-3">
+                <label for="ifsc_code" class="form-label">IFSC Code</label>
+                <input type="text" class="form-control" id="ifsc_code" name="ifsc_code"
+                       value="{{ teacher.ifsc_code if teacher else '' }}" placeholder="IFSC Code">
+              </div>
+
+              <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="3"
+                          placeholder="Current correspondence address">{{ teacher.address if teacher else '' }}</textarea>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <a href="{{ url_for('teachers.list_teachers') }}" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left me-2"></i>Back to Teachers
+                </a>
+                <div>
+                  <button type="reset" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-undo me-2"></i>Reset
+                  </button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>{{ 'Update Teacher' if teacher else 'Save Teacher' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('form');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone') ? document.getElementById('phone').value.trim() : '';
+    const aadhaar = document.getElementById('aadhaar') ? document.getElementById('aadhaar').value.trim() : '';
+
+    if (!name) {
+      e.preventDefault();
+      alert('Name is required.');
+      return false;
+    }
+
+    // Email validation
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      e.preventDefault();
+      alert('Please enter a valid email address.');
+      return false;
+    }
+
+    // Phone validation (digits only)
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phone && phoneDigits.length < 10) {
+      e.preventDefault();
+      alert('Please enter a valid phone number (at least 10 digits).');
+      return false;
+    }
+
+    // Aadhaar validation (optional but if provided must be valid)
+    const aadhaarDigits = aadhaar.replace(/\D/g, '');
+    if (aadhaarDigits && !/^\d{12}$/.test(aadhaarDigits)) {
+      e.preventDefault();
+      alert('Aadhaar number must be exactly 12 digits if provided.');
+      return false;
+    }
+
+    return true;
+  });
+});
+
+// Real-time DOB validation
+document.getElementById('date_of_birth').addEventListener('change', function() {
+  const dob = this.value;
+  const errorDiv = document.getElementById('teacher-dob-error');
+  
+  if (!dob) {
+    errorDiv.style.display = 'block';
+    errorDiv.textContent = 'Date of Birth is required';
+    return;
+  }
+
+  const dobDate = new Date(dob);
+  const today = new Date();
+  const age = Math.floor((today - dobDate) / (365.25 * 24 * 60 * 60 * 1000));
+
+  if (age < 18 || age > 65) {
+    errorDiv.style.display = 'block';
+    errorDiv.textContent = 'Teacher age must be between 18-65 years';
+  } else {
+    errorDiv.style.display = 'none';
+  }
+});
+
+// Real-time phone validation
+document.getElementById('phone').addEventListener('input', function() {
+  const phone = this.value.replace(/\D/g, ''); // Remove non-digits
+  if (phone.length < 10) {
+    this.setCustomValidity('Phone number must be at least 10 digits');
+  } else {
+    this.setCustomValidity('');
+  }
+});
+
+// Real-time Aadhaar validation
+const aadhaarInput = document.getElementById('aadhaar');
+if (aadhaarInput) {
+  aadhaarInput.addEventListener('input', function() {
+    const aadhaar = this.value.replace(/\D/g, ''); // Remove non-digits
+    if (aadhaar.length > 0 && aadhaar.length !== 12) {
+      this.setCustomValidity('Aadhaar must be exactly 12 digits');
+    } else {
+      this.setCustomValidity('');
+    }
+  });
+}
+
+// Use admin's school id button
+const useBtn = document.getElementById('useMySchoolId');
+if (useBtn) {
+  useBtn.addEventListener('click', function() {
+    const adminId = '{{ admin_school_id }}';
+    if (adminId) document.getElementById('school_id').value = adminId;
+  });
+}
+
+// Also auto-fill school_id when admin focuses or clicks the input
+const schoolInput = document.getElementById('school_id');
+if (schoolInput) {
+  schoolInput.addEventListener('focus', function() {
+    const adminId = '{{ admin_school_id }}';
+    if (adminId && !this.value) this.value = adminId;
+  });
+  schoolInput.addEventListener('click', function() {
+    const adminId = '{{ admin_school_id }}';
+    if (adminId && !this.value) this.value = adminId;
+  });
+}
+
+// Regenerate secret key client-side
+const regenBtn = document.getElementById('regenerateKey');
+if (regenBtn) {
+  regenBtn.addEventListener('click', function() {
+    const secretKeyInput = document.getElementById('secret_key');
+    let newKey;
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    function generateUniqueKey() {
+      if (attempts >= maxAttempts) {
+        alert('Unable to generate unique key after multiple attempts. Please try again.');
+        return;
+      }
+      
+      newKey = Math.floor(10000 + Math.random() * 90000).toString();
+      
+      // Check uniqueness via AJAX
+      fetch(`/teachers/check-secret-key/${newKey}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.available) {
+            secretKeyInput.value = newKey;
+          } else {
+            attempts++;
+            generateUniqueKey();
+          }
+        })
+        .catch(error => {
+          console.error('Error checking secret key:', error);
+          // Fallback: set the key anyway
+          secretKeyInput.value = newKey;
+        });
+    }
+    
+    generateUniqueKey();
+  });
+}
+</script>
+
+{% endblock %}

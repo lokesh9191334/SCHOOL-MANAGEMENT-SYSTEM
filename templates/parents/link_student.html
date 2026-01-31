@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+      <h3 class="mb-0"><i class="fas fa-link me-2"></i>Link Student</h3>
+      <a href="{{ url_for('parents.announcements') }}" class="btn-back">
+        <i class="fas fa-arrow-left me-2"></i>Back to Parent Portal
+      </a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <p class="text-muted">Select a student to link with your parent profile.</p>
+      <form method="POST" class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Student</label>
+          <select class="form-select" name="student_id" required>
+            <option value="">Choose student</option>
+            {% for s in students %}
+            <option value="{{ s.id }}">{{ s.full_name() }} (Roll {{ s.roll_number or '—' }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary">
+            <i class="fas fa-check-circle me-2"></i>Link
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

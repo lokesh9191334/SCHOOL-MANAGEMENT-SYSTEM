@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Apply for Leave - School Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-calendar-times me-2"></i>Apply for Leave
+                </h2>
+                <div>
+                    <a href="{{ url_for('teacher_substitution.my_substitutions') }}" class="btn btn-info">
+                        <i class="fas fa-user-clock me-2"></i>My Substitutions
+                    </a>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Application Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Leave Application Form
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="leave_type" class="form-label">Leave Type *</label>
+                                    <select class="form-select" id="leave_type" name="leave_type" required onchange="toggleTimeFields()">
+                                        <option value="">Select Leave Type</option>
+                                        <option value="sick">Sick Leave</option>
+                                        <option value="casual">Casual Leave</option>
+                                        <option value="emergency">Emergency Leave</option>
+                                        <option value="maternity">Maternity Leave</option>
+                                        <option value="paternity">Paternity Leave</option>
+                                        <option value="study">Study Leave</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="duration" class="form-label">Duration *</label>
+                                    <select class="form-select" id="duration" name="duration" required onchange="toggleTimeFields()">
+                                        <option value="">Select Duration</option>
+                                        <option value="full_day">Full Day</option>
+                                        <option value="half_day">Half Day</option>
+                                        <option value="multiple_days">Multiple Days</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Start Date *</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" required onchange="calculateDays()">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">End Date *</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" required onchange="calculateDays()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row" id="timeFields" style="display: none;">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_time" class="form-label">Start Time</label>
+                                    <input type="time" class="form-control" id="start_time" name="start_time">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_time" class="form-label">End Time</label>
+                                    <input type="time" class="form-control" id="end_time" name="end_time">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason *</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" required 
+                                      placeholder="Please provide a detailed reason for your leave application..."></textarea>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Important Information:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Once your leave is approved, automatic substitutions will be created for your classes</li>
+                                <li>You will receive notifications about the substitution arrangements</li>
+                                <li>Please apply for leave at least 24 hours in advance when possible</li>
+                                <li>For emergency leave, contact the school administration immediately</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Leave Application
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-redo me-2"></i>Reset Form
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Leave Balance Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Leave Balance
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Sick Leave</span>
+                            <span class="badge bg-success">12 days</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 70%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Casual Leave</span>
+                            <span class="badge bg-warning">8 days</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-warning" style="width: 40%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Emergency Leave</span>
+                            <span class="badge bg-danger">3 days</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-danger" style="width: 20%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Applications -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Applications
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-calendar-alt fa-3x mb-3"></i>
+                        <p>Your recent leave applications will appear here</p>
+                        <a href="{{ url_for('teacher_substitution.my_leave') }}" class="btn btn-sm btn-outline-primary">
+                            View All Applications
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set minimum date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('start_date').min = today;
+document.getElementById('end_date').min = today;
+
+// Set end date minimum to start date
+document.getElementById('start_date').addEventListener('change', function() {
+    document.getElementById('end_date').min = this.value;
+    if (document.getElementById('end_date').value < this.value) {
+        document.getElementById('end_date').value = this.value;
+    }
+});
+
+function toggleTimeFields() {
+    const leaveType = document.getElementById('leave_type').value;
+    const duration = document.getElementById('duration').value;
+    const timeFields = document.getElementById('timeFields');
+    
+    // Show time fields for half-day leave
+    if (duration === 'half_day') {
+        timeFields.style.display = 'block';
+    } else {
+        timeFields.style.display = 'none';
+        document.getElementById('start_time').value = '';
+        document.getElementById('end_time').value = '';
+    }
+}
+
+function calculateDays() {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Update duration if not manually selected
+        if (!document.getElementById('duration').value) {
+            if (diffDays === 1) {
+                document.getElementById('duration').value = 'full_day';
+            } else {
+                document.getElementById('duration').value = 'multiple_days';
+            }
+        }
+    }
+}
+
+// Auto-save draft
+let form = document.querySelector('form');
+let draftData = {};
+
+// Load draft on page load
+window.addEventListener('load', function() {
+    const savedDraft = localStorage.getItem('leaveApplicationDraft');
+    if (savedDraft) {
+        draftData = JSON.parse(savedDraft);
+        // Restore form data
+        Object.keys(draftData).forEach(key => {
+            const element = document.getElementById(key);
+            if (element) {
+                element.value = draftData[key];
+            }
+        });
+    }
+});
+
+// Save draft on input
+form.addEventListener('input', function(e) {
+    draftData[e.target.id] = e.target.value;
+    localStorage.setItem('leaveApplicationDraft', JSON.stringify(draftData));
+});
+
+// Clear draft on submit
+form.addEventListener('submit', function() {
+    localStorage.removeItem('leaveApplicationDraft');
+});
+</script>
+{% endblock %}

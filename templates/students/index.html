@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="mb-0">
+          <i class="fas fa-user-graduate me-3 text-primary"></i>
+          Student Management
+        </h2>
+        <p class="text-muted mt-1">Comprehensive student information and management system</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" class="row g-3">
+      <div class="col-md-4">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" name="search" placeholder="Search students..."
+                 value="{{ search }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" name="class_filter">
+          <option value="">All Classes</option>
+          {% for cls in classes %}
+          <option value="{{ cls.id }}" {% if class_filter == cls.id|string %}selected{% endif %}>
+            {{ cls.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" name="status_filter">
+          <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary me-2">
+          <i class="fas fa-filter me-2"></i>Apply Filters
+        </button>
+        <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">
+          <i class="fas fa-times me-2"></i>Clear
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card stats-card border-primary">
+      <div class="card-body text-center">
+        <i class="fas fa-users fa-2x text-primary mb-2"></i>
+        <h4 class="text-primary">{{ total_students }}</h4>
+        <p class="mb-0">Total Students</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stats-card border-success">
+      <div class="card-body text-center">
+        <i class="fas fa-user-check fa-2x text-success mb-2"></i>
+        <h4 class="text-success">{{ students|selectattr('is_active', 'equalto', True)|list|length }}</h4>
+        <p class="mb-0">Active Students</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stats-card border-info">
+      <div class="card-body text-center">
+        <i class="fas fa-school fa-2x text-info mb-2"></i>
+        <h4 class="text-info">{{ classes|length }}</h4>
+        <p class="mb-0">Classes</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stats-card border-warning">
+      <div class="card-body text-center">
+        <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+        <h4 class="text-warning">{{ "%.1f"|format(students|selectattr('is_active', 'equalto', True)|list|length / students|length * 100 if students|length > 0 else 0) }}%</h4>
+        <p class="mb-0">Attendance Rate</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Students Table -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="fas fa-list me-2"></i>Student Records
+      <span class="badge bg-primary ms-2">{{ students|length }}</span>
+    </h5>
+    <div class="d-flex gap-2">
+      {% if current_user.role != 'teacher' %}
+      <a href="{{ url_for('students.add_student') }}" class="btn btn-sm btn-primary">
+        <i class="fas fa-plus me-1"></i>Add Student
+      </a>
+      {% endif %}
+      <a href="{{ url_for('students.export_students', format='excel') }}" class="btn btn-sm btn-outline-success">
+        <i class="fas fa-file-excel me-1"></i>Excel
+      </a>
+      <a href="{{ url_for('students.student_analytics') }}" class="btn btn-sm btn-outline-info">
+        <i class="fas fa-chart-bar me-1"></i>Analytics
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    {% if students %}
+    <form id="bulk-action-form" method="POST" action="{{ url_for('students.bulk_delete_students') }}">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th width="50">
+                <input type="checkbox" id="select-all" class="form-check-input">
+              </th>
+              <th><i class="fas fa-id-badge me-1"></i>ID</th>
+              <th><i class="fas fa-image me-1"></i>Photo</th>
+              <th><i class="fas fa-user me-1"></i>Name</th>
+              <th><i class="fas fa-envelope me-1"></i>Email</th>
+              <th><i class="fas fa-hashtag me-1"></i>Roll No</th>
+              <th><i class="fas fa-school me-1"></i>Class</th>
+              <th><i class="fas fa-phone me-1"></i>Phone</th>
+              <th><i class="fas fa-toggle-on me-1"></i>Status</th>
+              <th width="200"><i class="fas fa-cogs me-1"></i>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in students %}
+            <tr>
+              <td>
+                <input type="checkbox" name="student_ids[]" value="{{ student.id }}" class="form-check-input student-checkbox">
+              </td>
+              <td>{{ student.id }}</td>
+              <td>
+                {% if student.photo %}
+                <img src="{{ url_for('static', filename=student.photo) }}" alt="Photo" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                {% else %}
+                <div class="avatar-circle d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 40px; height: 40px; font-weight: bold;">
+                  {% if student.first_name %}
+                    {{ student.first_name[0] }}{{ student.last_name[0] if student.last_name else '' }}
+                  {% else %}
+                    {{ student.name[0] if student.name else '?' }}
+                  {% endif %}
+                </div>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div>
+                    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+                    {% if student.parent_name %}
+                    <br><small class="text-muted">Parent: {{ student.parent_name }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if student.email %}
+                <a href="mailto:{{ student.email }}" class="text-decoration-none">{{ student.email }}</a>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>{{ student.roll_number or '-' }}</td>
+              <td>{{ student.classroom.name if student.classroom else '-' }}</td>
+              <td>
+                {% if student.phone %}
+                <a href="tel:{{ student.phone }}" class="text-decoration-none">{{ student.phone }}</a>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" action="{{ url_for('students.toggle_student_active', student_id=student.id) }}" style="display:inline">
+                  <button type="submit" class="badge rounded-pill p-2 border-0 {% if student.is_active %}bg-success text-white{% else %}bg-secondary text-white{% endif %}" title="Toggle Status">
+                    {% if student.is_active %}Active{% else %}Inactive{% endif %}
+                  </button>
+                </form>
+              </td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{{ url_for('students.view_student', student_id=student.id) }}" class="btn btn-sm btn-outline-info" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{{ url_for('students.edit_student', student_id=student.id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{{ url_for('students.student_result', student_id=student.id) }}" class="btn btn-sm btn-outline-success" title="Result">
+                    <i class="fas fa-award"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('students.delete_student', student_id=student.id) }}" style="display:inline" onsubmit="return confirm('Are you sure you want to delete {{ student.first_name }} {{ student.last_name }}?')">
+                    <button class="btn btn-sm btn-outline-danger" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Bulk Actions -->
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+          <span id="selected-count" class="text-muted">0 students selected</span>
+        </div>
+        <div>
+          <button type="submit" class="btn btn-danger" id="bulk-delete-btn" disabled>
+            <i class="fas fa-trash me-2"></i>Delete Selected
+          </button>
+        </div>
+      </div>
+    </form>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
+      <h4 class="text-muted">No Students Found</h4>
+      <p class="text-muted">
+        {% if search or class_filter or status_filter != 'all' %}
+        No students match your current filters. Try adjusting your search criteria.
+        {% else %}
+        There are no student profiles yet.
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if total_students > per_page %}
+<div class="d-flex justify-content-center mt-4">
+  <nav>
+    <ul class="pagination">
+      {% set total_pages = (total_students + per_page - 1) // per_page %}
+      {% for page_num in range(1, total_pages + 1) %}
+      <li class="page-item {% if page_num == page %}active{% endif %}">
+        <a class="page-link" href="{{ url_for('students.list_students', search=search, class_filter=class_filter, status_filter=status_filter, page=page_num) }}">
+          {{ page_num }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+</div>
+{% endif %}
+
+<script>
+// Bulk selection functionality
+document.getElementById('select-all').addEventListener('change', function() {
+  const checkboxes = document.querySelectorAll('.student-checkbox');
+  checkboxes.forEach(cb => cb.checked = this.checked);
+  updateSelectedCount();
+});
+
+document.querySelectorAll('.student-checkbox').forEach(cb => {
+  cb.addEventListener('change', updateSelectedCount);
+});
+
+function updateSelectedCount() {
+  const selected = document.querySelectorAll('.student-checkbox:checked').length;
+  document.getElementById('selected-count').textContent = selected + ' students selected';
+  document.getElementById('bulk-delete-btn').disabled = selected === 0;
+}
+
+function sendAbsentNotifications() {
+  if (confirm('Are you sure you want to send notifications to absent students?')) {
+    fetch('/api/send_absent_notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'students'
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Notifications sent successfully to ' + data.sent_count + ' students!');
+      } else {
+        alert('Failed to send notifications: ' + data.message);
+      }
+    })
+    .catch(error => {
+      alert('Error sending notifications: ' + error.message);
+    });
+  }
+}
+
+// Flash message auto-hide
+setTimeout(() => {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(alert => {
+    alert.style.transition = 'opacity 0.5s';
+    alert.style.opacity = '0';
+    setTimeout(() => alert.remove(), 500);
+  });
+}, 5000);
+</script>
+
+<style>
+.student-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.student-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+  opacity: 0.7;
+}
+
+.contact-info a:hover {
+  color: var(--primary-color) !important;
+}
+</style>
+
+{% endblock %}

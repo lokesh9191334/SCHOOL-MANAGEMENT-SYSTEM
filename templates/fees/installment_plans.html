@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Installment Plans Management</h3>
+          <a href="{{ url_for('fees.add_installment_plan') }}" class="btn btn-primary">Create Plan</a>
+        </div>
+        <div class="card-body">
+          {% if plans %}
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Total Amount</th>
+                  <th>Installments</th>
+                  <th>Installment Amount</th>
+                  <th>Frequency</th>
+                  <th>Start Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for plan in plans %}
+                <tr>
+                  <td>{{ plan.id }}</td>
+                  <td><strong>{{ plan.name }}</strong></td>
+                  <td>{{ plan.description or '-' }}</td>
+                  <td><strong>${{ "%.2f"|format(plan.total_amount) }}</strong></td>
+                  <td>{{ plan.number_of_installments }}</td>
+                  <td>${{ "%.2f"|format(plan.installment_amount) }}</td>
+                  <td>{{ plan.frequency }}</td>
+                  <td>{{ plan.start_date.strftime('%Y-%m-%d') }}</td>
+                  <td>
+                    {% if plan.is_active %}
+                      <span class="badge bg-success">Active</span>
+                    {% else %}
+                      <span class="badge bg-danger">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group" role="group">
+                      <button class="btn btn-sm btn-info">View</button>
+                      <button class="btn btn-sm btn-warning">Edit</button>
+                      {% if plan.is_active %}
+                        <button class="btn btn-sm btn-danger">Deactivate</button>
+                      {% else %}
+                        <button class="btn btn-sm btn-success">Activate</button>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Installment Plans Found</h4>
+            <p class="text-muted">Create installment plans to allow students to pay fees in multiple installments.</p>
+            <a href="{{ url_for('fees.add_installment_plan') }}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Create First Plan
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

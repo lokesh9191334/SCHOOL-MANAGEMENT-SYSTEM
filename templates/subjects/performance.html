@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Performance Analytics: {{ subject.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('subjects.view_subject', subject_id=subject.id) }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Subject
+                        </a>
+                        <button class="btn btn-primary btn-sm" onclick="exportReport()">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Performance Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5>Total Students</h5>
+                                    <h2>{{ total_students }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>Attendance Rate</h5>
+                                    <h2>{{ attendance_rate }}%</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5>Average Grade</h5>
+                                    <h2>{{ average_grade }}%</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5>Grade Distribution</h5>
+                                    <h6>A: {{ grade_distribution.A }}</h6>
+                                    <h6>B: {{ grade_distribution.B }}</h6>
+                                    <h6>C: {{ grade_distribution.C }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Distribution Chart -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Grade Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="gradeDistributionChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Performance Summary</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Excellent (A):</strong> {{ grade_distribution.A }} students
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-success" style="width: 40%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Good (B):</strong> {{ grade_distribution.B }} students
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-primary" style="width: 35%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Satisfactory (C):</strong> {{ grade_distribution.C }} students
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-warning" style="width: 15%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Needs Improvement (D):</strong> {{ grade_distribution.D }} students
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-secondary" style="width: 7%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Failing (F):</strong> {{ grade_distribution.F }} students
+                                        <div class="progress mt-1">
+                                            <div class="progress-bar bg-danger" style="width: 3%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Performance Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">Student Performance Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered" id="performanceTable">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Student Name</th>
+                                            <th>Roll Number</th>
+                                            <th>Attendance (%)</th>
+                                            <th>Assignments (%)</th>
+                                            <th>Midterm (%)</th>
+                                            <th>Final (%)</th>
+                                            <th>Overall (%)</th>
+                                            <th>Grade</th>
+                                            <th>Trend</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Mock data for demonstration -->
+                                        <tr>
+                                            <td>John Doe</td>
+                                            <td>001</td>
+                                            <td>95%</td>
+                                            <td>88%</td>
+                                            <td>92%</td>
+                                            <td>90%</td>
+                                            <td><strong>90%</strong></td>
+                                            <td><span class="badge badge-success">A</span></td>
+                                            <td><i class="fas fa-arrow-up text-success"></i> Improving</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Jane Smith</td>
+                                            <td>002</td>
+                                            <td>88%</td>
+                                            <td>85%</td>
+                                            <td>87%</td>
+                                            <td>89%</td>
+                                            <td><strong>87%</strong></td>
+                                            <td><span class="badge badge-primary">B</span></td>
+                                            <td><i class="fas fa-arrow-right text-warning"></i> Stable</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Bob Johnson</td>
+                                            <td>003</td>
+                                            <td>92%</td>
+                                            <td>78%</td>
+                                            <td>82%</td>
+                                            <td>85%</td>
+                                            <td><strong>82%</strong></td>
+                                            <td><span class="badge badge-warning">C</span></td>
+                                            <td><i class="fas fa-arrow-up text-success"></i> Improving</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Performance Insights & Recommendations</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-lightbulb"></i>
+                                <strong>AI-Powered Insights</strong><br>
+                                Based on the current performance data:
+                                <ul>
+                                    <li><strong>Strength:</strong> 40% of students are excelling</li>
+                                    <li><strong>Focus Area:</strong> Assignment completion could be improved with additional support</li>
+                                    <li><strong>Recommendation:</strong> Consider additional review sessions for topics with lower performance</li>
+                                    <li><strong>Trend:</strong> Overall class performance is trending upward</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Grade Distribution Chart
+    const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
+    const gradeData = {
+        labels: ['A', 'B', 'C', 'D', 'F'],
+        datasets: [{
+            label: 'Number of Students',
+            data: [8, 7, 3, 1, 1],
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(0, 123, 255, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(108, 117, 125, 0.8)',
+                'rgba(220, 53, 69, 0.8)'
+            ],
+            borderColor: [
+                'rgba(40, 167, 69, 1)',
+                'rgba(0, 123, 255, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(108, 117, 125, 1)',
+                'rgba(220, 53, 69, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    const config = {
+        type: 'bar',
+        data: gradeData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+});
+
+function exportReport() {
+    // In a real implementation, this would generate and download a PDF report
+    alert('Generating performance report...');
+}
+</script>
+{% endblock %}

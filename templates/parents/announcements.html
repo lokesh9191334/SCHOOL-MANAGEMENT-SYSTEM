@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Announcements - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>Parent Portal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <img src="{{ url_for('static', filename='img/default-avatar.svg') }}"
+                             class="rounded-circle" width="60" height="60" alt="Parent Avatar">
+                        <h6 class="mt-2">{{ current_user.parent_profile.name if current_user.parent_profile else 'Parent' }}</h6>
+                    </div>
+
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('parents.portal') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('parents.messages') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-envelope me-2"></i>Messages
+                        </a>
+                        <a href="#announcements" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-bullhorn me-2"></i>Announcements
+                        </a>
+                        <a href="{{ url_for('parents.documents') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-alt me-2"></i>Documents
+                        </a>
+                        <a href="{{ url_for('parents.notifications') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-bell me-2"></i>Notifications
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullhorn me-2"></i>School Announcements
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary active" onclick="filterAnnouncements('all')">
+                            All
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="filterAnnouncements('urgent')">
+                            Urgent
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="filterAnnouncements('high')">
+                            High Priority
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="filterAnnouncements('event')">
+                            Events
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if announcements %}
+                        <div class="announcements-list">
+                            {% for announcement in announcements %}
+                                <div class="announcement-card card mb-3" data-type="{{ announcement.announcement_type }}" data-priority="{{ announcement.priority }}">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start">
+                                            <div class="announcement-icon me-3">
+                                                {% if announcement.priority == 'urgent' %}
+                                                    <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                                                {% elif announcement.priority == 'high' %}
+                                                    <i class="fas fa-exclamation-circle fa-2x text-warning"></i>
+                                                {% elif announcement.announcement_type == 'event' %}
+                                                    <i class="fas fa-calendar-alt fa-2x text-info"></i>
+                                                {% else %}
+                                                    <i class="fas fa-info-circle fa-2x text-primary"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h5 class="card-title mb-1">{{ announcement.title }}</h5>
+                                                    <div>
+                                                        <span class="badge bg-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'secondary' }} me-2">
+                                                            {{ announcement.priority.title() }}
+                                                        </span>
+                                                        <small class="text-muted">
+                                                            {{ announcement.published_at.strftime('%b %d, %Y') }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+
+                                                <p class="card-text">{{ announcement.content }}</p>
+
+                                                <div class="announcement-meta small text-muted mb-3">
+                                                    <div class="row">
+                                                        <div class="col-6">
+                                                            <i class="fas fa-user me-1"></i>{{ announcement.creator.name }}
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <i class="fas fa-tag me-1"></i>{{ announcement.announcement_type.title() }}
+                                                        </div>
+                                                    </div>
+                                                    {% if announcement.expires_at %}
+                                                        <div class="row mt-1">
+                                                            <div class="col-12">
+                                                                <i class="fas fa-clock me-1"></i>
+                                                                Expires: {{ announcement.expires_at.strftime('%b %d, %Y') }}
+                                                            </div>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if announcement.attachment_url %}
+                                                    <div class="announcement-attachment">
+                                                        <i class="fas fa-paperclip me-1"></i>
+                                                        <a href="{{ announcement.attachment_url }}" target="_blank" class="text-decoration-none">
+                                                            {{ announcement.attachment_name or 'Attachment' }}
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-bullhorn fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Announcements</h5>
+                            <p class="text-muted">There are no announcements at this time.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Announcement Statistics -->
+            {% if announcements %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Announcement Statistics
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <h4 class="text-primary">{{ announcements|length }}</h4>
+                                    <small class="text-muted">Total Announcements</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <h4 class="text-danger">{{ announcements|selectattr('priority', 'equalto', 'urgent')|list|length }}</h4>
+                                    <small class="text-muted">Urgent</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <h4 class="text-info">{{ announcements|selectattr('announcement_type', 'equalto', 'event')|list|length }}</h4>
+                                    <small class="text-muted">Events</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item">
+                                    <h4 class="text-success">{{ announcements|selectattr('published_at', 'greaterthan', (current_date - timedelta(days=7)))|list|length }}</h4>
+                                    <small class="text-muted">This Week</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function filterAnnouncements(filter) {
+    const cards = document.querySelectorAll('.announcement-card');
+
+    cards.forEach(card => {
+        if (filter === 'all') {
+            card.style.display = 'block';
+        } else if (filter === 'urgent' || filter === 'high') {
+            card.style.display = card.dataset.priority === filter ? 'block' : 'none';
+        } else {
+            card.style.display = card.dataset.type === filter ? 'block' : 'none';
+        }
+    });
+
+    // Update button states
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    event.target.classList.add('active');
+}
+
+// Search functionality
+function searchAnnouncements() {
+    const searchTerm = document.getElementById('announcementSearch').value.toLowerCase();
+    const cards = document.querySelectorAll('.announcement-card');
+
+    cards.forEach(card => {
+        const title = card.querySelector('.card-title').textContent.toLowerCase();
+        const content = card.querySelector('.card-text').textContent.toLowerCase();
+
+        if (title.includes(searchTerm) || content.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Add search input to header if there are announcements
+document.addEventListener('DOMContentLoaded', function() {
+    const announcementsList = document.querySelector('.announcements-list');
+    if (announcementsList && announcementsList.children.length > 0) {
+        const header = document.querySelector('.card-header');
+        const searchDiv = document.createElement('div');
+        searchDiv.className = 'ms-3';
+        searchDiv.innerHTML = `
+            <input type="text" id="announcementSearch" class="form-control form-control-sm"
+                   placeholder="Search announcements..." onkeyup="searchAnnouncements()">
+        `;
+        header.appendChild(searchDiv);
+    }
+});
+</script>
+
+<style>
+.announcements-list {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.announcement-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-left: 4px solid #007bff;
+}
+
+.announcement-card[data-priority="urgent"] {
+    border-left-color: #dc3545;
+}
+
+.announcement-card[data-priority="high"] {
+    border-left-color: #ffc107;
+}
+
+.announcement-card[data-type="event"] {
+    border-left-color: #17a2b8;
+}
+
+.announcement-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.announcement-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.announcement-attachment {
+    background-color: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.announcement-attachment a:hover {
+    text-decoration: underline !important;
+}
+
+.stat-item h4 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.btn-group .btn.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.card-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+.card-text {
+    color: #6c757d;
+    line-height: 1.5;
+}
+</style>
+{% endblock %}

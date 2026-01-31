@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+.ip-tracking-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e1b4b 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.ip-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.ip-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.ip-stat-card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.3s ease;
+}
+
+.ip-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+}
+
+.ip-table-container {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.ip-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ip-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    border: none;
+}
+
+.ip-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: #e2e8f0;
+}
+
+.ip-table tr:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.threat-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.threat-low { background: #10b981; color: white; }
+.threat-medium { background: #f59e0b; color: white; }
+.threat-high { background: #ef4444; color: white; }
+.threat-critical { background: #7c3aed; color: white; }
+
+.ip-type-badge {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.type-public { background: #10b981; color: white; }
+.type-private { background: #3b82f6; color: white; }
+.type-local { background: #6b7280; color: white; }
+
+.user-chip {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    padding: 4px 10px;
+    border-radius: 15px;
+    margin: 2px;
+    font-size: 12px;
+    color: #e2e8f0;
+}
+
+.refresh-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.loading-spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.suspicious-activities {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.activity-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #ef4444;
+}
+
+.activity-timestamp {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.activity-message {
+    color: #e2e8f0;
+    margin: 5px 0;
+}
+
+.activity-ip {
+    color: #60a5fa;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.real-time-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ip-tracking-container">
+    <!-- Header -->
+    <div class="ip-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="text-white mb-2">
+                    <i class="fas fa-globe-americas me-3"></i>
+                    IP Address Tracking & Security Monitor
+                </h1>
+                <p class="text-white-50 mb-0">
+                    <span class="real-time-indicator"></span>
+                    Real-time monitoring of user activities and IP addresses
+                </p>
+            </div>
+            <div>
+                <button class="refresh-btn" onclick="refreshIPData()">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Refresh Data
+                    <div class="loading-spinner" id="loadingSpinner"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="ip-stats-grid">
+        <div class="ip-stat-card">
+            <div class="text-white-50 mb-2">Total IP Addresses</div>
+            <div class="h3 text-white mb-0" id="totalIPs">0</div>
+            <div class="text-white-50 small">Unique addresses tracked</div>
+        </div>
+        <div class="ip-stat-card">
+            <div class="text-white-50 mb-2">Suspicious Activities</div>
+            <div class="h3 text-white mb-0" id="suspiciousCount">0</div>
+            <div class="text-white-50 small">Security alerts</div>
+        </div>
+        <div class="ip-stat-card">
+            <div class="text-white-50 mb-2">Active Users</div>
+            <div class="h3 text-white mb-0" id="activeUsers">0</div>
+            <div class="text-white-50 small">Currently online</div>
+        </div>
+        <div class="ip-stat-card">
+            <div class="text-white-50 mb-2">High Threat IPs</div>
+            <div class="h3 text-white mb-0" id="highThreatIPs">0</div>
+            <div class="text-white-50 small">Critical alerts</div>
+        </div>
+    </div>
+
+    <!-- IP Activities Table -->
+    <div class="ip-table-container">
+        <h3 class="text-white mb-4">
+            <i class="fas fa-list me-2"></i>
+            IP Activity Report
+        </h3>
+        
+        <div class="table-responsive">
+            <table class="ip-table">
+                <thead>
+                    <tr>
+                        <th>IP Address</th>
+                        <th>Type</th>
+                        <th>Threat Level</th>
+                        <th>Users</th>
+                        <th>Activities</th>
+                        <th>First Seen</th>
+                        <th>Last Seen</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ipTableBody">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Suspicious Activities -->
+    <div class="suspicious-activities">
+        <h3 class="text-white mb-4">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Recent Suspicious Activities
+        </h3>
+        <div id="suspiciousActivities">
+            <!-- Suspicious activities will be populated here -->
+        </div>
+    </div>
+</div>
+
+<script>
+class IPTrackingDashboard {
+    constructor() {
+        this.refreshInterval = 30000; // 30 seconds
+        this.init();
+    }
+
+    init() {
+        this.loadIPData();
+        this.loadSuspiciousActivities();
+        this.startAutoRefresh();
+    }
+
+    async loadIPData() {
+        try {
+            const response = await fetch('/ip-tracker/api/ip-activity-report');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.updateStatistics(data);
+                this.updateIPTable(data.report);
+            }
+        } catch (error) {
+            console.error('Error loading IP data:', error);
+        }
+    }
+
+    async loadSuspiciousActivities() {
+        try {
+            const response = await fetch('/ip-tracker/api/suspicious-activities');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.updateSuspiciousActivities(data.activities);
+            }
+        } catch (error) {
+            console.error('Error loading suspicious activities:', error);
+        }
+    }
+
+    updateStatistics(data) {
+        document.getElementById('totalIPs').textContent = data.total_ips || 0;
+        
+        // Count threat levels
+        let highThreatCount = 0;
+        let suspiciousCount = 0;
+        let uniqueUsers = new Set();
+        
+        data.report.forEach(ip => {
+            if (ip.threat_level === 'high' || ip.threat_level === 'critical') {
+                highThreatCount++;
+            }
+            if (ip.threat_level !== 'low') {
+                suspiciousCount++;
+            }
+            ip.users.forEach(user => uniqueUsers.add(user.id));
+        });
+        
+        document.getElementById('suspiciousCount').textContent = suspiciousCount;
+        document.getElementById('activeUsers').textContent = uniqueUsers.size;
+        document.getElementById('highThreatIPs').textContent = highThreatCount;
+    }
+
+    updateIPTable(ipData) {
+        const tbody = document.getElementById('ipTableBody');
+        tbody.innerHTML = '';
+        
+        if (!ipData || ipData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-white-50 py-4">
+                        <i class="fas fa-inbox fa-2x mb-3"></i>
+                        <div>No IP activity data available yet.</div>
+                        <small>Activities will appear here as users interact with the system.</small>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        ipData.forEach(ip => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <code class="text-white">${ip.ip}</code>
+                </td>
+                <td>
+                    <span class="ip-type-badge type-${ip.ip_type}">${ip.ip_type.toUpperCase()}</span>
+                </td>
+                <td>
+                    <span class="threat-badge threat-${ip.threat_level}">${ip.threat_level}</span>
+                </td>
+                <td>
+                    ${ip.users.map(user => `
+                        <div class="user-chip">
+                            <i class="fas fa-user me-1"></i>
+                            ${user.name}
+                        </div>
+                    `).join('')}
+                </td>
+                <td>
+                    <div class="text-white-50">${ip.activities_count}</div>
+                </td>
+                <td>
+                    <div class="text-white-50 small">${this.formatDate(ip.first_seen)}</div>
+                </td>
+                <td>
+                    <div class="text-white-50 small">${this.formatDate(ip.last_seen)}</div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-light" onclick="viewIPDetails('${ip.ip}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    updateSuspiciousActivities(activities) {
+        const container = document.getElementById('suspiciousActivities');
+        container.innerHTML = '';
+        
+        if (!activities || activities.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-white-50 py-4">
+                    <i class="fas fa-shield-alt fa-2x mb-3"></i>
+                    <div>No suspicious activities detected.</div>
+                    <small>Security alerts will appear here when detected.</small>
+                </div>
+            `;
+            return;
+        }
+        
+        activities.slice(0, 10).forEach(activity => {
+            const activityDiv = document.createElement('div');
+            activityDiv.className = 'activity-item';
+            activityDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="activity-message">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${activity.message}
+                        </div>
+                        <div class="activity-ip">
+                            IP: ${activity.ip_address} | User: ${activity.user ? activity.user.name : 'Unknown'}
+                        </div>
+                    </div>
+                    <div class="activity-timestamp">
+                        ${this.formatDate(activity.timestamp)}
+                    </div>
+                </div>
+            `;
+            container.appendChild(activityDiv);
+        });
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString();
+    }
+
+    startAutoRefresh() {
+        setInterval(() => {
+            this.loadIPData();
+            this.loadSuspiciousActivities();
+        }, this.refreshInterval);
+    }
+
+    refresh() {
+        document.getElementById('loadingSpinner').style.display = 'inline-block';
+        this.loadIPData().then(() => {
+            this.loadSuspiciousActivities().then(() => {
+                document.getElementById('loadingSpinner').style.display = 'none';
+            });
+        });
+    }
+}
+
+// Initialize dashboard
+let ipDashboard;
+document.addEventListener('DOMContentLoaded', function() {
+    ipDashboard = new IPTrackingDashboard();
+});
+
+// Global functions
+function refreshIPData() {
+    ipDashboard.refresh();
+}
+
+function viewIPDetails(ip) {
+    // Show IP details modal or navigate to details page
+    console.log('View details for IP:', ip);
+}
+</script>
+{% endblock %}

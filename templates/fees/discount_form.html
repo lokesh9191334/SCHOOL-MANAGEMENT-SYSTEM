@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Add Discount</h3>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <div class="mb-3">
+              <label for="student_id" class="form-label">Student *</label>
+              <select class="form-select" id="student_id" name="student_id" required>
+                <option value="">Select Student</option>
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.full_name() }} ({{ student.roll_number or 'No Roll' }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="fee_id" class="form-label">Specific Fee (Optional)</label>
+              <select class="form-select" id="fee_id" name="fee_id">
+                <option value="">Apply to all fees</option>
+                {% for fee in fees %}
+                <option value="{{ fee.id }}">Fee #{{ fee.id }} - ${{ "%.2f"|format(fee.amount) }} ({{ fee.student.full_name() if fee.student else 'Unknown' }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="discount_type" class="form-label">Discount Type *</label>
+                  <select class="form-select" id="discount_type" name="discount_type" required>
+                    <option value="">Select Type</option>
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="fixed">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="discount_value" class="form-label">Discount Value *</label>
+                  <input type="number" step="0.01" min="0" class="form-control" id="discount_value" name="discount_value" required>
+                  <small class="form-text text-muted" id="value-help">Enter percentage (0-100) or fixed amount</small>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="reason" class="form-label">Reason *</label>
+              <textarea class="form-control" id="reason" name="reason" rows="2" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="approved_by" class="form-label">Approved By *</label>
+              <input type="text" class="form-control" id="approved_by" name="approved_by" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="valid_from" class="form-label">Valid From</label>
+                  <input type="date" class="form-control" id="valid_from" name="valid_from">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="valid_until" class="form-label">Valid Until</label>
+                  <input type="date" class="form-control" id="valid_until" name="valid_until">
+                </div>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('fees.list_discounts') }}" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Add Discount</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('discount_type').addEventListener('change', function() {
+  const valueHelp = document.getElementById('value-help');
+  const valueInput = document.getElementById('discount_value');
+
+  if (this.value === 'percentage') {
+    valueHelp.textContent = 'Enter percentage (0-100)';
+    valueInput.max = 100;
+  } else if (this.value === 'fixed') {
+    valueHelp.textContent = 'Enter fixed amount';
+    valueInput.removeAttribute('max');
+  } else {
+    valueHelp.textContent = 'Enter percentage (0-100) or fixed amount';
+    valueInput.removeAttribute('max');
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Messages - Parent Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i>Messages
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if conversations %}
+                        <div class="list-group list-group-flush">
+                            {% for conversation in conversations %}
+                                <div class="list-group-item list-group-item-action {% if request.endpoint == 'parents.view_conversation' and request.view_args.conversation_id == conversation.id %}active{% endif %}">
+                                    <div class="d-flex w-100 justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 text-truncate">{{ conversation.subject }}</h6>
+                                            <p class="mb-1 small text-muted">
+                                                <strong>{{ conversation.teacher.name }}</strong>
+                                                <br>
+                                                <span>{{ conversation.student.name }}</span>
+                                            </p>
+                                        </div>
+                                        <small class="text-muted">
+                                            {{ conversation.last_message_at.strftime('%b %d') }}
+                                        </small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            Status:
+                                            <span class="badge bg-{{ 'success' if conversation.status == 'active' else 'secondary' }} badge-sm">
+                                                {{ conversation.status.title() }}
+                                            </span>
+                                        </small>
+                                        {% if conversation.priority != 'normal' %}
+                                            <span class="badge bg-{{ 'danger' if conversation.priority == 'urgent' else 'warning' }} badge-sm">
+                                                {{ conversation.priority.title() }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No conversations yet</h6>
+                            <p class="text-muted small">Your conversations with teachers will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>Message Center
+                    </h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-envelope-open-text fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Select a conversation</h5>
+                    <p class="text-muted">Choose a conversation from the sidebar to view messages</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.list-group-item.active {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.list-group-item.active .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.badge-sm {
+    font-size: 0.7em;
+    padding: 0.2em 0.4em;
+}
+</style>
+{% endblock %}
