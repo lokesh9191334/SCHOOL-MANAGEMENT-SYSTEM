@@ -1,20 +1,12 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "frontend/dist"
-      }
-    }
-  ],
+  "buildCommand": "cd frontend && npm run build && cd ..",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "pip install -r requirements.txt",
+  "framework": null,
   "functions": {
     "app.py": {
+      "runtime": "python3.9",
       "maxDuration": 30
     }
   },
