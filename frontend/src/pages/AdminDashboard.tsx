@@ -50,7 +50,7 @@ const AdminDashboard: React.FC = () => {
   if (!data) return null;
 
   const stats = [
-    { title: 'Total Students', value: data.total_students, icon: 'fas fa-users', color: 'primary' },
+    { title: 'Total Students', value: data.total_students, icon: 'fas fa-user-graduate', color: 'primary' },
     { title: 'Total Teachers', value: data.total_teachers, icon: 'fas fa-chalkboard-teacher', color: 'success' },
     { title: 'Total Classes', value: 30, icon: 'fas fa-school', color: 'info' },
     { title: 'Total Subjects', value: data.total_subjects, icon: 'fas fa-book', color: 'warning' },

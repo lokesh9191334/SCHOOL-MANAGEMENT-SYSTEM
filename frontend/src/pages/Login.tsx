@@ -16,28 +16,25 @@ const Login: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setError('');
 
     try {
       const response = await api.post('/auth/login', {
         email,
-        password,
-        school_id: schoolId,
-        account_type: accountType,
-        remember,
+        password
       });
 
       if (response.data.success) {
-        // Redirect based on role
-        const role = response.data.user.role;
+        const role = response.data.role;
         if (role === 'admin') navigate('/admin');
         else if (role === 'teacher') navigate('/teachers');
         else if (role === 'parent') navigate('/parents');
+        else navigate('/admin');
       } else {
-        setError(response.data.message || 'Login failed');
+        setError(response.data.message || 'Invalid credentials');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

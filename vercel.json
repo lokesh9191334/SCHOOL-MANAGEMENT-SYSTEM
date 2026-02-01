@@ -15,20 +15,16 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": "/app.py"
     },
     {
-      "source": "/auth/:path*",
+      "source": "/auth/(.*)",
       "destination": "/app.py"
     },
     {
-      "source": "/static/:path*",
+      "source": "/static/(.*)",
       "destination": "/app.py"
-    },
-    {
-      "source": "/((?!api|auth|static).*)$",
-      "destination": "/$1"
     },
     {
       "source": "/(.*)",
