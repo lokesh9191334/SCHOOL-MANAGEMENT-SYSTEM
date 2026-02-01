@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Container, Badge, Breadcrumb } from 'react-bootstrap';
+import { Row, Col, Card, Badge, Breadcrumb } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
