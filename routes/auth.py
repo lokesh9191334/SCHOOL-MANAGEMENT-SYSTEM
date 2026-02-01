@@ -52,93 +52,92 @@ def login():
         pass
 
     if request.method == 'POST':
+        # Detect if it's a JSON request (API call from React)
+        is_json = request.is_json
+        if is_json:
+            data = request.get_json()
+            email = data.get('email')
+            password = data.get('password')
+            school_id = data.get('school_id')
+            account_type = data.get('account_type')
+            remember = data.get('remember', False)
+        else:
+            email = request.form.get('email')
+            password = request.form.get('password')
+            school_id = request.form.get('school_id')
+            account_type = request.form.get('account_type')
+            remember = request.form.get('remember') == 'on'
+
         # Log incoming request details for live debugging
         try:
-            current_app.logger.info("LIVE LOGIN REQUEST - headers: %s", dict(request.headers))
-            current_app.logger.info("LIVE LOGIN REQUEST - form keys: %s", list(request.form.keys()))
-            current_app.logger.info("LIVE LOGIN REQUEST - form data (partial): %s", {k: (v[:30] + '...' if len(v) > 30 else v) for k, v in request.form.items()})
+            current_app.logger.info(f"LOGIN ATTEMPT - Email: {email}, School ID: {school_id}, Account Type: {account_type}")
         except Exception:
             current_app.logger.exception('Error logging request details')
 
-        email = request.form.get('email')
-        password = request.form.get('password')
-        school_id = request.form.get('school_id')
-        account_type = request.form.get('account_type')  # Add account_type validation
-        current_app.logger.info(f"LOGIN ATTEMPT - Email: {email}, School ID: {school_id}, Account Type: {account_type}, Password Length: {len(password) if password else 0}")
-        
         # Validate school ID for non-admin users
         if school_id and (len(school_id) != 5 or not school_id.isdigit()):
-            current_app.logger.error(f"INVALID SCHOOL ID FORMAT - School ID: {school_id}")
-            flash('Invalid school ID format. Please enter 5 digits.', 'danger')
+            message = 'Invalid school ID format. Please enter 5 digits.'
+            if is_json:
+                return jsonify({'success': False, 'message': message}), 400
+            flash(message, 'danger')
             return redirect(url_for('auth.login'))
         
         try:
             user = User.query.filter_by(email=email).first()
-            current_app.logger.info(f"USER QUERY RESULT - Found: {user is not None}")
             
             if user:
-                current_app.logger.info(f"USER DETAILS - Role: {user.role}, Has Password: {user.password_hash is not None}")
-                
                 if user.password_hash is None:
-                    current_app.logger.warning(f"User {email} has no password hash. Redirecting to set password.")
-                    log_activity('warning', f'Login attempt for account without password: {email}', user_id=user.id)
-                    flash('Your account does not have a password set. Please set one to log in with email and password.', 'info')
+                    message = 'Your account does not have a password set.'
+                    if is_json:
+                        return jsonify({'success': False, 'message': message}), 400
+                    flash(message, 'info')
                     return redirect(url_for('auth.set_password'))
                 
-                current_app.logger.info(f"CHECKING PASSWORD - Input: {password}")
                 if user.check_password(password):
                     # Validate school ID for parent and teacher only (not for admin)
                     if user.role == 'parent' or user.role == 'teacher':
                         if not school_id or user.school_id != school_id:
-                            current_app.logger.error(f"SCHOOL ID MISMATCH - User School ID: {user.school_id}, Provided: {school_id}")
-                            flash('Invalid school ID for this account.', 'danger')
+                            message = 'Invalid school ID for this account.'
+                            if is_json:
+                                return jsonify({'success': False, 'message': message}), 400
+                            flash(message, 'danger')
                             return redirect(url_for('auth.login'))
                     
-                    current_app.logger.info(f"PASSWORD CORRECT - Logging in user {email}")
-                    login_user(user)
-                    try:
-                        log_activity('success', f'User logged in: {email}', user_id=user.id)
-                    except Exception:
-                        current_app.logger.exception('Failed to write login activity')
-                    # Log whether Flask-Login recognized the user immediately
-                    try:
-                        current_app.logger.info(f"After login_user: current_user.is_authenticated={current_user.is_authenticated}")
-                    except Exception:
-                        current_app.logger.exception('Error checking current_user after login')
-                    current_app.logger.info(f"User {email} logged in successfully. Role: {user.role}")
-                    # Removed success flash message for clean login experience
+                    login_user(user, remember=remember)
+                    log_activity('success', f'User logged in: {email}', user_id=user.id)
+                    
+                    if is_json:
+                        return jsonify({
+                            'success': True,
+                            'user': {
+                                'id': user.id,
+                                'email': user.email,
+                                'role': user.role,
+                                'name': user.name
+                            }
+                        })
+
                     if user.role == 'parent':
-                        current_app.logger.info(f"Redirecting parent to parents portal")
                         return redirect(url_for('parents.portal'))
                     elif user.role == 'teacher':
-                        current_app.logger.info(f"Redirecting teacher to teachers portal")
-                        return redirect(url_for('teachers.portal')) # Assuming a teachers portal exists
+                        return redirect(url_for('teachers.portal'))
                     elif user.role == 'admin':
-                        current_app.logger.info(f"Redirecting admin to profile")
                         return redirect(url_for('dashboard.profile'))
-                    # Default: take user to their profile page
                     return redirect(url_for('dashboard.profile'))
                 else:
-                    current_app.logger.error(f"PASSWORD INCORRECT - Email: {email}")
-                    try:
-                        log_activity('danger', f'Failed login - incorrect password for {email}', user_id=user.id)
-                    except Exception:
-                        current_app.logger.exception('Failed to write failed-login activity')
-                    # Removed flash message to prevent error display on login panel
+                    message = 'Incorrect password.'
+                    if is_json:
+                        return jsonify({'success': False, 'message': message}), 401
+                    log_activity('danger', f'Failed login - incorrect password for {email}', user_id=user.id)
             else:
-                current_app.logger.error(f"USER NOT FOUND - Email: {email}")
-                try:
-                    log_activity('danger', f'Failed login - user not found: {email}')
-                except Exception:
-                    current_app.logger.exception('Failed to write failed-login activity')
-                # Removed flash message to prevent error display on login panel
+                message = 'User not found.'
+                if is_json:
+                    return jsonify({'success': False, 'message': message}), 404
+                log_activity('danger', f'Failed login - user not found: {email}')
         except Exception as e:
-            current_app.logger.error(f"Error during login for email {email}: {e}", exc_info=True)
-            try:
-                log_activity('danger', f'Error during login for {email}: {e}')
-            except Exception:
-                current_app.logger.exception('Failed to write exception activity')
-            # Removed flash message to prevent error display on login panel
+            current_app.logger.error(f"Error during login: {e}", exc_info=True)
+            if is_json:
+                return jsonify({'success': False, 'message': 'Internal server error'}), 500
     
     # Check if mobile device
     user_agent = request.headers.get('User-Agent', '').lower()

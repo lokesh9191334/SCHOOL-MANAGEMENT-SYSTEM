@@ -31,8 +31,8 @@ const Login: React.FC = () => {
         // Redirect based on role
         const role = response.data.user.role;
         if (role === 'admin') navigate('/admin');
-        else if (role === 'teacher') navigate('/teacher');
-        else if (role === 'parent') navigate('/parent');
+        else if (role === 'teacher') navigate('/teachers');
+        else if (role === 'parent') navigate('/parents');
       } else {
         setError(response.data.message || 'Login failed');
       }

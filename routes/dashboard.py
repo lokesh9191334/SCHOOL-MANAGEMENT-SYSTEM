@@ -61,6 +61,27 @@ def index():
     all_students = all_students.all()
     all_classes = Classroom.query.all()
 
+    if request.is_json or request.path.startswith('/api/'):
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_students': total_students,
+                'total_teachers': total_teachers,
+                'total_female_students': total_female_students,
+                'total_male_students': total_male_students,
+                'total_subjects': total_subjects,
+                'total_payments': float(total_payments),
+                'pending_fees': pending_fees,
+                'today_payments': float(today_payments),
+                'recent_parent_messages': recent_parent_messages,
+                'user': {
+                    'name': current_user.name,
+                    'role': current_user.role,
+                    'email': current_user.email
+                }
+            }
+        })
+
     return render_template('admin_dashboard.html',
                            total_students=total_students,
                            total_teachers=total_teachers,

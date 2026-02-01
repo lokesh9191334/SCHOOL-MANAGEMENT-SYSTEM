@@ -18,6 +18,7 @@ coverage==7.3.1
 # API and documentation
 flask-restful==0.3.10
 flasgger==0.9.5  # For Swagger/OpenAPI docs
+flask-cors==4.0.0
 
 # Security
 Flask-Talisman==1.1.0  # For security headers

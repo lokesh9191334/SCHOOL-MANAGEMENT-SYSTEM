@@ -23,7 +23,7 @@ const ParentDashboard: React.FC = () => {
     if (showLoading) setLoading(true);
     setIsRefreshing(true);
     try {
-      const response = await api.get('/parents/');
+      const response = await api.get('/api/parents/');
       if (response.data.success) {
         setData(response.data.data);
       } else {
@@ -113,54 +113,108 @@ const ParentDashboard: React.FC = () => {
 
           {/* Right: Overview & Stats */}
           <Col lg={8} xl={9}>
-            <Row className="g-4 mb-4">
-              <Col md={6}>
-                <Card className="border-left-primary shadow h-100 py-2 border-0">
-                  <Card.Body>
-                    <Row className="align-items-center no-gutters">
-                      <Col className="mr-2">
-                        <div className="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                          Enrolled Children
-                        </div>
-                        <div className="h4 mb-0 font-weight-bold text-gray-800">{data.students_count}</div>
-                      </Col>
-                      <Col xs="auto" className="text-gray-300">
-                        <i className="fas fa-users fa-2x"></i>
-                      </Col>
-                    </Row>
-                  </Card.Body>
+            {/* Welcome Card */}
+            <Card className="mb-4 shadow-sm border-0">
+              <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center p-4">
+                <div>
+                  <h2 className="mb-2">
+                    <i className="fas fa-house-user me-2 text-primary"></i>
+                    Welcome, {data.user.name}!
+                  </h2>
+                  <p className="text-muted mb-0">
+                    Track your child's attendance, fees, performance and stay connected with teachers – all in one premium parent portal.
+                  </p>
+                </div>
+                <div className="mt-3 mt-md-0 d-flex gap-2">
+                  <button className="btn btn-primary btn-sm">
+                    <i className="fas fa-calendar-minus me-1"></i>Send Leave
+                  </button>
+                  <button className="btn btn-warning btn-sm">
+                    <i className="fas fa-exclamation-triangle me-1"></i>File Complaint
+                  </button>
+                </div>
+              </Card.Body>
+            </Card>
+
+            {/* Stats Row */}
+            <Row className="g-3 mb-4">
+              <Col xs={6} md={3}>
+                <Card className="text-center h-100 border-0 shadow-sm p-3">
+                  <h3 className="text-primary">{data.students_count}</h3>
+                  <p className="mb-1 fw-bold small">Children</p>
+                  <small className="text-muted" style={{ fontSize: '0.7em' }}>Linked to this account</small>
                 </Card>
               </Col>
-              <Col md={6}>
-                <Card className="border-left-success shadow h-100 py-2 border-0">
-                  <Card.Body>
-                    <Row className="align-items-center no-gutters">
-                      <Col className="mr-2">
-                        <div className="text-xs font-weight-bold text-success text-uppercase mb-1">
-                          Average Attendance
-                        </div>
-                        <div className="h4 mb-0 font-weight-bold text-gray-800">{data.attendance_rate}%</div>
-                      </Col>
-                      <Col xs="auto" className="text-gray-300">
-                        <i className="fas fa-calendar-check fa-2x"></i>
-                      </Col>
-                    </Row>
-                  </Card.Body>
+              <Col xs={6} md={3}>
+                <Card className="text-center h-100 border-0 shadow-sm p-3">
+                  <h3 className="text-success">{data.attendance_rate}%</h3>
+                  <p className="mb-1 fw-bold small">Attendance</p>
+                  <small className="text-muted" style={{ fontSize: '0.7em' }}>Average this month</small>
+                </Card>
+              </Col>
+              <Col xs={6} md={3}>
+                <Card className="text-center h-100 border-0 shadow-sm p-3">
+                  <h3 className="text-info">0</h3>
+                  <p className="mb-1 fw-bold small">Messages</p>
+                  <small className="text-muted" style={{ fontSize: '0.7em' }}>Awaiting your reply</small>
+                </Card>
+              </Col>
+              <Col xs={6} md={3}>
+                <Card className="text-center h-100 border-0 shadow-sm p-3">
+                  <h3 className="text-warning">Paid</h3>
+                  <p className="mb-1 fw-bold small">Fee Status</p>
+                  <small className="text-muted" style={{ fontSize: '0.7em' }}>Current academic year</small>
                 </Card>
               </Col>
             </Row>
 
-            <Card className="shadow mb-4 border-0">
-              <Card.Header className="py-3 bg-white border-0">
-                <h6 className="m-0 font-weight-bold text-primary">Recent Notifications</h6>
-              </Card.Header>
-              <Card.Body>
-                <div className="text-center py-5">
-                  <i className="fas fa-bell fa-3x text-gray-200 mb-3"></i>
-                  <p className="text-muted">No new notifications</p>
-                </div>
-              </Card.Body>
-            </Card>
+            <Row className="g-3">
+              <Col md={7}>
+                <Card className="shadow-sm h-100 border-0">
+                  <Card.Header className="bg-white border-0 py-3 d-flex align-items-center">
+                    <i className="fas fa-history me-2 text-primary"></i>
+                    <h5 className="mb-0">Recent Activity</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="text-center py-5">
+                      <i className="fas fa-clock fa-3x text-gray-200 mb-3"></i>
+                      <p className="text-muted">No recent activity found</p>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={5}>
+                <Card className="shadow-sm h-100 border-0">
+                  <Card.Header className="bg-white border-0 py-3 d-flex align-items-center">
+                    <i className="fas fa-bolt me-2 text-primary"></i>
+                    <h5 className="mb-0">Quick Links</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="row g-2">
+                      <div className="col-6">
+                        <button className="btn w-100 btn-outline-primary btn-sm mb-2 text-start">
+                          <i className="fas fa-user-graduate me-1"></i> Child Profile
+                        </button>
+                        <button className="btn w-100 btn-outline-primary btn-sm mb-2 text-start">
+                          <i className="fas fa-receipt me-1"></i> Fee Summary
+                        </button>
+                      </div>
+                      <div className="col-6">
+                        <button className="btn w-100 btn-outline-primary btn-sm mb-2 text-start">
+                          <i className="fas fa-calendar-day me-1"></i> Apply Leave
+                        </button>
+                        <button className="btn w-100 btn-outline-primary btn-sm mb-2 text-start">
+                          <i className="fas fa-clock-rotate-left me-1"></i> History
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-muted small mb-0 mt-2" style={{ fontSize: '0.75em' }}>
+                      Tip: Use this panel to access the most used features in just one click.
+                    </p>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
           </Col>
         </Row>
       </div>

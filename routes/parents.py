@@ -21,6 +21,32 @@ parents_bp = Blueprint('parents', __name__, template_folder='../templates')
 @parents_bp.route('/')
 @login_required
 def portal():
+    if request.is_json or request.path.startswith('/api/'):
+        profile = current_user.parent_profile
+        if isinstance(profile, list):
+            profile = profile[0] if profile else None
+            
+        # Find students linked to this parent
+        students_count = 0
+        if profile:
+            students_count = Student.query.filter(
+                (Student.parent_email == current_user.email) |
+                (Student.father_name == profile.name) |
+                (Student.mother_name == profile.name)
+            ).count()
+            
+        return jsonify({
+            'success': True,
+            'data': {
+                'students_count': students_count,
+                'attendance_rate': 95, # Placeholder for now
+                'user': {
+                    'name': current_user.name,
+                    'role': current_user.role,
+                    'email': current_user.email
+                }
+            }
+        })
     # Show parent dashboard
     return render_template('parent_dashboard.html')
 

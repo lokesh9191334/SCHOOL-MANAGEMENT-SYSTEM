@@ -25,7 +25,7 @@ const AdminDashboard: React.FC = () => {
     if (showLoading) setLoading(true);
     setIsRefreshing(true);
     try {
-      const response = await api.get('/');
+      const response = await api.get('/api/dashboard/');
       if (response.data.success) {
         setData(response.data.data);
       } else {

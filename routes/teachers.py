@@ -10,6 +10,7 @@ from flask import (
     render_template,
     request,
     url_for,
+    jsonify
 )
 from flask_login import login_required
 from werkzeug.utils import secure_filename
@@ -33,6 +34,25 @@ def portal():
     my_students = 0
     assignments = 0
     attendance_rate = 0
+
+    if request.is_json or request.path.startswith('/api/'):
+        teacher_profile = getattr(current_user, 'teacher_profile', None)
+        return jsonify({
+            'success': True,
+            'data': {
+                'my_classes': my_classes,
+                'my_students': my_students,
+                'assignments': assignments,
+                'attendance_rate': attendance_rate,
+                'is_class_incharge': teacher_profile.is_class_incharge if teacher_profile else False,
+                'class_teacher_of': teacher_profile.class_teacher_of if teacher_profile else None,
+                'user': {
+                    'name': current_user.name,
+                    'role': current_user.role,
+                    'email': current_user.email
+                }
+            }
+        })
 
     # If current user is mapped to a teacher, we could populate stats later
     return render_template(

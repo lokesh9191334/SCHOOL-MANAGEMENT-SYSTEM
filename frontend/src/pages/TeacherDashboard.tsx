@@ -27,7 +27,7 @@ const TeacherDashboard: React.FC = () => {
     if (showLoading) setLoading(true);
     setIsRefreshing(true);
     try {
-      const response = await api.get('/teachers/portal');
+      const response = await api.get('/api/teachers/portal');
       if (response.data.success) {
         setData(response.data.data);
       } else {

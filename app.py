@@ -3,9 +3,10 @@ import os
 import uuid
 from datetime import datetime
 
-from flask import Flask, g, request, redirect, url_for, jsonify
+from flask import Flask, g, request, redirect, url_for, jsonify, make_response
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_cors import CORS
 from authlib.integrations.flask_client import OAuth
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -60,6 +61,7 @@ rate_limiter = RateLimiter()
 
 def create_app(config=None):
     app = Flask(__name__)
+    CORS(app, supports_credentials=True) # Enable CORS for all routes
     # Expose useful date utilities to Jinja templates
     app.jinja_env.globals['datetime'] = datetime
     app.jinja_env.globals['relativedelta'] = relativedelta
@@ -202,18 +204,18 @@ def create_app(config=None):
     from routes.leave_status import leave_status_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(dashboard_bp, url_prefix='/')
-    app.register_blueprint(parents_bp, url_prefix='/parents')
-    app.register_blueprint(students_bp, url_prefix='/students')
-    app.register_blueprint(teachers_bp, url_prefix='/teachers')
-    app.register_blueprint(classes_bp, url_prefix='/classes')
-    app.register_blueprint(classrooms_bp, url_prefix='/classrooms')
-    app.register_blueprint(subjects_bp, url_prefix='/subjects')
-    app.register_blueprint(attendance_bp, url_prefix='/attendance')
-    app.register_blueprint(fees_bp, url_prefix='/fees')
-    app.register_blueprint(salaries_bp, url_prefix='/salaries')
-    app.register_blueprint(notifications_bp, url_prefix='/notifications')
-    app.register_blueprint(payments_bp, url_prefix='/payments')
+    app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
+    app.register_blueprint(parents_bp, url_prefix='/api/parents')
+    app.register_blueprint(students_bp, url_prefix='/api/students')
+    app.register_blueprint(teachers_bp, url_prefix='/api/teachers')
+    app.register_blueprint(classes_bp, url_prefix='/api/classes')
+    app.register_blueprint(classrooms_bp, url_prefix='/api/classrooms')
+    app.register_blueprint(subjects_bp, url_prefix='/api/subjects')
+    app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
+    app.register_blueprint(fees_bp, url_prefix='/api/fees')
+    app.register_blueprint(salaries_bp, url_prefix='/api/salaries')
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    app.register_blueprint(payments_bp, url_prefix='/api/payments')
     app.register_blueprint(ip_tracking_bp)
     app.register_blueprint(mobile_bp, url_prefix='/mobile')
     app.register_blueprint(api_bp, url_prefix='/api')
@@ -313,7 +315,7 @@ def create_app(config=None):
     def set_security_headers(response):
         # Enhanced Security Headers
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
+        # response.headers['X-Frame-Options'] = 'DENY' # Allow React to embed if needed
         response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -333,7 +335,7 @@ def create_app(config=None):
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' https://api.qrserver.com; "
+            "connect-src 'self' http://localhost:5173 https://api.qrserver.com; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self';"
