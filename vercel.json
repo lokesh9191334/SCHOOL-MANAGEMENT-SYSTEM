@@ -27,6 +27,34 @@
       "destination": "/app.py"
     },
     {
+      "source": "/mobile/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/ai_features/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/complaints/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/class-fees/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/substitution/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/timetable/(.*)",
+      "destination": "/app.py"
+    },
+    {
+      "source": "/date-sheet/(.*)",
+      "destination": "/app.py"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
