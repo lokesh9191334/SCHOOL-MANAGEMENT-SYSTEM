@@ -25,7 +25,8 @@ const Login: React.FC = () => {
       });
 
       if (response.data.success) {
-        const { role, user } = response.data;
+        const { user } = response.data;
+        const role = user.role;
         localStorage.setItem('user_role', role);
         localStorage.setItem('user_name', user.name);
         

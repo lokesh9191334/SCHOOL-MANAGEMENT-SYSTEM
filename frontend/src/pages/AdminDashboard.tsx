@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Container, Breadcrumb } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 
@@ -25,6 +26,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigate = useNavigate();
 
   const fetchDashboardData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -101,10 +103,10 @@ const AdminDashboard: React.FC = () => {
               </p>
             </div>
             <div className="mt-3 mt-md-0 d-flex gap-2">
-              <button className="btn btn-light btn-sm text-primary fw-bold">
+              <button className="btn btn-light btn-sm text-primary fw-bold" onClick={() => navigate('/students/add')}>
                 <i className="fas fa-plus-circle me-1"></i>Add Student
               </button>
-              <button className="btn btn-outline-light btn-sm">
+              <button className="btn btn-outline-light btn-sm" onClick={() => navigate('/settings')}>
                 <i className="fas fa-cog me-1"></i>Settings
               </button>
             </div>

@@ -48,6 +48,7 @@ function App() {
         <Route path="/student-performance" element={<PlaceholderPage title="Student Performance" />} />
         <Route path="/fees-payment" element={<PlaceholderPage title="Fees & Payments" />} />
         <Route path="/leave-application" element={<PlaceholderPage title="Leave Application" />} />
+        <Route path="/complaints" element={<PlaceholderPage title="Complaints" />} />
 
         {/* Catch all - Redirect to login or show 404 */}
         <Route path="*" element={<Navigate to="/login" replace />} />

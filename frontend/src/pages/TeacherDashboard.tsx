@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Container, Badge, Breadcrumb } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 
@@ -22,6 +23,7 @@ const TeacherDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigate = useNavigate();
 
   const fetchTeacherData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -103,10 +105,10 @@ const TeacherDashboard: React.FC = () => {
               </p>
             </div>
             <div className="mt-3 mt-md-0 d-flex gap-2">
-              <button className="btn btn-light btn-sm text-success fw-bold">
+              <button className="btn btn-light btn-sm text-success fw-bold" onClick={() => navigate('/attendance')}>
                 <i className="fas fa-user-check me-1"></i>Mark Attendance
               </button>
-              <button className="btn btn-outline-light btn-sm">
+              <button className="btn btn-outline-light btn-sm" onClick={() => navigate('/assignments')}>
                 <i className="fas fa-plus-circle me-1"></i>New Assignment
               </button>
             </div>
@@ -156,10 +158,10 @@ const TeacherDashboard: React.FC = () => {
               </Card.Header>
               <Card.Body>
                 <div className="d-grid gap-2">
-                  <button className="btn btn-outline-primary text-start p-3">
+                  <button className="btn btn-outline-primary text-start p-3" onClick={() => navigate('/attendance')}>
                     <i className="fas fa-user-check me-2"></i> Mark Attendance
                   </button>
-                  <button className="btn btn-outline-success text-start p-3">
+                  <button className="btn btn-outline-success text-start p-3" onClick={() => navigate('/assignments')}>
                     <i className="fas fa-plus-circle me-2"></i> Create Assignment
                   </button>
                   <button className="btn btn-outline-info text-start p-3">
