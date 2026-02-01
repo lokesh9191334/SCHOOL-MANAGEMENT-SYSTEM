@@ -15,10 +15,7 @@ from flask import (
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 
-from models import Salary, Teacher, TeacherDocument, StudentLeave, db, Classroom, Subject
-import random
-from types import SimpleNamespace
-from models import TeacherLeave
+from models import Salary, Teacher, TeacherDocument, StudentLeave, db, Classroom, Subject, TeacherLeave
 from flask_login import current_user
 from utils import log_activity
 
