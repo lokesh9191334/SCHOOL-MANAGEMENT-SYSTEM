@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": null,
   "builds": [
     {
       "src": "app.py",
@@ -13,6 +16,11 @@
       }
     }
   ],
+  "functions": {
+    "app.py": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
