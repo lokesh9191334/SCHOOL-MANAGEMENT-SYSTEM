@@ -27,5 +27,4 @@ Flask-SeaSurf==1.1.1   # For CSRF protection
 Authlib==1.2.1 # For OAuth integration
 
 # Utilities
-pandas==2.1.1    # For data analysis and CSV export
 python-dateutil==2.8.2
