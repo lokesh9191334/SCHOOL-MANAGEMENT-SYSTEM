@@ -13,6 +13,11 @@ interface DashboardData {
   pending_fees: number;
   today_payments: number;
   recent_parent_messages: any[];
+  user: {
+    name: string;
+    role: string;
+    email: string;
+  };
 }
 
 const AdminDashboard: React.FC = () => {
@@ -73,12 +78,38 @@ const AdminDashboard: React.FC = () => {
 
       <div className="dashboard-content">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="mb-0">Admin Dashboard</h2>
+          <div>
+            <h2 className="mb-0">Admin Dashboard</h2>
+            <p className="text-muted mb-0">Manage your school efficiently with real-time insights.</p>
+          </div>
           <Breadcrumb className="mb-0">
             <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
             <Breadcrumb.Item active>Dashboard</Breadcrumb.Item>
           </Breadcrumb>
         </div>
+
+        {/* Welcome Card */}
+        <Card className="mb-4 shadow-sm border-0 welcome-card text-white" style={{ background: 'var(--primary-gradient)', borderRadius: '15px' }}>
+          <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center p-4">
+            <div>
+              <h2 className="mb-2">
+                <i className="fas fa-user-shield me-2"></i>
+                Welcome back, {data.user.name}!
+              </h2>
+              <p className="mb-0 opacity-75">
+                You have full control over the system. Monitor students, teachers, and finances from this premium administrative portal.
+              </p>
+            </div>
+            <div className="mt-3 mt-md-0 d-flex gap-2">
+              <button className="btn btn-light btn-sm text-primary fw-bold">
+                <i className="fas fa-plus-circle me-1"></i>Add Student
+              </button>
+              <button className="btn btn-outline-light btn-sm">
+                <i className="fas fa-cog me-1"></i>Settings
+              </button>
+            </div>
+          </Card.Body>
+        </Card>
 
         {/* Main Stats */}
         <Row className="mb-4">

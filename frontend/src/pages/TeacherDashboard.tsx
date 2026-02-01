@@ -90,6 +90,29 @@ const TeacherDashboard: React.FC = () => {
           </Breadcrumb>
         </div>
 
+        {/* Welcome Card */}
+        <Card className="mb-4 shadow-sm border-0 welcome-card text-white" style={{ background: 'var(--success-gradient)', borderRadius: '15px' }}>
+          <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center p-4">
+            <div>
+              <h2 className="mb-2">
+                <i className="fas fa-chalkboard-teacher me-2"></i>
+                Welcome back, {data.user.name}!
+              </h2>
+              <p className="mb-0 opacity-75">
+                Ready to inspire today? Manage your classes, track student progress, and organize your schedule efficiently.
+              </p>
+            </div>
+            <div className="mt-3 mt-md-0 d-flex gap-2">
+              <button className="btn btn-light btn-sm text-success fw-bold">
+                <i className="fas fa-user-check me-1"></i>Mark Attendance
+              </button>
+              <button className="btn btn-outline-light btn-sm">
+                <i className="fas fa-plus-circle me-1"></i>New Assignment
+              </button>
+            </div>
+          </Card.Body>
+        </Card>
+
         <Row className="mb-4">
           {stats.map((stat, idx) => (
             <Col key={idx} xl={3} md={6} className="mb-4">

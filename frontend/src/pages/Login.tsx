@@ -25,7 +25,10 @@ const Login: React.FC = () => {
       });
 
       if (response.data.success) {
-        const role = response.data.role;
+        const { role, user } = response.data;
+        localStorage.setItem('user_role', role);
+        localStorage.setItem('user_name', user.name);
+        
         if (role === 'admin') navigate('/admin');
         else if (role === 'teacher') navigate('/teachers');
         else if (role === 'parent') navigate('/parents');

@@ -41,6 +41,13 @@ function App() {
         <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
         <Route path="/activity-log" element={<PlaceholderPage title="Activity Log" />} />
         <Route path="/help" element={<PlaceholderPage title="Help" />} />
+        
+        {/* Teacher & Parent Specific Placeholder Routes */}
+        <Route path="/assignments" element={<PlaceholderPage title="Assignments" />} />
+        <Route path="/timetable" element={<PlaceholderPage title="Timetable" />} />
+        <Route path="/student-performance" element={<PlaceholderPage title="Student Performance" />} />
+        <Route path="/fees-payment" element={<PlaceholderPage title="Fees & Payments" />} />
+        <Route path="/leave-application" element={<PlaceholderPage title="Leave Application" />} />
 
         {/* Catch all - Redirect to login or show 404 */}
         <Route path="*" element={<Navigate to="/login" replace />} />

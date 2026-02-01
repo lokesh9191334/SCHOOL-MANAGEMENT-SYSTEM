@@ -77,27 +77,61 @@ const ParentDashboard: React.FC = () => {
           </Breadcrumb>
         </div>
 
-        <Row className="g-4">
-          {/* Left: Parent Profile / Navigation */}
-          <Col lg={4} xl={3}>
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body className="text-center">
-                <div className="mb-3">
-                  <img 
-                    src={`https://ui-avatars.com/api/?name=${data.user.name}&background=4e73df&color=fff`}
-                    className="rounded-circle border border-3 border-primary-subtle shadow-sm"
-                    width="80" height="80" alt="Parent Avatar"
-                  />
-                </div>
-                <h5 className="mb-1">{data.user.name}</h5>
-                <p className="text-muted small mb-3">{data.user.email}</p>
-                <Badge pill bg="primary" className="mb-3 px-3 py-2">
-                  <i className="fas fa-user-shield me-1"></i> Parent Portal
-                </Badge>
+        {/* Welcome Card */}
+        <Card className="mb-4 shadow-sm border-0">
+          <Card.Body className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center p-4">
+            <div>
+              <h2 className="mb-2">
+                <i className="fas fa-house-user me-2 text-primary"></i>
+                Welcome, {data.user.name}!
+              </h2>
+              <p className="text-muted mb-0">
+                Track your child's attendance, fees, performance and stay connected with teachers – all in one premium parent portal.
+              </p>
+            </div>
+            <div className="mt-3 mt-md-0 d-flex gap-2">
+              <button className="btn btn-primary btn-sm">
+                <i className="fas fa-calendar-minus me-1"></i>Send Leave
+              </button>
+              <button className="btn btn-warning btn-sm">
+                <i className="fas fa-exclamation-triangle me-1"></i>File Complaint
+              </button>
+            </div>
+          </Card.Body>
+        </Card>
 
-                <ListGroup variant="flush" className="text-start mt-2 border-top pt-2">
-                  {navItems.map((item, idx) => (
-                    <ListGroup.Item 
+        <Row className="mb-4">
+          <Col md={6} xl={3} className="mb-4">
+            <Card className="border-left-primary shadow h-100 py-2 border-0">
+              <Card.Body>
+                <Row className="align-items-center no-gutters">
+                  <Col className="mr-2">
+                    <div className="text-xs font-weight-bold text-primary text-uppercase mb-1">Students</div>
+                    <div className="h5 mb-0 font-weight-bold text-gray-800">{data.students_count}</div>
+                  </Col>
+                  <Col xs="auto">
+                    <i className="fas fa-user-graduate fa-2x text-gray-300"></i>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6} xl={3} className="mb-4">
+            <Card className="border-left-success shadow h-100 py-2 border-0">
+              <Card.Body>
+                <Row className="align-items-center no-gutters">
+                  <Col className="mr-2">
+                    <div className="text-xs font-weight-bold text-success text-uppercase mb-1">Attendance</div>
+                    <div className="h5 mb-0 font-weight-bold text-gray-800">{data.attendance_rate}%</div>
+                  </Col>
+                  <Col xs="auto">
+                    <i className="fas fa-calendar-check fa-2x text-gray-300"></i>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
                       key={idx} 
                       action 
                       className={`d-flex align-items-center border-0 rounded-2 mb-1 py-2 ${item.active ? 'bg-primary text-white shadow-sm' : 'text-muted'}`}
