@@ -1524,3 +1524,22 @@ class Complaint(db.Model):
     
     def __repr__(self):
         return f'<Complaint {self.id}: {self.title}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'category': self.category,
+            'priority': self.priority,
+            'sender_type': self.sender_type,
+            'recipient_type': self.recipient_type,
+            'status': self.status,
+            'response': self.response,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
+            'responded_at': self.responded_at.strftime('%Y-%m-%d %H:%M:%S') if self.responded_at else None,
+            'sender_name': self.sender.name if self.sender else None,
+            'recipient_name': self.recipient.name if self.recipient else None,
+            'student_name': self.student.full_name() if self.student else None,
+            'responder_name': self.responder.name if self.responder else None
+        }

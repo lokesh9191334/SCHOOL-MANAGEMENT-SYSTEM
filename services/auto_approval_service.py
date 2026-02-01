@@ -1,5 +1,5 @@
-from app import db, create_app
-from models import TeacherLeave, AutoLeaveApproval, LeaveApprovalLog, User
+from models import db, TeacherLeave, AutoLeaveApproval, LeaveApprovalLog, User
+from app import create_app
 from datetime import datetime, timedelta
 from utils import log_activity
 import threading

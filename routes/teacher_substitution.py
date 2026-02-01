@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
-from app import db
-from models import Teacher, Subject, Classroom, User, TeacherSubstitution, TeacherSchedule, TeacherLeave, AutoLeaveApproval, LeaveApprovalLog
+from models import db, Teacher, Subject, Classroom, User, TeacherSubstitution, TeacherSchedule, TeacherLeave, AutoLeaveApproval, LeaveApprovalLog
 from utils import log_activity
 from datetime import datetime, date, time, timedelta
 from sqlalchemy import and_, or_

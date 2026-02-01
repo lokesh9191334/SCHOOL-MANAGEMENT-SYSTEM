@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
 from flask_login import login_required, current_user
-from app import db
-from models import Teacher, Subject, Classroom, User, TimeTable, TimeTableEntry, TeacherTimeTable, TeacherTimeTableEntry
+from models import db, Teacher, Subject, Classroom, User, TimeTable, TimeTableEntry, TeacherTimeTable, TeacherTimeTableEntry
 from utils import log_activity
 from datetime import datetime, time, date
 import random

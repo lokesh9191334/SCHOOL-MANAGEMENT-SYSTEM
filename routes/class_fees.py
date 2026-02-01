@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
-from app import db
+from models import db, ClassFee, Classroom, FeeType, User
 from utils import log_activity
-from models import ClassFee, Classroom, FeeType, User
 from datetime import datetime, date
 
 class_fees_bp = Blueprint('class_fees', __name__)

@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
-from app import db
+from models import db, User, Teacher, School
 from utils import log_activity
-from models import User, Teacher, School
 from datetime import datetime
 
 admin_teacher_bp = Blueprint('admin_teacher', __name__)

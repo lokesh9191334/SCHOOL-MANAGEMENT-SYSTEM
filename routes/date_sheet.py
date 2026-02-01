@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
-from app import db
-from models import DateSheet, DateSheetEntry, ExamResult, Subject, Classroom, User, Student
+from models import db, DateSheet, DateSheetEntry, ExamResult, Subject, Classroom, User, Student
 from utils import log_activity
 from datetime import datetime, date, time
 

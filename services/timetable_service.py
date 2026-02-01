@@ -1,5 +1,4 @@
-from app import db
-from models import TimeTable, TimeTableEntry, TeacherTimeTable, TeacherTimeTableEntry, TeacherSubstitution, TeacherLeave, Teacher, Subject, Classroom
+from models import db, TimeTable, TimeTableEntry, TeacherTimeTable, TeacherTimeTableEntry, TeacherSubstitution, TeacherLeave, Teacher, Subject, Classroom
 from datetime import datetime, date, time, timedelta
 from sqlalchemy import and_, or_
 import logging
