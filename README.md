@@ -215,6 +215,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Test Accounts
 
+<!-- Trigger Vercel redeploy - build fix applied -->
+
 ### Available Login Credentials:
 - **Admin Account**: `admin@example.com` / `adminpass`
 - **Staff Account**: `staff@example.com` / `staffpass`
