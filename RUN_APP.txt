@@ -1,0 +1,75 @@
+⚠️ **Stack:** Node.js + React (Vite). Python is optional — only used as a **launcher**.
+
+---
+
+## ✅ Run (pick one)
+
+### Option 0: Python launcher (same folder as `package.json`)
+```bash
+python app.py
+```
+Runs `npm install` if needed, then `npm run dev` → **http://localhost:5173**
+
+```bash
+python app.py build
+python app.py start
+```
+(`start` = build + Express on port **5000** — needs Node/npm.)
+
+### Option 1: Double-click (easiest)
+1. Find `START.bat` in this folder
+2. Double-click it
+3. Browser opens at `http://localhost:5173`
+
+### Option 2: Command line
+```bash
+npm run dev
+```
+
+### Option 3: Production server
+```bash
+npm run build
+npm start
+```
+
+---
+
+## What's Running
+
+- **Frontend:** React 19 + Vite
+- **Router:** React Router DOM  
+- **Backend:** Express.js (optional, for APIs)
+- **Port:** 5173 (development) or 5000 (production)
+
+---
+
+## Features
+
+✅ 25+ Pages
+✅ Dashboard with modules
+✅ Student management
+✅ Attendance tracking
+✅ Exam/Results management
+✅ Fees & Transport modules
+✅ Settings & Auth pages
+✅ Parent Portal
+✅ QR Photo Capture
+✅ Smart Timetable
+
+---
+
+## Troubleshooting
+
+**`python app.py` errors**
+→ Install **Node.js** (includes `npm`), reopen terminal, run again from project root.  
+→ Or use `npm run dev` directly.
+
+**Port 5173 already in use?**
+→ `npm run dev -- --port 3000`
+
+**Build failed?**
+→ `npm run build` (verify no errors)
+
+---
+
+**Ready to go! 🚀**

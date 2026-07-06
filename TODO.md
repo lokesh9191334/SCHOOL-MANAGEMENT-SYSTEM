@@ -1,0 +1,4 @@
+- [ ] Update `src/App.jsx` to wire `FEATURE_WORKSPACES` routes to `FeatureWorkspacePage`
+- [ ] Import `FeatureWorkspacePage` using on-disk casing: `./pages/featureworkspacepage`
+- [ ] Pass workspace config into the page component as props
+- [ ] Run dev/build to verify routing works
