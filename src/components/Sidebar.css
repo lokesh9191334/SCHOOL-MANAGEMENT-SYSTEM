@@ -1,0 +1,187 @@
+.app-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  color: #e6eef8;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+  /* Professional/system font stack for clarity */
+  font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.sidebar-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.brand-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #2563eb;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.brand-text small {
+  display: block;
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #e6eef8;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.15px;
+}
+
+.sidebar-link .link-icon {
+  width: 32px;
+  text-align: center;
+}
+
+.sidebar-link:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+/* Make keyboard focus visible when anchor receives focus */
+.app-sidebar a:focus .sidebar-link,
+.app-sidebar a:focus-visible .sidebar-link {
+  outline: 2px solid rgba(99,102,241,0.35);
+  outline-offset: 2px;
+  background: rgba(99,102,241,0.06);
+}
+
+.sidebar-link.active {
+  background: linear-gradient(90deg, rgba(37,99,235,0.12), rgba(99,102,241,0.06));
+  box-shadow: inset 2px 0 0 0 rgba(37,99,235,0.6);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.sidebar-link.small {
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+/* Label wrapper used in markup: make labels crisp and readable */
+.link-label,
+.sidebar-link .link-label {
+  display: inline-block;
+  color: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.sidebar-link .link-icon {
+  color: inherit;
+}
+
+  .app-sidebar.collapsed {
+    width: 72px;
+    padding: 12px;
+  }
+
+  .app-sidebar.collapsed .brand-text,
+  .app-sidebar.collapsed .link-label,
+  .app-sidebar.collapsed .profile-info {
+    display: none;
+  }
+
+  /* Tooltip for collapsed sidebar items */
+  .app-sidebar.collapsed .sidebar-nav .sidebar-link {
+    position: relative;
+  }
+
+  .app-sidebar.collapsed .sidebar-nav .sidebar-link[data-label]:hover::after,
+  .app-sidebar.collapsed .sidebar-nav .sidebar-link[data-label]:focus::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 84px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(17,24,39,0.95);
+    color: #e6eef8;
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+    white-space: nowrap;
+    font-size: 13px;
+    z-index: 60;
+  }
+
+  .app-sidebar.collapsed .sidebar-nav .sidebar-link[data-label]:hover::before,
+  .app-sidebar.collapsed .sidebar-nav .sidebar-link[data-label]:focus::before {
+    content: '';
+    position: absolute;
+    left: 76px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: rgba(17,24,39,0.95);
+    z-index: 61;
+  }
+
+  .app-sidebar.collapsed .brand-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 900px) {
+    .app-sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 40;
+      transform: translateX(0);
+      transition: transform 220ms ease;
+    }
+
+    .dashboard-shell.sidebar-collapsed .app-sidebar {
+      transform: translateX(-100%);
+    }
+
+    .dashboard-shell.sidebar-collapsed .dashboard-content {
+      margin-left: 0;
+    }
+
+    /* global transitions for smooth slide between collapsed/expanded */
+    .app-sidebar {
+      transition: width 220ms ease, padding 220ms ease, transform 220ms ease;
+    }
+
+    .dashboard-content {
+      transition: margin-left 220ms ease, padding 220ms ease;
+    }
+  }
