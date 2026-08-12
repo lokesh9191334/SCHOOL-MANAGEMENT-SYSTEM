@@ -6,6 +6,7 @@ import {
   ADMISSION_RELIGIONS,
 } from '../utils/constants'
 import { lookupIndianPincode } from '../services/pincode'
+import { lookupSchools } from '../services/schools'
 import {
   verifyAadharWithUIDI,
   formatAadharNumber,
@@ -77,6 +78,9 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     
     applyingForClass: '',
     previousSchool: '',
+    previousSchoolId: '',
+    previousSchoolPincode: '',
+    previousSchoolCity: '',
     previousClass: '',
     lastExamResult: '',
     transferCertificate: false,
@@ -138,7 +142,14 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
   const [pincodeMessage, setPincodeMessage] = useState('')
   const [studentPhotoPreview, setStudentPhotoPreview] = useState('')
   const [keyCopied, setKeyCopied] = useState(false)
+  const [schoolResults, setSchoolResults] = useState([])
+  const [schoolOpen, setSchoolOpen] = useState(false)
+  const [schoolStatus, setSchoolStatus] = useState('idle')
+  const [schoolHint, setSchoolHint] = useState('')
+  const [activeSchoolIndex, setActiveSchoolIndex] = useState(-1)
   const pincodeTimerRef = useRef(null)
+  const schoolTimerRef = useRef(null)
+  const schoolBoxRef = useRef(null)
 
   const [aadharVerification, setAadharVerification] = useState({
     studentAadhar: { status: 'idle', message: '' },
@@ -157,9 +168,25 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
   useEffect(() => {
     return () => {
       if (pincodeTimerRef.current) clearTimeout(pincodeTimerRef.current)
+      if (schoolTimerRef.current) clearTimeout(schoolTimerRef.current)
       Object.values(aadharTimerRef.current).forEach((timer) => {
         if (timer) clearTimeout(timer)
       })
+    }
+  }, [])
+
+  useEffect(() => {
+    const onPointerDown = (event) => {
+      if (!schoolBoxRef.current?.contains(event.target)) {
+        setSchoolOpen(false)
+        setActiveSchoolIndex(-1)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('touchstart', onPointerDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('touchstart', onPointerDown)
     }
   }, [])
 
@@ -342,6 +369,94 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
         areaName: result.areaName,
       }))
     }, 350)
+  }
+
+  const selectPreviousSchool = (school) => {
+    setFormData((prev) => ({
+      ...prev,
+      previousSchool: school.name,
+      previousSchoolId: school.id,
+      previousSchoolPincode: school.pincode,
+      previousSchoolCity: school.city,
+    }))
+    setSchoolResults([])
+    setSchoolOpen(false)
+    setActiveSchoolIndex(-1)
+    setSchoolStatus('success')
+    setSchoolHint(`${school.city} · PIN ${school.pincode} · ${school.board}`)
+    setErrors((prev) => {
+      if (!prev.previousSchool) return prev
+      const next = { ...prev }
+      delete next.previousSchool
+      return next
+    })
+  }
+
+  const handlePreviousSchoolChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      previousSchool: value,
+      previousSchoolId: '',
+      previousSchoolPincode: '',
+      previousSchoolCity: '',
+    }))
+
+    if (schoolTimerRef.current) clearTimeout(schoolTimerRef.current)
+
+    const q = value.trim()
+    if (q.length < 1) {
+      setSchoolResults([])
+      setSchoolOpen(false)
+      setSchoolStatus('idle')
+      setSchoolHint('')
+      setActiveSchoolIndex(-1)
+      return
+    }
+
+    // Instant local results (no API wait)
+    const { schools } = lookupSchools(q)
+    setSchoolResults(schools)
+    setSchoolOpen(true)
+    setActiveSchoolIndex(schools.length ? 0 : -1)
+
+    if (!schools.length) {
+      setSchoolStatus('empty')
+      setSchoolHint('Directory mein match nahi — neeche custom name use kar sakte ho.')
+    } else {
+      setSchoolStatus('ready')
+      setSchoolHint(`${schools.length} school milin — list se select karo.`)
+    }
+
+    // Optional API enrichment
+    schoolTimerRef.current = setTimeout(async () => {
+      const { lookupSchoolsAsync } = await import('../services/schools')
+      const remote = await lookupSchoolsAsync(q)
+      if (value.trim() !== q) return
+      if (remote.schools?.length) {
+        setSchoolResults(remote.schools)
+        setActiveSchoolIndex(0)
+        setSchoolStatus('ready')
+        setSchoolHint(`${remote.schools.length} school milin — list se select karo.`)
+      }
+    }, 280)
+  }
+
+  const onPreviousSchoolKeyDown = (event) => {
+    if (!schoolOpen || !schoolResults.length) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveSchoolIndex((i) => (i + 1) % schoolResults.length)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveSchoolIndex((i) => (i <= 0 ? schoolResults.length - 1 : i - 1))
+    } else if (event.key === 'Enter' && activeSchoolIndex >= 0) {
+      event.preventDefault()
+      selectPreviousSchool(schoolResults[activeSchoolIndex])
+    } else if (event.key === 'Escape') {
+      setSchoolOpen(false)
+      setActiveSchoolIndex(-1)
+    }
   }
 
   const applyAadhaarProfile = (field, profile) => {
@@ -960,15 +1075,53 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
               {errors.applyingForClass && <span className="error-message">{errors.applyingForClass}</span>}
             </div>
             
-            <div className="form-group">
+            <div className="form-group school-lookup" ref={schoolBoxRef}>
               <label>Previous School *</label>
               <input
                 type="text"
                 value={formData.previousSchool}
-                onChange={(e) => handleInputChange('previousSchool', e.target.value)}
+                onChange={(e) => handlePreviousSchoolChange(e.target.value)}
+                onFocus={() => {
+                  if (schoolResults.length) setSchoolOpen(true)
+                }}
+                onKeyDown={onPreviousSchoolKeyDown}
                 className={errors.previousSchool ? 'error' : ''}
-                placeholder="Enter previous school name"
+                placeholder="Search by school name or PIN (e.g. DPS / 110001)"
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={schoolOpen}
+                aria-autocomplete="list"
+                aria-controls="previous-school-list"
               />
+              {schoolHint ? (
+                <span className={`pincode-hint pincode-hint--${schoolStatus === 'success' ? 'success' : schoolStatus === 'empty' ? 'error' : schoolStatus === 'loading' ? 'loading' : 'typing'}`}>
+                  {schoolHint}
+                </span>
+              ) : null}
+              {formData.previousSchoolId ? (
+                <span className="school-selected-meta">
+                  Selected · {formData.previousSchoolCity} · PIN {formData.previousSchoolPincode}
+                </span>
+              ) : null}
+              {schoolOpen && schoolResults.length > 0 ? (
+                <ul id="previous-school-list" className="school-suggest-list" role="listbox">
+                  {schoolResults.map((school, index) => (
+                    <li key={school.id} role="option" aria-selected={index === activeSchoolIndex}>
+                      <button
+                        type="button"
+                        className={`school-suggest-item ${index === activeSchoolIndex ? 'is-active' : ''}`}
+                        onMouseEnter={() => setActiveSchoolIndex(index)}
+                        onClick={() => selectPreviousSchool(school)}
+                      >
+                        <strong>{school.name}</strong>
+                        <span>
+                          {school.city} · PIN {school.pincode} · {school.board} · {school.type}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {errors.previousSchool && <span className="error-message">{errors.previousSchool}</span>}
             </div>
             

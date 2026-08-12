@@ -296,12 +296,30 @@
 }
 
 @media (max-width: 480px) {
+  .auth-stage {
+    padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+    align-items: stretch;
+  }
+
+  .auth-form-pane,
+  .auth-form-pane--solo {
+    width: 100%;
+  }
+
   .otp-input-row {
     gap: 6px;
   }
 
   .auth-form-card {
-    padding: 22px 18px;
+    padding: 22px 16px;
     border-radius: 22px;
+  }
+
+  .auth-form-head h2 {
+    font-size: 1.4rem;
+  }
+
+  .auth-submit {
+    min-height: 48px;
   }
 }

@@ -1026,7 +1026,15 @@
 .activity-panel,
 .finance-panel,
 .status-panel {
-  height: 100%;
+  height: auto;
+  min-height: 0;
+  align-self: start;
+}
+
+.command-center-grid,
+.operations-grid,
+.executive-strip {
+  align-items: start;
 }
 
 .executive-switcher {

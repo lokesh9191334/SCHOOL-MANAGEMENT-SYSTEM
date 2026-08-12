@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true, // 0.0.0.0 — phone / LAN access
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api/pincode': {
         target: 'https://api.postalpincode.in',
@@ -12,9 +15,13 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/pincode/, '/pincode'),
       },
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    host: true,
+    port: 4173,
   },
 })

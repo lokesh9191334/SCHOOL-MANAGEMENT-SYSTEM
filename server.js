@@ -15,6 +15,7 @@ import {
   pendingKey,
   readPending,
   savePending,
+  sendAdminLoginKeyEmail,
   sendOtpEmail,
   verifyOtpHash,
 } from './emailOtp.js'
@@ -22,9 +23,12 @@ import {
   consumeInvite,
   createInvite,
   findInvite,
+  generateAdminLoginKey,
+  normalizeAdminLoginKey,
   normalizeInviteKey,
   readInvites,
 } from './inviteKeys.js'
+import { searchPreviousSchools } from './src/data/previousSchools.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -90,6 +94,18 @@ app.get('/api/pincode/:code', async (req, res) => {
   } catch {
     res.status(502).json([{ Status: 'Error', Message: 'PIN code lookup failed' }])
   }
+})
+
+/** Search previous schools by name or PIN code */
+app.get('/api/schools', (req, res) => {
+  const q = String(req.query.q || '').trim()
+  if (q.length < 2) {
+    return res.json({ schools: [], query: q })
+  }
+  res.json({
+    schools: searchPreviousSchools(q, { limit: 15 }),
+    query: q,
+  })
 })
 
 app.post('/api/aadhaar/verify', (req, res) => {
@@ -382,7 +398,7 @@ app.post('/api/invite-keys', (req, res) => {
   }
 })
 
-/** Step 1 — Login: password check + email OTP */
+/** Step 1 — Login: password check + email OTP (or admin rotating special key) */
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body
@@ -394,14 +410,77 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials' })
     if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Invalid credentials' })
 
-    const otp = generateOtp()
+    const role = String(user.role || 'admin').toLowerCase()
+    const isAdminLogin = role === 'admin' || role === 'super_admin'
     const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
+    if (isAdminLogin) {
+      // Both email OTP + 7-char special key (e.g. lok@010). Key changes every login.
+      const loginKey = generateAdminLoginKey(role)
+      const otp = generateOtp()
+      const keyHash = hashOtp(normalizeAdminLoginKey(loginKey))
+      const otpHash = hashOtp(otp)
+      savePending(pendingKey('login', normalizedEmail), {
+        purpose: 'login',
+        method: 'admin-dual',
+        pendingToken: loginToken,
+        email: normalizedEmail,
+        userId: user.id,
+        role,
+        otpHash,
+        specialKeyHash: keyHash,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+      })
+
+      const updated = users.map((u) =>
+        u.id === user.id
+          ? {
+              ...u,
+              loginToken,
+              loginTokenExpiry: Date.now() + 10 * 60 * 1000,
+              adminLoginKeyHash: keyHash,
+              adminLoginKeyIssuedAt: new Date().toISOString(),
+            }
+          : u,
+      )
+      writeJsonFile(join('data', 'users.json'), updated)
+
+      const mail = await sendAdminLoginKeyEmail({
+        to: normalizedEmail,
+        loginKey,
+        otp,
+        purpose: 'sign in to your admin account',
+      })
+
+      return res.json({
+        otpRequired: true,
+        specialKeyRequired: true,
+        twoFactor: true,
+        method: 'admin-dual',
+        role,
+        loginToken,
+        email: normalizedEmail,
+        maskedEmail: mail.maskedEmail || maskEmail(normalizedEmail),
+        delivery: mail.delivery,
+        message:
+          mail.delivery === 'smtp'
+            ? `OTP and a new special key were emailed to ${mail.maskedEmail}. Enter both to sign in.`
+            : mail.message,
+        demoOtp: mail.demoOtp,
+        expiresInSec: 600,
+      })
+    }
+
+    const otp = generateOtp()
 
     savePending(pendingKey('login', normalizedEmail), {
       purpose: 'login',
+      method: 'email-otp',
       pendingToken: loginToken,
       email: normalizedEmail,
       userId: user.id,
+      role,
       otpHash: hashOtp(otp),
       expiresAt: Date.now() + 10 * 60 * 1000,
       attempts: 0,
@@ -423,8 +502,10 @@ app.post('/api/auth/login', async (req, res) => {
 
     res.json({
       otpRequired: true,
+      specialKeyRequired: false,
       twoFactor: true,
       method: 'email-otp',
+      role,
       loginToken,
       email: normalizedEmail,
       maskedEmail: mail.maskedEmail || maskEmail(normalizedEmail),
@@ -439,12 +520,13 @@ app.post('/api/auth/login', async (req, res) => {
   }
 })
 
-/** Step 2 — Verify login email OTP */
+/** Step 2 — Verify login email OTP (and admin special key when required) */
 app.post('/api/auth/login/verify', (req, res) => {
   try {
-    const { email, code, loginToken } = req.body
-    if (!email || !code || !loginToken) {
-      return res.status(400).json({ error: 'Email, OTP and login token are required' })
+    const { email, code, loginToken, specialKey } = req.body
+    const otpCode = String(code || '').replace(/\D/g, '')
+    if (!email || !loginToken) {
+      return res.status(400).json({ error: 'Email and login token are required' })
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
@@ -458,32 +540,69 @@ app.post('/api/auth/login/verify', (req, res) => {
     }
     if ((pending.expiresAt || 0) < Date.now() || (user.loginTokenExpiry || 0) < Date.now()) {
       clearPending(key)
-      return res.status(401).json({ error: 'OTP expired. Please sign in again.' })
+      return res.status(401).json({ error: 'Login codes expired. Please sign in again.' })
     }
     if ((pending.attempts || 0) >= 5) {
       clearPending(key)
       return res.status(429).json({ error: 'Too many invalid attempts. Sign in again.' })
     }
 
-    if (!verifyOtpHash(code, pending.otpHash)) {
-      savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
-      return res.status(401).json({ error: 'Invalid OTP. Check your email and try again.' })
+    if (pending.method === 'admin-dual') {
+      const normalizedKey = normalizeAdminLoginKey(specialKey)
+      if (!otpCode || otpCode.length !== 6) {
+        return res.status(400).json({ error: 'Enter the 6-digit email OTP.' })
+      }
+      if (!normalizedKey || normalizedKey.length !== 7) {
+        return res.status(400).json({ error: 'Enter the 7-character special key (e.g. lok@010).' })
+      }
+      const otpOk = verifyOtpHash(otpCode, pending.otpHash)
+      const keyOk = verifyOtpHash(normalizedKey, pending.specialKeyHash)
+      if (!otpOk || !keyOk) {
+        savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+        return res.status(401).json({ error: 'Invalid OTP or special key. Check your email and try again.' })
+      }
+    } else if (pending.method === 'admin-special-key') {
+      const normalizedKey = normalizeAdminLoginKey(specialKey || code)
+      if (!normalizedKey) {
+        return res.status(400).json({ error: 'Enter the special key from your email.' })
+      }
+      if (!verifyOtpHash(normalizedKey, pending.specialKeyHash || pending.otpHash)) {
+        savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+        return res.status(401).json({ error: 'Invalid special key. Check your email and try again.' })
+      }
+    } else {
+      if (!otpCode || otpCode.length !== 6) {
+        return res.status(400).json({ error: 'Enter the 6-digit email OTP.' })
+      }
+      if (!verifyOtpHash(otpCode, pending.otpHash)) {
+        savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+        return res.status(401).json({ error: 'Invalid OTP. Check your email and try again.' })
+      }
     }
 
     clearPending(key)
     const cleared = users.map((u) =>
-      u.id === user.id ? { ...u, loginToken: null, loginTokenExpiry: null, emailVerified: true } : u,
+      u.id === user.id
+        ? {
+            ...u,
+            loginToken: null,
+            loginTokenExpiry: null,
+            emailVerified: true,
+            adminLoginKeyHash: null,
+            lastLoginAt: new Date().toISOString(),
+          }
+        : u,
     )
     writeJsonFile(join('data', 'users.json'), cleared)
 
     res.json(issueAuthToken({ ...user, emailVerified: true }))
   } catch (err) {
     console.error('Error in /api/auth/login/verify:', err)
-    res.status(500).json({ error: 'Server error during OTP verification' })
+    res.status(500).json({ error: 'Server error during login verification' })
   }
 })
 
-/** Resend OTP for login or register */
+/** Resend OTP / regenerate admin OTP + special key */
 app.post('/api/auth/otp/resend', async (req, res) => {
   try {
     const { email, purpose = 'login', pendingToken } = req.body
@@ -494,6 +613,56 @@ app.post('/api/auth/otp/resend', async (req, res) => {
     const pending = readPending(key)
     if (!pending || pending.pendingToken !== pendingToken) {
       return res.status(401).json({ error: 'No active verification session' })
+    }
+
+    if (
+      purpose === 'login' &&
+      (pending.method === 'admin-dual' || pending.method === 'admin-special-key')
+    ) {
+      const loginKey = generateAdminLoginKey(pending.role || 'admin')
+      const otp = generateOtp()
+      const keyHash = hashOtp(normalizeAdminLoginKey(loginKey))
+      const otpHash = hashOtp(otp)
+      savePending(key, {
+        ...pending,
+        method: 'admin-dual',
+        otpHash,
+        specialKeyHash: keyHash,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+      })
+
+      const users = readJsonFile(join('data', 'users.json'), [])
+      writeJsonFile(
+        join('data', 'users.json'),
+        users.map((u) =>
+          String(u.email).toLowerCase() === normalizedEmail
+            ? {
+                ...u,
+                adminLoginKeyHash: keyHash,
+                adminLoginKeyIssuedAt: new Date().toISOString(),
+                loginTokenExpiry: Date.now() + 10 * 60 * 1000,
+              }
+            : u,
+        ),
+      )
+
+      const mail = await sendAdminLoginKeyEmail({
+        to: normalizedEmail,
+        loginKey,
+        otp,
+        purpose: 'sign in to your admin account',
+      })
+
+      return res.json({
+        ok: true,
+        method: 'admin-dual',
+        maskedEmail: mail.maskedEmail,
+        delivery: mail.delivery,
+        message: 'A new OTP and special key were emailed. Previous codes are no longer valid.',
+        demoOtp: mail.demoOtp,
+        expiresInSec: 600,
+      })
     }
 
     const otp = generateOtp()
@@ -513,6 +682,7 @@ app.post('/api/auth/otp/resend', async (req, res) => {
 
     res.json({
       ok: true,
+      method: 'email-otp',
       maskedEmail: mail.maskedEmail,
       delivery: mail.delivery,
       message: mail.message,
@@ -656,8 +826,9 @@ if (fs.existsSync(distPath)) {
   })
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`School Management System server running on http://localhost:${PORT}`)
+  console.log(`Phone / LAN: open http://<your-pc-ip>:${PORT} (same Wi-Fi)`)
   console.log(`API: http://localhost:${PORT}/api/`)
   if (isSmtpConfigured()) {
     console.log('Email OTP: REAL SMTP configured (inbox delivery)')

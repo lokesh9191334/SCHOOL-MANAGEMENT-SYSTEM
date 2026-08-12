@@ -59,11 +59,11 @@ export const login = async ({ email, password }) => {
   return body
 }
 
-export const loginVerify = async ({ email, code, loginToken }) => {
+export const loginVerify = async ({ email, code, loginToken, specialKey }) => {
   const res = await safeFetch(`${API}/login/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code, loginToken }),
+    body: JSON.stringify({ email, code, loginToken, specialKey }),
   })
   const body = await parseResponse(res)
   if (!res.ok) throw new Error(buildErrorMessage(body, res) || 'OTP verification failed')

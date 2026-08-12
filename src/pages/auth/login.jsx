@@ -6,6 +6,9 @@ import * as auth from '../../services/auth'
 import { homePathForRole } from '../../data/roleNav'
 import '../../styles/auth-premium.css'
 
+const isAdminDualMethod = (method) =>
+  method === 'admin-dual' || method === 'admin-special-key'
+
 const LoginPage = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -18,10 +21,14 @@ const LoginPage = () => {
 
   const [otpStep, setOtpStep] = useState(false)
   const [otp, setOtp] = useState('')
+  const [specialKey, setSpecialKey] = useState('')
+  const [loginMethod, setLoginMethod] = useState('email-otp')
   const [loginToken, setLoginToken] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
   const [demoOtp, setDemoOtp] = useState('')
   const [resendIn, setResendIn] = useState(0)
+
+  const isAdminDual = isAdminDualMethod(loginMethod)
 
   useEffect(() => {
     if (resendIn <= 0) return undefined
@@ -29,7 +36,14 @@ const LoginPage = () => {
     return () => window.clearTimeout(timer)
   }, [resendIn])
 
-  const canVerify = useMemo(() => otp.replace(/\D/g, '').length === 6, [otp])
+  const canVerify = useMemo(() => {
+    const otpOk = otp.replace(/\D/g, '').length === 6
+    if (isAdminDual) {
+      const key = specialKey.replace(/\s+/g, '').toLowerCase()
+      return otpOk && key.length === 7
+    }
+    return otpOk
+  }, [otp, specialKey, isAdminDual])
 
   const startLogin = async (event) => {
     event.preventDefault()
@@ -38,14 +52,21 @@ const LoginPage = () => {
     setLoading(true)
     try {
       const res = await auth.login({ email, password })
-      if (res.otpRequired || res.twoFactor) {
+      if (res.otpRequired || res.twoFactor || res.specialKeyRequired) {
         setOtpStep(true)
         setLoginToken(res.loginToken)
         setMaskedEmail(res.maskedEmail || email)
         setDemoOtp(res.demoOtp || '')
-        setInfo(res.message || 'OTP sent to your email.')
+        setLoginMethod(res.method || (res.specialKeyRequired ? 'admin-dual' : 'email-otp'))
+        setInfo(
+          res.message ||
+            (isAdminDualMethod(res.method)
+              ? 'OTP and special key were emailed. Enter both to continue.'
+              : 'Verification code sent to your email.'),
+        )
         setResendIn(30)
         setOtp('')
+        setSpecialKey('')
         return
       }
       auth.saveSession(res)
@@ -68,6 +89,7 @@ const LoginPage = () => {
       const res = await auth.loginVerify({
         email,
         code: otp,
+        specialKey: isAdminDual ? specialKey : undefined,
         loginToken,
       })
       auth.saveSession(res)
@@ -90,9 +112,15 @@ const LoginPage = () => {
         pendingToken: loginToken,
       })
       setDemoOtp(res.demoOtp || '')
-      setInfo(res.message || 'A new OTP was sent.')
+      setLoginMethod(res.method || loginMethod)
+      setInfo(
+        isAdminDualMethod(res.method)
+          ? 'A new OTP and special key were emailed. Previous codes are invalid now.'
+          : res.message || 'A new OTP was sent.',
+      )
       setResendIn(30)
       setOtp('')
+      setSpecialKey('')
     } catch (err) {
       setError(err.message || String(err))
     } finally {
@@ -104,11 +132,19 @@ const LoginPage = () => {
     <AuthShell
       mode="login"
       kicker="Secure sign in"
-      title={otpStep ? 'Email OTP verification' : 'Welcome back'}
+      title={
+        otpStep
+          ? isAdminDual
+            ? 'OTP + special key'
+            : 'Email OTP verification'
+          : 'Welcome back'
+      }
       subtitle={
         otpStep
-          ? `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
-          : 'Sign in with your work email. A one-time password will be emailed before dashboard access.'
+          ? isAdminDual
+            ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
+            : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
+          : 'Admins need email OTP plus a rotating 7-character special key. Teachers/parents use email OTP.'
       }
       footer={
         <>
@@ -163,18 +199,38 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          <p className="auth-helper">Email OTP 2FA is mandatory. After password check, a code is sent to your inbox.</p>
+          <p className="auth-helper">
+            Admin login emails a 6-digit OTP and a new 7-character special key (like lok@010) every time.
+          </p>
 
           {error ? <div className="auth-error">{error}</div> : null}
           {info ? <div className="auth-success">{info}</div> : null}
 
           <button className="auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Checking credentials…' : 'Continue to email OTP'}
+            {loading ? 'Checking credentials…' : 'Continue'}
           </button>
         </form>
       ) : (
         <form className="otp-panel" onSubmit={verifyLogin}>
-          <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+          <div className="auth-field">
+            <span>Email OTP</span>
+            <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+          </div>
+
+          {isAdminDual ? (
+            <label className="auth-field">
+              <span>Special key (7 characters)</span>
+              <input
+                value={specialKey}
+                onChange={(e) => setSpecialKey(e.target.value.replace(/\s+/g, '').slice(0, 7))}
+                type="text"
+                autoComplete="one-time-code"
+                placeholder="lok@010"
+                spellCheck={false}
+                required
+              />
+            </label>
+          ) : null}
 
           {demoOtp ? (
             <div className="demo-mail-card">
@@ -184,16 +240,23 @@ const LoginPage = () => {
             </div>
           ) : (
             <div className="demo-mail-card">
-              <strong>OTP emailed to your inbox</strong>
+              <strong>{isAdminDual ? 'OTP + special key emailed' : 'OTP emailed to your inbox'}</strong>
               <p>
-                Check <strong>{maskedEmail}</strong> (and spam). The code expires in 10 minutes.
+                Check <strong>{maskedEmail}</strong> (and spam).
+                {isAdminDual
+                  ? ' Enter both codes. The special key is single-use and changes on every login / resend.'
+                  : ' The code expires in 10 minutes.'}
               </p>
             </div>
           )}
 
           <div className="otp-meta">
             <button type="button" className="auth-ghost-btn" onClick={resend} disabled={loading || resendIn > 0}>
-              {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend OTP'}
+              {resendIn > 0
+                ? `Resend in ${resendIn}s`
+                : isAdminDual
+                  ? 'Resend OTP + key'
+                  : 'Resend OTP'}
             </button>
             <button
               type="button"
@@ -201,8 +264,10 @@ const LoginPage = () => {
               onClick={() => {
                 setOtpStep(false)
                 setOtp('')
+                setSpecialKey('')
                 setDemoOtp('')
                 setInfo('')
+                setLoginMethod('email-otp')
               }}
             >
               Use a different account
@@ -213,7 +278,7 @@ const LoginPage = () => {
           {info ? <div className="auth-success">{info}</div> : null}
 
           <button className="auth-submit" type="submit" disabled={loading || !canVerify}>
-            {loading ? 'Verifying…' : 'Verify OTP & sign in'}
+            {loading ? 'Verifying…' : isAdminDual ? 'Verify both & sign in' : 'Verify OTP & sign in'}
           </button>
         </form>
       )}

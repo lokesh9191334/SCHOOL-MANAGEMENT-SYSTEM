@@ -211,6 +211,67 @@
   color: #a4afc0;
 }
 
+.school-lookup {
+  position: relative;
+  z-index: 3;
+}
+
+.school-selected-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #17b398;
+}
+
+.school-suggest-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 2px);
+  z-index: 20;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(65, 87, 255, 0.16);
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(16, 24, 47, 0.14);
+}
+
+.school-suggest-item {
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font: inherit;
+}
+
+.school-suggest-item strong {
+  color: #111b33;
+  font-size: 0.9rem;
+}
+
+.school-suggest-item span {
+  color: #7f8ba5;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.school-suggest-item:hover,
+.school-suggest-item.is-active {
+  background: rgba(47, 70, 216, 0.08);
+}
+
 /* Aadhar Verification Hint */
 .aadhar-hint {
   display: block;

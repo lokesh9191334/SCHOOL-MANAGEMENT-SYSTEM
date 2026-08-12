@@ -4,14 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "dev:all": "node scripts/dev-all.mjs",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --host",
     "start": "node server.js",
     "server": "node server.js",
-    "serve": "npm run build && node server.js"
+    "serve": "npm run build && node server.js",
+    "phone": "node scripts/phone-dev.mjs",
+    "share": "node scripts/share.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

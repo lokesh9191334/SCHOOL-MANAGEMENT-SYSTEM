@@ -9,6 +9,8 @@ const INVITES_FILE = join(__dirname, 'data', 'inviteKeys.json')
 const ROLE_PREFIX = {
   teacher: 'TCH',
   parent: 'PAR',
+  admin: 'ADM',
+  super_admin: 'SAD',
 }
 
 function ensureFile() {
@@ -42,6 +44,24 @@ function chunk() {
 export function generateInviteKey(role = 'teacher') {
   const prefix = ROLE_PREFIX[role] || 'INV'
   return `SMS-${prefix}-${chunk()}-${chunk()}`
+}
+
+/** 7-char admin login key, e.g. lok@010 — changes every login */
+export function generateAdminLoginKey(_role = 'admin') {
+  const letters = 'abcdefghijklmnopqrstuvwxyz'
+  let prefix = ''
+  for (let i = 0; i < 3; i += 1) {
+    prefix += letters[Math.floor(Math.random() * letters.length)]
+  }
+  const digits = String(Math.floor(Math.random() * 1000)).padStart(3, '0')
+  return `${prefix}@${digits}`
+}
+
+export function normalizeAdminLoginKey(key) {
+  return String(key || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
 }
 
 export function normalizeInviteKey(key) {

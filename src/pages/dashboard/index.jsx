@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PremiumAdmissionForm from '../../components/PremiumAdmissionForm'
-import ParentPortal from '../../components/ParentPortal'
-import QRPhotoCapture from '../../components/QRPhotoCapture'
-import SmartTimetable from '../../components/SmartTimetable'
 import Slide from '../../components/Slide'
-import AdmissionsModule from '../../modules/AdmissionsModule'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { buildAdmissionRecord, buildStudentRecord } from '../../utils/recordBuilders'
 import { SEED_ATTENDANCE, SEED_FEE_PAYMENTS, SEED_STUDENTS, SEED_TEACHERS } from '../../data/seed'
+import { getAuthUser } from '../../utils/session'
+import { AreaTrendChart, BarClusterChart, DonutChart, HorizontalBars, Sparkline } from './ExecCharts'
+import './ExecutiveDashboard.css'
+
+const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const DashboardPage = () => {
   const [students, setStudents] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
@@ -17,512 +19,426 @@ const DashboardPage = () => {
   const [teachers] = usePersistentState(STORAGE_KEYS.teachers, SEED_TEACHERS)
   const [feeRows] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
 
-  const [activeModule] = useState('admissions')
-  const [activeAction, setActiveAction] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [formMode, setFormMode] = useState('admission')
   const [toast, setToast] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [executiveView, setExecutiveView] = useState('operations')
+  const [chartTab, setChartTab] = useState('attendance')
+
+  const user = getAuthUser()
+  const firstName = String(user?.name || user?.email || 'Admin')
+    .trim()
+    .split(/\s+/)[0]
 
   useEffect(() => {
-    if (!toast) return
+    if (!toast) return undefined
     const timer = window.setTimeout(() => setToast(''), 3200)
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  const handleAction = (action) => {
-    setActiveAction(action)
-    setShowForm(action === 'Create New Admission' || action === 'Add Student')
-  }
-
-  const handleSubmitStudent = async (values) => {
-    setStudents((prev) => [...prev, buildStudentRecord(values, prev.length)])
-    setToast('Student profile added successfully.')
-    setActiveAction(null)
-    setShowForm(false)
-  }
-
-  const handleSubmitAdmission = async (values) => {
-    setAdmissions((prev) => [...prev, buildAdmissionRecord(values, prev.length)])
-    setToast('Admission draft saved successfully.')
-    setActiveAction(null)
-    setShowForm(false)
-  }
-
   const pendingFees = feeRows.filter((r) => r.status !== 'Paid').length
-  const attendanceRows = SEED_ATTENDANCE
-  const paidRevenue = feeRows.filter((r) => r.status === 'Paid').reduce((sum, row) => sum + row.amount, 0)
+  const paidRows = feeRows.filter((r) => r.status === 'Paid')
+  const paidRevenue = paidRows.reduce((sum, row) => sum + row.amount, 0)
   const totalRevenue = feeRows.reduce((sum, row) => sum + row.amount, 0)
   const collectionRate = totalRevenue ? Math.round((paidRevenue / totalRevenue) * 100) : 0
+
+  const attendanceRows = SEED_ATTENDANCE
   const presentCount = attendanceRows.filter((row) => row.status === 'Present').length
   const lateCount = attendanceRows.filter((row) => row.status === 'Late').length
   const absentCount = attendanceRows.filter((row) => row.status === 'Absent').length
   const attendanceRate = attendanceRows.length ? Math.round((presentCount / attendanceRows.length) * 100) : 0
 
-  const admissionRows = admissions.map((a) => ({
-    ...a,
-    title: a.title,
-    subtitle: a.subtitle,
-    primary: a.primary,
-    status: a.status,
-    tone: a.tone,
-  }))
+  const maleCount = students.filter((s) => String(s.gender).toLowerCase() === 'male').length
+  const femaleCount = students.filter((s) => String(s.gender).toLowerCase() === 'female').length
 
-  const filteredAdmissions = admissionRows.filter(
-    (r) =>
-      !searchQuery ||
-      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.primary.toLowerCase().includes(searchQuery.toLowerCase()),
+  const classStrength = useMemo(() => {
+    const map = {}
+    students.forEach((s) => {
+      const key = String(s.subtitle || 'Unassigned').replace(/^Class\s+/i, '') || 'N/A'
+      map[key] = (map[key] || 0) + 1
+    })
+    return Object.entries(map)
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6)
+  }, [students])
+
+  const attendanceTrend = useMemo(
+    () => ({
+      present: [92, 94, 91, 95, 93, attendanceRate || 90],
+      absent: [5, 4, 6, 3, 4, Math.max(absentCount, 2)],
+    }),
+    [attendanceRate, absentCount],
   )
 
-  const executiveFocus = {
-    operations: {
-      title: 'Operations cockpit',
-      subtitle: 'Watch campus movement, exceptions and readiness from one premium control surface.',
-      cards: [
-        { label: 'Attendance confidence', value: `${attendanceRate}%`, detail: `${lateCount} late, ${absentCount} absent today` },
-        { label: 'Faculty readiness', value: `${teachers.length}`, detail: 'Active teaching staff mapped to timetables' },
-        { label: 'Open follow-ups', value: `${pendingFees + admissions.length}`, detail: 'Items needing same-day admin attention' },
-      ],
+  const feeTrend = useMemo(() => {
+    const base = Math.max(Math.round(paidRevenue / 6) || 18000, 12000)
+    return {
+      collected: [base * 0.72, base * 0.8, base * 0.88, base * 0.95, base * 1.02, paidRevenue || base],
+      billed: [base, base * 1.05, base * 1.08, base * 1.1, base * 1.12, totalRevenue || base * 1.15],
+    }
+  }, [paidRevenue, totalRevenue])
+
+  const admissionTrend = useMemo(() => {
+    const live = Math.max(admissions.length, 2)
+    return {
+      applications: [4, 6, 5, 8, 7, 9, 8, 11, 10, 12, 11, live + 8],
+      enrolled: [2, 3, 3, 4, 5, 5, 6, 7, 6, 8, 7, students.length],
+    }
+  }, [admissions.length, students.length])
+
+  const weeklyFees = useMemo(() => {
+    const chunk = Math.max(Math.round(paidRevenue / 4) || 9000, 4000)
+    return [chunk * 0.7, chunk * 0.95, chunk * 1.1, paidRevenue ? Math.round(paidRevenue * 0.35) : chunk]
+  }, [paidRevenue])
+
+  const kpis = [
+    {
+      label: 'Students on roll',
+      value: students.length,
+      note: '+3 this week',
+      tone: 'blue',
+      spark: [18, 19, 20, 21, 22, students.length || 22],
+      to: '/students',
     },
-    admissions: {
-      title: 'Admissions command center',
-      subtitle: 'Track new intake, guardian follow-up and conversion velocity without leaving the dashboard.',
-      cards: [
-        { label: 'Draft applications', value: `${admissions.length}`, detail: 'Applicants awaiting review or approval' },
-        { label: 'Live conversion', value: `${Math.min(100, 40 + admissions.length * 5)}%`, detail: 'Promotions into active registry' },
-        { label: 'Next action', value: 'Review docs', detail: 'Guardian verification remains the priority' },
-      ],
+    {
+      label: 'Attendance today',
+      value: `${attendanceRate}%`,
+      note: `${presentCount} present · ${absentCount} absent`,
+      tone: 'teal',
+      spark: attendanceTrend.present,
+      to: '/attendance',
     },
-    finance: {
-      title: 'Finance pulse',
-      subtitle: 'Get premium visibility on collection health, pending invoices and fee desk momentum.',
-      cards: [
-        { label: 'Collected', value: `₹${paidRevenue.toLocaleString()}`, detail: 'Posted paid transactions this term' },
-        { label: 'Collection rate', value: `${collectionRate}%`, detail: 'Against billed fee volume' },
-        { label: 'At-risk accounts', value: `${pendingFees}`, detail: 'Invoices requiring finance outreach' },
-      ],
+    {
+      label: 'Fee collected',
+      value: `₹${(paidRevenue / 1000).toFixed(paidRevenue >= 10000 ? 0 : 1)}k`,
+      note: `${collectionRate}% of billed`,
+      tone: 'navy',
+      spark: feeTrend.collected.map((v) => Math.round(v / 1000)),
+      to: '/fees/payments',
     },
-  }
+    {
+      label: 'Open exceptions',
+      value: lateCount + absentCount + pendingFees,
+      note: `${pendingFees} fee · ${lateCount + absentCount} attendance`,
+      tone: 'amber',
+      spark: [8, 7, 9, 6, 5, lateCount + absentCount + pendingFees],
+      to: '/fees/payments',
+    },
+  ]
 
   const priorityAlerts = [
     {
-      title: 'Fee follow-up required',
-      detail: `${pendingFees} invoices remain unresolved before the next cycle closes.`,
+      title: 'Fee follow-up',
+      detail: `${pendingFees} invoices still open before cycle close.`,
       tone: 'warning',
+      to: '/fees/payments',
     },
     {
-      title: 'Attendance exception logged',
-      detail: `${lateCount + absentCount} students need attendance review and guardian communication.`,
+      title: 'Attendance exceptions',
+      detail: `${lateCount + absentCount} students need review today.`,
       tone: 'accent',
+      to: '/attendance',
     },
     {
-      title: 'Admissions queue active',
-      detail: `${admissions.length || 1} intake items are waiting for validation or decisioning.`,
+      title: 'Admissions queue',
+      detail: `${admissions.length || 1} intake items waiting on decision.`,
       tone: 'success',
+      to: '/students',
     },
   ]
 
   const todaySchedule = [
-    { time: '08:30', title: 'Homeroom attendance lock', detail: 'Class teachers confirm final presence.' },
-    { time: '10:00', title: 'Admissions review window', detail: 'Counsellor team clears pending documents.' },
-    { time: '12:15', title: 'Fee desk reconciliation', detail: 'Cashier closes walk-in payment batch.' },
-    { time: '15:00', title: 'Principal operations brief', detail: 'Daily review of alerts, transport and academics.' },
+    { time: '08:30', title: 'Homeroom lock', detail: 'Class teachers confirm presence' },
+    { time: '10:00', title: 'Admissions review', detail: 'Counsellor document clearance' },
+    { time: '12:15', title: 'Fee reconciliation', detail: 'Cashier walk-in batch close' },
+    { time: '15:00', title: 'Ops brief', detail: 'Alerts · transport · academics' },
   ]
 
-  const recentActivity = [
-    { title: 'Student promoted to live registry', detail: 'A new Grade 8 learner was converted from admissions.' },
-    { title: 'Faculty profile updated', detail: 'Subject assignment adjusted for senior mathematics.' },
-    { title: 'Parent portal usage spike', detail: 'Guardians opened report cards and attendance summaries.' },
-    { title: 'Transport route confirmed', detail: 'Driver roster synced with tomorrow morning departures.' },
+  const chartConfig = {
+    attendance: {
+      title: 'Attendance trend',
+      subtitle: 'Present vs absent across this week',
+      seriesA: attendanceTrend.present,
+      seriesB: attendanceTrend.absent,
+      labels: WEEK_LABELS,
+      labelA: 'Present %',
+      labelB: 'Absent count',
+      colorA: '#2f46d8',
+      colorB: '#e08a2c',
+    },
+    finance: {
+      title: 'Fee collection trend',
+      subtitle: 'Collected vs billed over recent weeks',
+      seriesA: feeTrend.collected.map((v) => Math.round(v / 1000)),
+      seriesB: feeTrend.billed.map((v) => Math.round(v / 1000)),
+      labels: WEEK_LABELS,
+      labelA: 'Collected (₹k)',
+      labelB: 'Billed (₹k)',
+      colorA: '#17b398',
+      colorB: '#2f46d8',
+    },
+    admissions: {
+      title: 'Admissions pipeline',
+      subtitle: 'Applications vs enrolled students this year',
+      seriesA: admissionTrend.applications,
+      seriesB: admissionTrend.enrolled,
+      labels: MONTH_LABELS,
+      labelA: 'Applications',
+      labelB: 'Enrolled',
+      colorA: '#1b2a55',
+      colorB: '#2f46d8',
+    },
+  }
+
+  const activeChart = chartConfig[chartTab]
+
+  const attendanceSegments = [
+    { label: 'Present', value: presentCount || 1, color: '#17b398' },
+    { label: 'Late', value: lateCount || 0, color: '#e08a2c' },
+    { label: 'Absent', value: absentCount || 0, color: '#d64545' },
   ]
 
-  const platformStatus = [
-    { label: 'Admissions sync', value: 'Healthy', tone: 'success' },
-    { label: 'Attendance engine', value: 'Live', tone: 'success' },
-    { label: 'Fee desk alerts', value: pendingFees ? 'Needs review' : 'Stable', tone: pendingFees ? 'warning' : 'success' },
-    { label: 'Guardian communication', value: 'Ready', tone: 'accent' },
-  ]
+  const openAdmission = () => {
+    setFormMode('admission')
+    setShowForm(true)
+  }
 
-  const quickLaunch = [
-    { label: 'Create student record', to: '/students/add' },
-    { label: 'Open fee desk', to: '/fees/payments' },
-    { label: 'Review timetable', to: '/academics/timetable' },
-    { label: 'View attendance', to: '/attendance' },
-  ]
-
-  const currentExecutiveView = executiveFocus[executiveView]
+  const handleSubmit = async (values) => {
+    if (formMode === 'student') {
+      setStudents((prev) => [...prev, buildStudentRecord(values, prev.length)])
+      setToast('Student profile added.')
+    } else {
+      setAdmissions((prev) => [...prev, buildAdmissionRecord(values, prev.length)])
+      setToast('Admission draft saved.')
+    }
+    setShowForm(false)
+  }
 
   return (
-    <div className="sms-page-stack">
-      <div className="page-hero">
+    <div className="exec-dash">
+      <Slide>
+        <header className="exec-top">
+          <div>
+            <p className="exec-kicker">Executive Dashboard</p>
+            <h2>Campus command · {firstName}</h2>
+            <p>Live enrolment, attendance, fee health and leadership priorities — with analytics.</p>
+          </div>
+          <div className="exec-top__actions">
+            <Link className="exec-btn exec-btn--solid" to="/students/add">
+              New admission
+            </Link>
+            <Link className="exec-btn" to="/attendance">
+              Attendance
+            </Link>
+            <Link className="exec-btn" to="/fees/payments">
+              Fee desk
+            </Link>
+            <button type="button" className="exec-btn" onClick={openAdmission}>
+              Launch intake
+            </button>
+          </div>
+        </header>
+      </Slide>
+
+      <div className="exec-kpi-row">
+        {kpis.map((kpi) => (
+          <Slide key={kpi.label}>
+            <Link to={kpi.to} className={`exec-kpi tone-${kpi.tone}`}>
+              <div className="exec-kpi__head">
+                <span>{kpi.label}</span>
+                <Sparkline
+                  values={kpi.spark}
+                  color={
+                    kpi.tone === 'teal' ? '#17b398' : kpi.tone === 'amber' ? '#e08a2c' : kpi.tone === 'navy' ? '#1b2a55' : '#2f46d8'
+                  }
+                />
+              </div>
+              <strong>{kpi.value}</strong>
+              <p>{kpi.note}</p>
+            </Link>
+          </Slide>
+        ))}
+      </div>
+
+      <div className="exec-analytics">
         <Slide>
-          <section className="page-card">
-            <p className="admin-kicker">Overview</p>
-            <h2>Operations at a glance</h2>
-            <p>
-              Manage enrolment, attendance, fees, academics and guardian communication from a polished
-              command dashboard designed for school leadership.
-            </p>
-            <div className="link-row">
-              <Link className="link-pill" to="/students/add">
-                New admission
-              </Link>
-              <Link className="link-pill" to="/attendance">
-                Mark attendance
-              </Link>
-              <Link className="link-pill" to="/fees/payments">
-                Record payment
-              </Link>
-              <Link className="link-pill" to="/examination/schedule">
-                Exam schedule
-              </Link>
-            </div>
+          <section className="exec-panel exec-panel--chart">
+            <header className="exec-panel__head">
+              <div>
+                <p className="exec-kicker">Analytics</p>
+                <h3>{activeChart.title}</h3>
+                <p>{activeChart.subtitle}</p>
+              </div>
+              <div className="exec-tabs" role="tablist" aria-label="Chart focus">
+                {[
+                  ['attendance', 'Attendance'],
+                  ['finance', 'Finance'],
+                  ['admissions', 'Admissions'],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={chartTab === key}
+                    className={`exec-tab ${chartTab === key ? 'is-active' : ''}`}
+                    onClick={() => setChartTab(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </header>
+            <AreaTrendChart
+              seriesA={activeChart.seriesA}
+              seriesB={activeChart.seriesB}
+              labels={activeChart.labels}
+              labelA={activeChart.labelA}
+              labelB={activeChart.labelB}
+              colorA={activeChart.colorA}
+              colorB={activeChart.colorB}
+            />
           </section>
         </Slide>
+
+        <div className="exec-analytics__side">
+          <Slide>
+            <section className="exec-panel">
+              <header className="exec-panel__head exec-panel__head--compact">
+                <div>
+                  <p className="exec-kicker">Today</p>
+                  <h3>Attendance mix</h3>
+                </div>
+              </header>
+              <div className="exec-donut-block">
+                <DonutChart
+                  segments={attendanceSegments}
+                  centerValue={`${attendanceRate}%`}
+                  centerLabel="Present"
+                />
+                <ul className="exec-donut-legend">
+                  {attendanceSegments.map((s) => (
+                    <li key={s.label}>
+                      <i style={{ background: s.color }} />
+                      <span>{s.label}</span>
+                      <strong>{s.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          </Slide>
+
+          <Slide>
+            <section className="exec-panel">
+              <header className="exec-panel__head exec-panel__head--compact">
+                <div>
+                  <p className="exec-kicker">Finance</p>
+                  <h3>Weekly collections</h3>
+                </div>
+              </header>
+              <BarClusterChart
+                labels={['W1', 'W2', 'W3', 'W4']}
+                values={weeklyFees}
+                color="#17b398"
+                formatValue={(v) => `₹${Math.round(v / 1000)}k`}
+              />
+            </section>
+          </Slide>
+        </div>
+      </div>
+
+      <div className="exec-lower">
         <Slide>
-          <section className="page-card executive-pulse-card">
-            <p className="admin-kicker">Executive Pulse</p>
-            <div className="executive-pulse-grid">
-              <article className="executive-mini-stat">
-                <span>Students</span>
-                <strong>{students.length}</strong>
-                <p>Active registry</p>
-              </article>
-              <article className="executive-mini-stat">
+          <section className="exec-panel">
+            <header className="exec-panel__head exec-panel__head--compact">
+              <div>
+                <p className="exec-kicker">Registry</p>
+                <h3>Class strength</h3>
+              </div>
+              <Link className="exec-link" to="/students">
+                Open registry →
+              </Link>
+            </header>
+            <HorizontalBars
+              items={classStrength.map((row, i) => ({
+                ...row,
+                color: ['#2f46d8', '#17b398', '#1b2a55', '#e08a2c', '#5c6bff', '#0d8f7a'][i % 6],
+              }))}
+            />
+            <div className="exec-gender">
+              <div>
+                <span>Boys</span>
+                <strong>{maleCount}</strong>
+              </div>
+              <div>
+                <span>Girls</span>
+                <strong>{femaleCount}</strong>
+              </div>
+              <div>
                 <span>Faculty</span>
                 <strong>{teachers.length}</strong>
-                <p>Teaching staff</p>
-              </article>
-              <article className="executive-mini-stat">
-                <span>Fee alerts</span>
-                <strong>{pendingFees}</strong>
-                <p>Invoices needing follow-up</p>
-              </article>
-              <article className="executive-mini-stat">
-                <span>Attendance</span>
-                <strong>{attendanceRate}%</strong>
-                <p>Present by first roll call</p>
-              </article>
+              </div>
             </div>
           </section>
         </Slide>
-      </div>
 
-      <div className="executive-strip">
         <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Collection Health</p>
-            <strong>₹{paidRevenue.toLocaleString()}</strong>
-            <span>{collectionRate}% of billed fee volume collected</span>
-          </article>
-        </Slide>
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Admissions Pipeline</p>
-            <strong>{admissions.length}</strong>
-            <span>Draft and reviewed applicants in progress</span>
-          </article>
-        </Slide>
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Campus Readiness</p>
-            <strong>{teachers.length + students.length}</strong>
-            <span>Profiles coordinated across operations modules</span>
-          </article>
-        </Slide>
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Exceptions</p>
-            <strong>{lateCount + absentCount + pendingFees}</strong>
-            <span>Priority follow-ups for admin teams today</span>
-          </article>
-        </Slide>
-      </div>
-
-      <div className="command-center-grid">
-        <Slide>
-          <section className="premium-panel command-center-panel">
-            <div className="premium-panel-header">
+          <section className="exec-panel">
+            <header className="exec-panel__head exec-panel__head--compact">
               <div>
-                <p className="panel-kicker">Command Center</p>
-                <h3>{currentExecutiveView.title}</h3>
-                <p className="premium-panel-copy">{currentExecutiveView.subtitle}</p>
+                <p className="exec-kicker">Priority</p>
+                <h3>Needs attention</h3>
               </div>
-              <div className="executive-switcher">
-                <button
-                  type="button"
-                  className={`executive-chip ${executiveView === 'operations' ? 'active' : ''}`}
-                  onClick={() => setExecutiveView('operations')}
-                >
-                  Operations
-                </button>
-                <button
-                  type="button"
-                  className={`executive-chip ${executiveView === 'admissions' ? 'active' : ''}`}
-                  onClick={() => setExecutiveView('admissions')}
-                >
-                  Admissions
-                </button>
-                <button
-                  type="button"
-                  className={`executive-chip ${executiveView === 'finance' ? 'active' : ''}`}
-                  onClick={() => setExecutiveView('finance')}
-                >
-                  Finance
-                </button>
-              </div>
-            </div>
-
-            <div className="executive-focus-grid">
-              {currentExecutiveView.cards.map((card) => (
-                <article key={card.label} className="executive-focus-card">
-                  <p>{card.label}</p>
-                  <strong>{card.value}</strong>
-                  <span>{card.detail}</span>
-                </article>
-              ))}
-            </div>
-
-            <div className="quick-launch-grid">
-              {quickLaunch.map((link) => (
-                <Link key={link.to} to={link.to} className="quick-launch-card">
-                  <strong>{link.label}</strong>
-                  <span>Open module</span>
+            </header>
+            <div className="exec-alert-list">
+              {priorityAlerts.map((alert) => (
+                <Link key={alert.title} to={alert.to} className={`exec-alert tone-${alert.tone}`}>
+                  <strong>{alert.title}</strong>
+                  <p>{alert.detail}</p>
                 </Link>
               ))}
             </div>
           </section>
         </Slide>
 
-        <div className="priority-stack">
-          <Slide>
-            <section className="premium-panel priority-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Priority Alerts</p>
-                  <h3>What needs attention</h3>
-                </div>
-              </div>
-              <div className="priority-alert-list">
-                {priorityAlerts.map((alert) => (
-                  <article key={alert.title} className={`priority-alert ${alert.tone}`}>
-                    <strong>{alert.title}</strong>
-                    <p>{alert.detail}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel leadership-panel">
-              <p className="panel-kicker">Leadership Note</p>
-              <h3>Premium campus operations</h3>
-              <p className="premium-panel-copy">
-                The platform is ready for principal review, fee desk supervision and admissions decisioning.
-              </p>
-              <ul className="leadership-list">
-                <li>Guardian communication windows are prepared.</li>
-                <li>Academic and transport modules are available from the same shell.</li>
-                <li>Admissions, registry and fee desk now feel like one premium product.</li>
-              </ul>
-              <button type="button" className="leadership-action" onClick={() => handleAction('Create New Admission')}>
-                Launch admission workflow
-              </button>
-            </section>
-          </Slide>
-        </div>
-      </div>
-
-      <div className="dashboard-summary">
         <Slide>
-          <section className="summary-panel">
-            <h3>Admissions & intake</h3>
-            <p>
-              Review applicants, capture multi-step admission data, and promote accepted students into the live
-              registry without leaving the console.
-            </p>
-            <div className="summary-actions">
-              <button type="button" onClick={() => handleAction('Review Applicants')}>
-                Review applicants
-              </button>
-              <button type="button" onClick={() => handleAction('Create New Admission')}>
-                Create new admission
-              </button>
-              <button type="button" onClick={() => handleAction('Add Student')}>
-                Add student
-              </button>
-              <Link to="/students" className="link-pill" style={{ alignSelf: 'center' }}>
-                Open full registry
-              </Link>
+          <section className="exec-panel">
+            <header className="exec-panel__head exec-panel__head--compact">
+              <div>
+                <p className="exec-kicker">Today</p>
+                <h3>Leadership timeline</h3>
+              </div>
+            </header>
+            <div className="exec-timeline">
+              {todaySchedule.map((item) => (
+                <article key={item.time} className="exec-timeline__item">
+                  <time>{item.time}</time>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.detail}</p>
+                  </div>
+                </article>
+              ))}
             </div>
-            <div className="summary-highlights">
-              <div className="highlight-item">Secure intake with guardian verification and document checklist.</div>
-              <div className="highlight-item">Status tracking across admissions, attendance, exams and fees.</div>
-              <div className="highlight-item">Parent portal, QR capture and timetable previews below.</div>
+            <div className="exec-launch-row">
+              <Link to="/academics/timetable">Timetable</Link>
+              <Link to="/examination/schedule">Exams</Link>
+              <Link to="/settings/profile">Profile</Link>
             </div>
           </section>
         </Slide>
-
-        <Slide>
-          <AdmissionsModule
-            module={{
-              title: 'Admissions pipeline',
-              subtitle: 'Draft applications and promoted students.',
-              actions: ['Review Applicants', 'Create New Admission', 'Add Student', 'Generate Report'],
-              stats: [
-                { label: 'Applicants', value: String(admissions.length), note: 'Drafts in queue' },
-                { label: 'Enrolled', value: String(students.length), note: 'Students on roll' },
-              ],
-              rows: filteredAdmissions,
-              columns: ['Applicant', 'Class', 'Status', 'Guardian'],
-              features: ['Multi-step forms', 'Document tracking', 'Promote to registry'],
-              workflow: ['Intake form', 'Document review', 'Approval & enrolment'],
-              trendLabel: 'Pipeline velocity',
-              ring: { total: `${Math.min(100, 40 + admissions.length * 5)}%`, subtitle: 'Conversion' },
-              checklist: ['Verify CNIC', 'Collect TC', 'Assign roll number'],
-            }}
-            onActionClick={handleAction}
-            searchTerm={searchQuery}
-            setSearchTerm={setSearchQuery}
-            filteredRecords={filteredAdmissions}
-            selectedRecordKey={null}
-            setSelectedRecordKey={() => {}}
-            activeAction={activeAction}
-            actionConfig={{}}
-            formValues={{}}
-            onFieldChange={() => {}}
-            onFormSubmit={() => {}}
-            onFormReset={() => {}}
-            onActionSelect={() => {}}
-            systemMessage={activeModule === 'admissions' ? 'Admissions sync active' : 'Ready'}
-            notificationsEnabled
-            selectedRecord={null}
-          />
-        </Slide>
-
-        <div className="operations-grid">
-          <Slide>
-            <section className="premium-panel schedule-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Today Schedule</p>
-                  <h3>Leadership timeline</h3>
-                </div>
-              </div>
-              <div className="timeline-list">
-                {todaySchedule.map((item) => (
-                  <article key={item.time} className="timeline-item">
-                    <span className="timeline-time">{item.time}</span>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.detail}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel activity-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Recent Activity</p>
-                  <h3>Operational movement</h3>
-                </div>
-              </div>
-              <div className="activity-list">
-                {recentActivity.map((item) => (
-                  <article key={item.title} className="activity-item">
-                    <strong>{item.title}</strong>
-                    <p>{item.detail}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel finance-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Finance Overview</p>
-                  <h3>Revenue and collection</h3>
-                </div>
-              </div>
-              <div className="finance-metric-grid">
-                <article className="finance-metric">
-                  <span>Total billed</span>
-                  <strong>₹{totalRevenue.toLocaleString()}</strong>
-                </article>
-                <article className="finance-metric">
-                  <span>Collected</span>
-                  <strong>₹{paidRevenue.toLocaleString()}</strong>
-                </article>
-                <article className="finance-metric">
-                  <span>Pending cases</span>
-                  <strong>{pendingFees}</strong>
-                </article>
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel status-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Platform Health</p>
-                  <h3>Service readiness</h3>
-                </div>
-              </div>
-              <div className="status-health-list">
-                {platformStatus.map((item) => (
-                  <article key={item.label} className={`status-health-item ${item.tone}`}>
-                    <strong>{item.label}</strong>
-                    <span>{item.value}</span>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-        </div>
-
-        <div className="feature-cards">
-          <Slide>
-            <article className="feature-card">
-              <h4>Parent portal</h4>
-              <ParentPortal />
-            </article>
-          </Slide>
-          <Slide>
-            <article className="feature-card">
-              <h4>QR photo capture</h4>
-              <QRPhotoCapture />
-            </article>
-          </Slide>
-          <Slide>
-            <article className="feature-card">
-              <h4>Smart timetable</h4>
-              <SmartTimetable />
-            </article>
-          </Slide>
-        </div>
-
-        {showForm && (
-          <Slide>
-            <section className="form-panel">
-              <PremiumAdmissionForm
-                onSubmit={activeAction === 'Add Student' ? handleSubmitStudent : handleSubmitAdmission}
-                onCancel={() => setShowForm(false)}
-              />
-            </section>
-          </Slide>
-        )}
-
-        {toast && <div className="toast-notice">{toast}</div>}
       </div>
+
+      {showForm ? (
+        <div className="exec-modal" role="dialog" aria-modal="true" aria-label="Admission workflow">
+          <div className="exec-modal__backdrop" onClick={() => setShowForm(false)} />
+          <div className="exec-modal__panel">
+            <PremiumAdmissionForm onSubmit={handleSubmit} onCancel={() => setShowForm(false)} />
+          </div>
+        </div>
+      ) : null}
+
+      {toast ? <div className="exec-toast">{toast}</div> : null}
     </div>
   )
 }
