@@ -438,12 +438,16 @@ export const FEATURE_WORKSPACES = [
 ]
 
 export function titleForPath(pathname) {
+  if (typeof pathname !== 'string') return 'School ERP'
   if (pathname === '/' || pathname === '/dashboard') return 'Executive overview'
 
-  const navItem = ERP_NAV_SECTIONS.flatMap((section) => section.items)
-    .filter((item) => item.to !== '/dashboard')
-    .sort((a, b) => b.to.length - a.to.length)
-    .find((item) => pathname === item.to || pathname.startsWith(`${item.to}/`))
+  const navItem = ERP_NAV_SECTIONS.flatMap((section) => Array.isArray(section.items) ? section.items : [])
+    .filter((item) => item && typeof item.to === 'string' && item.to !== '/dashboard')
+    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))
+    .find((item) => {
+      if (!item || typeof item.to !== 'string') return false
+      return pathname === item.to || pathname.startsWith(`${item.to}/`)
+    })
 
   if (navItem) return navItem.label
 

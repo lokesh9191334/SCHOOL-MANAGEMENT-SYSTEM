@@ -56,7 +56,7 @@ const AppShell = () => {
                   </span>
                   {section.title}
                 </p>
-                {section.items.map((item) => (
+                {(Array.isArray(section.items) ? section.items : []).filter((item) => item && typeof item.to === 'string').map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}

@@ -61,7 +61,7 @@ function App() {
           <Route path="/students/add" element={<AdmissionFormPage />} />
           <Route path="/students/admission-form" element={<AdmissionFormPage />} />
 
-          {FEATURE_WORKSPACES.filter((ws) => !['/students/admission-form', '/students/id-card', '/students/attendance', '/attendance/students'].includes(ws.to)).map((ws) => (
+          {FEATURE_WORKSPACES.filter((ws) => ws && typeof ws.to === 'string' && !['/students/admission-form', '/students/id-card', '/students/attendance', '/attendance/students'].includes(ws.to)).map((ws) => (
             <Route
               key={ws.to}
               path={ws.to}

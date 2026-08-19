@@ -40,10 +40,12 @@ const Sidebar = ({ collapsed = false }) => {
 
   useEffect(() => {
     const next = {}
+    const pathname = typeof location?.pathname === 'string' ? location.pathname : ''
     ERP_NAV_SECTIONS.forEach((section) => {
-      const hasActive = section.items.some((item) => {
-        if (item.end) return location.pathname === item.to
-        return location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+      const hasActive = Array.isArray(section.items) && section.items.some((item) => {
+        if (!item || typeof item.to !== 'string') return false
+        if (item.end) return pathname === item.to
+        return pathname === item.to || pathname.startsWith(`${item.to}/`)
       })
       if (hasActive) next[section.title] = true
     })
@@ -81,9 +83,12 @@ const Sidebar = ({ collapsed = false }) => {
         <nav className="sidebar-nav">
           {ERP_NAV_SECTIONS.map((section) => {
             const isExpanded = expandedSections[section.title]
-            const hasActive = section.items.some((item) => {
-              if (item.end) return location.pathname === item.to
-              return location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)
+            const safeItems = Array.isArray(section.items) ? section.items : []
+            const pathname = typeof location?.pathname === 'string' ? location.pathname : ''
+            const hasActive = safeItems.some((item) => {
+              if (!item || typeof item.to !== 'string') return false
+              if (item.end) return pathname === item.to
+              return pathname === item.to || pathname.startsWith(`${item.to}/`)
             })
 
             return (
@@ -112,7 +117,7 @@ const Sidebar = ({ collapsed = false }) => {
                   aria-label={section.title}
                 >
                   <div className="section-items-inner">
-                    {section.items.map((item) => {
+                    {safeItems.filter((item) => item && typeof item.to === 'string').map((item) => {
                       const badge = countBadge(item.to)
                       return (
                         <NavLink
