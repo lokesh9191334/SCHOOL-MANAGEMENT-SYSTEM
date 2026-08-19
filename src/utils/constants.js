@@ -37,12 +37,31 @@ export const STORAGE_KEYS = {
   transferCertificates: 'sms_transfer_certificates',
   salaryRecords: 'sms_salary_records',
   teacherTimetables: 'sms_teacher_timetables',
+  authPending: 'sms_auth_pending',
+  inviteKeys: 'sms_invite_keys',
 }
 
 export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   TEACHER: 'teacher',
   PARENT: 'parent',
+}
+
+export const REGISTER_ROLE_OPTIONS = [
+  { value: 'super_admin', label: 'Super Admin' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'teacher', label: 'Teacher' },
+  { value: 'parent', label: 'Parent' },
+]
+
+export const INVITE_REQUIRED_ROLES = new Set(['teacher', 'parent'])
+
+export const DEMO_LOGIN = {
+  email: 'admin@school.edu',
+  password: 'Admin@123',
+  name: 'School Admin',
+  role: 'admin',
 }
 
 export const ADMISSION_NATIONALITIES = ['Indian', 'Other']
