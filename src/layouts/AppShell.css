@@ -2,23 +2,23 @@
   display: grid;
   grid-template-columns: minmax(260px, 300px) 1fr;
   height: 100vh;
-  gap: 22px;
-  padding: 22px;
+  gap: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 .sms-sidebar {
   display: flex;
   flex-direction: column;
-  align-self: start;
   gap: 12px;
-  max-height: calc(100vh - 44px);
-  padding: 20px 18px;
-  border-radius: 28px;
-  background: linear-gradient(165deg, #0c1228 0%, #151d3d 42%, #1a2550 100%);
+  height: 100vh;
+  padding: 24px 20px;
+  border-radius: 0;
+  background: linear-gradient(180deg, #0c1228 0%, #151d3d 42%, #1a2550 100%);
   color: #e8ecff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 28px 60px rgba(12, 18, 48, 0.35);
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 0 30px rgba(12, 18, 48, 0.25);
   overflow: hidden;
 }
 
@@ -55,9 +55,8 @@
 }
 
 .sms-nav-scroll {
-  flex: 0 1 auto;
+  flex: 1;
   min-height: 0;
-  max-height: min(58vh, 520px);
   margin: 0 -6px;
   padding: 0 6px;
   overflow-y: auto;

@@ -70,7 +70,7 @@ function AllStudentsModule({
               id={`${module.title.toLowerCase().replace(/\s+/g, '-')}-search`}
               name={`${module.title.toLowerCase().replace(/\s+/g, '')}Search`}
               type="text"
-              placeholder="Search students..."
+              placeholder="Search by name, class, or roll number..."
               className="search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

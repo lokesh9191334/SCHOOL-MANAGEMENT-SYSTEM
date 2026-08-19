@@ -1,527 +1,340 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import PremiumAdmissionForm from '../../components/PremiumAdmissionForm'
-import ParentPortal from '../../components/ParentPortal'
-import QRPhotoCapture from '../../components/QRPhotoCapture'
-import SmartTimetable from '../../components/SmartTimetable'
-import Slide from '../../components/Slide'
-import AdmissionsModule from '../../modules/AdmissionsModule'
-import { usePersistentState } from '../../hooks/usePersistentState'
-import { STORAGE_KEYS } from '../../utils/constants'
-import { buildAdmissionRecord, buildStudentRecord } from '../../utils/recordBuilders'
-import { SEED_ATTENDANCE, SEED_FEE_PAYMENTS, SEED_STUDENTS, SEED_TEACHERS } from '../../data/seed'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+} from 'recharts'
+
+// Chart data
+const earningsData = [
+  { name: 'Mon', total: 4000, fees: 2400 },
+  { name: 'Tue', total: 3000, fees: 1398 },
+  { name: 'Wed', total: 2000, fees: 9800 },
+  { name: 'Thu', total: 2780, fees: 3908 },
+  { name: 'Fri', total: 1890, fees: 4800 },
+  { name: 'Sat', total: 2390, fees: 3800 },
+  { name: 'Sun', total: 3490, fees: 4300 },
+]
+
+const expensesData = [
+  { name: 'Jan 2026', value: 15000 },
+  { name: 'Feb 2026', value: 10500 },
+  { name: 'Mar 2026', value: 9800 },
+  { name: 'Apr 2026', value: 12000 },
+  { name: 'May 2026', value: 14500 },
+  { name: 'Jun 2026', value: 11200 },
+]
+
+const studentsData = [
+  { name: 'Active', value: 65000, color: '#3b82f6' },
+  { name: 'Inactive', value: 45000, color: '#f59e0b' },
+  { name: 'Prospective', value: 40000, color: '#10b981' },
+]
 
 const DashboardPage = () => {
-  const [students, setStudents] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
-  const [admissions, setAdmissions] = usePersistentState(STORAGE_KEYS.admissions, [])
-  const [teachers] = usePersistentState(STORAGE_KEYS.teachers, SEED_TEACHERS)
-  const [feeRows] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
-
-  const [activeModule] = useState('admissions')
-  const [activeAction, setActiveAction] = useState(null)
-  const [showForm, setShowForm] = useState(false)
-  const [toast, setToast] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [executiveView, setExecutiveView] = useState('operations')
-
-  useEffect(() => {
-    if (!toast) return
-    const timer = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timer)
-  }, [toast])
-
-  const handleAction = (action) => {
-    setActiveAction(action)
-    setShowForm(action === 'Create New Admission' || action === 'Add Student')
-  }
-
-  const handleSubmitStudent = async (values) => {
-    setStudents((prev) => [...prev, buildStudentRecord(values, prev.length)])
-    setToast('Student profile added successfully.')
-    setActiveAction(null)
-    setShowForm(false)
-  }
-
-  const handleSubmitAdmission = async (values) => {
-    setAdmissions((prev) => [...prev, buildAdmissionRecord(values, prev.length)])
-    setToast('Admission draft saved successfully.')
-    setActiveAction(null)
-    setShowForm(false)
-  }
-
-  const pendingFees = feeRows.filter((r) => r.status !== 'Paid').length
-  const attendanceRows = SEED_ATTENDANCE
-  const paidRevenue = feeRows.filter((r) => r.status === 'Paid').reduce((sum, row) => sum + row.amount, 0)
-  const totalRevenue = feeRows.reduce((sum, row) => sum + row.amount, 0)
-  const collectionRate = totalRevenue ? Math.round((paidRevenue / totalRevenue) * 100) : 0
-  const presentCount = attendanceRows.filter((row) => row.status === 'Present').length
-  const lateCount = attendanceRows.filter((row) => row.status === 'Late').length
-  const absentCount = attendanceRows.filter((row) => row.status === 'Absent').length
-  const attendanceRate = attendanceRows.length ? Math.round((presentCount / attendanceRows.length) * 100) : 0
-
-  const admissionRows = admissions.map((a) => ({
-    ...a,
-    title: a.title,
-    subtitle: a.subtitle,
-    primary: a.primary,
-    status: a.status,
-    tone: a.tone,
-  }))
-
-  const filteredAdmissions = admissionRows.filter(
-    (r) =>
-      !searchQuery ||
-      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.primary.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
-  const executiveFocus = {
-    operations: {
-      title: 'Operations cockpit',
-      subtitle: 'Watch campus movement, exceptions and readiness from one premium control surface.',
-      cards: [
-        { label: 'Attendance confidence', value: `${attendanceRate}%`, detail: `${lateCount} late, ${absentCount} absent today` },
-        { label: 'Faculty readiness', value: `${teachers.length}`, detail: 'Active teaching staff mapped to timetables' },
-        { label: 'Open follow-ups', value: `${pendingFees + admissions.length}`, detail: 'Items needing same-day admin attention' },
-      ],
-    },
-    admissions: {
-      title: 'Admissions command center',
-      subtitle: 'Track new intake, guardian follow-up and conversion velocity without leaving the dashboard.',
-      cards: [
-        { label: 'Draft applications', value: `${admissions.length}`, detail: 'Applicants awaiting review or approval' },
-        { label: 'Live conversion', value: `${Math.min(100, 40 + admissions.length * 5)}%`, detail: 'Promotions into active registry' },
-        { label: 'Next action', value: 'Review docs', detail: 'Guardian verification remains the priority' },
-      ],
-    },
-    finance: {
-      title: 'Finance pulse',
-      subtitle: 'Get premium visibility on collection health, pending invoices and fee desk momentum.',
-      cards: [
-        { label: 'Collected', value: `₹${paidRevenue.toLocaleString()}`, detail: 'Posted paid transactions this term' },
-        { label: 'Collection rate', value: `${collectionRate}%`, detail: 'Against billed fee volume' },
-        { label: 'At-risk accounts', value: `${pendingFees}`, detail: 'Invoices requiring finance outreach' },
-      ],
-    },
-  }
-
-  const priorityAlerts = [
-    {
-      title: 'Fee follow-up required',
-      detail: `${pendingFees} invoices remain unresolved before the next cycle closes.`,
-      tone: 'warning',
-    },
-    {
-      title: 'Attendance exception logged',
-      detail: `${lateCount + absentCount} students need attendance review and guardian communication.`,
-      tone: 'accent',
-    },
-    {
-      title: 'Admissions queue active',
-      detail: `${admissions.length || 1} intake items are waiting for validation or decisioning.`,
-      tone: 'success',
-    },
-  ]
-
-  const todaySchedule = [
-    { time: '08:30', title: 'Homeroom attendance lock', detail: 'Class teachers confirm final presence.' },
-    { time: '10:00', title: 'Admissions review window', detail: 'Counsellor team clears pending documents.' },
-    { time: '12:15', title: 'Fee desk reconciliation', detail: 'Cashier closes walk-in payment batch.' },
-    { time: '15:00', title: 'Principal operations brief', detail: 'Daily review of alerts, transport and academics.' },
-  ]
-
-  const recentActivity = [
-    { title: 'Student promoted to live registry', detail: 'A new Grade 8 learner was converted from admissions.' },
-    { title: 'Faculty profile updated', detail: 'Subject assignment adjusted for senior mathematics.' },
-    { title: 'Parent portal usage spike', detail: 'Guardians opened report cards and attendance summaries.' },
-    { title: 'Transport route confirmed', detail: 'Driver roster synced with tomorrow morning departures.' },
-  ]
-
-  const platformStatus = [
-    { label: 'Admissions sync', value: 'Healthy', tone: 'success' },
-    { label: 'Attendance engine', value: 'Live', tone: 'success' },
-    { label: 'Fee desk alerts', value: pendingFees ? 'Needs review' : 'Stable', tone: pendingFees ? 'warning' : 'success' },
-    { label: 'Guardian communication', value: 'Ready', tone: 'accent' },
-  ]
-
-  const quickLaunch = [
-    { label: 'Create student record', to: '/students/add' },
-    { label: 'Open fee desk', to: '/fees/payments' },
-    { label: 'Review timetable', to: '/academics/timetable' },
-    { label: 'View attendance', to: '/attendance' },
-  ]
-
-  const currentExecutiveView = executiveFocus[executiveView]
-
   return (
-    <div className="sms-page-stack">
-      <div className="page-hero">
-        <Slide>
-          <section className="page-card">
-            <p className="admin-kicker">Overview</p>
-            <h2>Operations at a glance</h2>
-            <p>
-              Manage enrolment, attendance, fees, academics and guardian communication from a polished
-              command dashboard designed for school leadership.
-            </p>
-            <div className="link-row">
-              <Link className="link-pill" to="/students/add">
-                New admission
-              </Link>
-              <Link className="link-pill" to="/attendance">
-                Mark attendance
-              </Link>
-              <Link className="link-pill" to="/fees/payments">
-                Record payment
-              </Link>
-              <Link className="link-pill" to="/examination/schedule">
-                Exam schedule
-              </Link>
-            </div>
-          </section>
-        </Slide>
-        <Slide>
-          <section className="page-card executive-pulse-card">
-            <p className="admin-kicker">Executive Pulse</p>
-            <div className="executive-pulse-grid">
-              <article className="executive-mini-stat">
-                <span>Students</span>
-                <strong>{students.length}</strong>
-                <p>Active registry</p>
-              </article>
-              <article className="executive-mini-stat">
-                <span>Faculty</span>
-                <strong>{teachers.length}</strong>
-                <p>Teaching staff</p>
-              </article>
-              <article className="executive-mini-stat">
-                <span>Fee alerts</span>
-                <strong>{pendingFees}</strong>
-                <p>Invoices needing follow-up</p>
-              </article>
-              <article className="executive-mini-stat">
-                <span>Attendance</span>
-                <strong>{attendanceRate}%</strong>
-                <p>Present by first roll call</p>
-              </article>
-            </div>
-          </section>
-        </Slide>
-      </div>
+    <div className="new-dashboard">
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon green">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Students</p>
+            <h3 className="stat-value">150,000</h3>
+            <p className="stat-change">+12% from last month</p>
+          </div>
+        </div>
 
-      <div className="executive-strip">
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Collection Health</p>
-            <strong>₹{paidRevenue.toLocaleString()}</strong>
-            <span>{collectionRate}% of billed fee volume collected</span>
-          </article>
-        </Slide>
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Admissions Pipeline</p>
-            <strong>{admissions.length}</strong>
-            <span>Draft and reviewed applicants in progress</span>
-          </article>
-        </Slide>
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Campus Readiness</p>
-            <strong>{teachers.length + students.length}</strong>
-            <span>Profiles coordinated across operations modules</span>
-          </article>
-        </Slide>
-        <Slide>
-          <article className="premium-kpi-card">
-            <p className="premium-kpi-label">Exceptions</p>
-            <strong>{lateCount + absentCount + pendingFees}</strong>
-            <span>Priority follow-ups for admin teams today</span>
-          </article>
-        </Slide>
-      </div>
+        <div className="stat-card">
+          <div className="stat-icon blue">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Teachers</p>
+            <h3 className="stat-value">2,250</h3>
+            <p className="stat-change">+5% from last month</p>
+          </div>
+        </div>
 
-      <div className="command-center-grid">
-        <Slide>
-          <section className="premium-panel command-center-panel">
-            <div className="premium-panel-header">
-              <div>
-                <p className="panel-kicker">Command Center</p>
-                <h3>{currentExecutiveView.title}</h3>
-                <p className="premium-panel-copy">{currentExecutiveView.subtitle}</p>
-              </div>
-              <div className="executive-switcher">
-                <button
-                  type="button"
-                  className={`executive-chip ${executiveView === 'operations' ? 'active' : ''}`}
-                  onClick={() => setExecutiveView('operations')}
-                >
-                  Operations
-                </button>
-                <button
-                  type="button"
-                  className={`executive-chip ${executiveView === 'admissions' ? 'active' : ''}`}
-                  onClick={() => setExecutiveView('admissions')}
-                >
-                  Admissions
-                </button>
-                <button
-                  type="button"
-                  className={`executive-chip ${executiveView === 'finance' ? 'active' : ''}`}
-                  onClick={() => setExecutiveView('finance')}
-                >
-                  Finance
-                </button>
-              </div>
-            </div>
+        <div className="stat-card">
+          <div className="stat-icon orange">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Parents</p>
+            <h3 className="stat-value">5,690</h3>
+            <p className="stat-change">+8% from last month</p>
+          </div>
+        </div>
 
-            <div className="executive-focus-grid">
-              {currentExecutiveView.cards.map((card) => (
-                <article key={card.label} className="executive-focus-card">
-                  <p>{card.label}</p>
-                  <strong>{card.value}</strong>
-                  <span>{card.detail}</span>
-                </article>
-              ))}
-            </div>
-
-            <div className="quick-launch-grid">
-              {quickLaunch.map((link) => (
-                <Link key={link.to} to={link.to} className="quick-launch-card">
-                  <strong>{link.label}</strong>
-                  <span>Open module</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        </Slide>
-
-        <div className="priority-stack">
-          <Slide>
-            <section className="premium-panel priority-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Priority Alerts</p>
-                  <h3>What needs attention</h3>
-                </div>
-              </div>
-              <div className="priority-alert-list">
-                {priorityAlerts.map((alert) => (
-                  <article key={alert.title} className={`priority-alert ${alert.tone}`}>
-                    <strong>{alert.title}</strong>
-                    <p>{alert.detail}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel leadership-panel">
-              <p className="panel-kicker">Leadership Note</p>
-              <h3>Premium campus operations</h3>
-              <p className="premium-panel-copy">
-                The platform is ready for principal review, fee desk supervision and admissions decisioning.
-              </p>
-              <ul className="leadership-list">
-                <li>Guardian communication windows are prepared.</li>
-                <li>Academic and transport modules are available from the same shell.</li>
-                <li>Admissions, registry and fee desk now feel like one premium product.</li>
-              </ul>
-              <button type="button" className="leadership-action" onClick={() => handleAction('Create New Admission')}>
-                Launch admission workflow
-              </button>
-            </section>
-          </Slide>
+        <div className="stat-card">
+          <div className="stat-icon red">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+          </div>
+          <div className="stat-info">
+            <p className="stat-label">Earnings</p>
+            <h3 className="stat-value">$190,000</h3>
+            <p className="stat-change">+18% from last month</p>
+          </div>
         </div>
       </div>
 
-      <div className="dashboard-summary">
-        <Slide>
-          <section className="summary-panel">
-            <h3>Admissions & intake</h3>
-            <p>
-              Review applicants, capture multi-step admission data, and promote accepted students into the live
-              registry without leaving the console.
-            </p>
-            <div className="summary-actions">
-              <button type="button" onClick={() => handleAction('Review Applicants')}>
-                Review applicants
-              </button>
-              <button type="button" onClick={() => handleAction('Create New Admission')}>
-                Create new admission
-              </button>
-              <button type="button" onClick={() => handleAction('Add Student')}>
-                Add student
-              </button>
-              <Link to="/students" className="link-pill" style={{ alignSelf: 'center' }}>
-                Open full registry
-              </Link>
+      {/* Charts Section */}
+      <div className="charts-section">
+        {/* Earnings Area Chart */}
+        <div className="chart-card large-chart">
+          <div className="chart-header">
+            <div>
+              <h2 className="chart-title">Earnings Overview</h2>
+              <p className="chart-subtitle">Track your total and fees collections</p>
             </div>
-            <div className="summary-highlights">
-              <div className="highlight-item">Secure intake with guardian verification and document checklist.</div>
-              <div className="highlight-item">Status tracking across admissions, attendance, exams and fees.</div>
-              <div className="highlight-item">Parent portal, QR capture and timetable previews below.</div>
+            <div className="chart-legend">
+              <span className="legend-item">
+                <span className="legend-dot blue" />
+                Total Collections
+              </span>
+              <span className="legend-item">
+                <span className="legend-dot red" />
+                Fees Collections
+              </span>
             </div>
-          </section>
-        </Slide>
-
-        <Slide>
-          <AdmissionsModule
-            module={{
-              title: 'Admissions pipeline',
-              subtitle: 'Draft applications and promoted students.',
-              actions: ['Review Applicants', 'Create New Admission', 'Add Student', 'Generate Report'],
-              stats: [
-                { label: 'Applicants', value: String(admissions.length), note: 'Drafts in queue' },
-                { label: 'Enrolled', value: String(students.length), note: 'Students on roll' },
-              ],
-              rows: filteredAdmissions,
-              columns: ['Applicant', 'Class', 'Status', 'Guardian'],
-              features: ['Multi-step forms', 'Document tracking', 'Promote to registry'],
-              workflow: ['Intake form', 'Document review', 'Approval & enrolment'],
-              trendLabel: 'Pipeline velocity',
-              ring: { total: `${Math.min(100, 40 + admissions.length * 5)}%`, subtitle: 'Conversion' },
-              checklist: ['Verify CNIC', 'Collect TC', 'Assign roll number'],
-            }}
-            onActionClick={handleAction}
-            searchTerm={searchQuery}
-            setSearchTerm={setSearchQuery}
-            filteredRecords={filteredAdmissions}
-            selectedRecordKey={null}
-            setSelectedRecordKey={() => {}}
-            activeAction={activeAction}
-            actionConfig={{}}
-            formValues={{}}
-            onFieldChange={() => {}}
-            onFormSubmit={() => {}}
-            onFormReset={() => {}}
-            onActionSelect={() => {}}
-            systemMessage={activeModule === 'admissions' ? 'Admissions sync active' : 'Ready'}
-            notificationsEnabled
-            selectedRecord={null}
-          />
-        </Slide>
-
-        <div className="operations-grid">
-          <Slide>
-            <section className="premium-panel schedule-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Today Schedule</p>
-                  <h3>Leadership timeline</h3>
-                </div>
-              </div>
-              <div className="timeline-list">
-                {todaySchedule.map((item) => (
-                  <article key={item.time} className="timeline-item">
-                    <span className="timeline-time">{item.time}</span>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.detail}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel activity-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Recent Activity</p>
-                  <h3>Operational movement</h3>
-                </div>
-              </div>
-              <div className="activity-list">
-                {recentActivity.map((item) => (
-                  <article key={item.title} className="activity-item">
-                    <strong>{item.title}</strong>
-                    <p>{item.detail}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel finance-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Finance Overview</p>
-                  <h3>Revenue and collection</h3>
-                </div>
-              </div>
-              <div className="finance-metric-grid">
-                <article className="finance-metric">
-                  <span>Total billed</span>
-                  <strong>₹{totalRevenue.toLocaleString()}</strong>
-                </article>
-                <article className="finance-metric">
-                  <span>Collected</span>
-                  <strong>₹{paidRevenue.toLocaleString()}</strong>
-                </article>
-                <article className="finance-metric">
-                  <span>Pending cases</span>
-                  <strong>{pendingFees}</strong>
-                </article>
-              </div>
-            </section>
-          </Slide>
-
-          <Slide>
-            <section className="premium-panel status-panel">
-              <div className="premium-panel-header compact">
-                <div>
-                  <p className="panel-kicker">Platform Health</p>
-                  <h3>Service readiness</h3>
-                </div>
-              </div>
-              <div className="status-health-list">
-                {platformStatus.map((item) => (
-                  <article key={item.label} className={`status-health-item ${item.tone}`}>
-                    <strong>{item.label}</strong>
-                    <span>{item.value}</span>
-                  </article>
-                ))}
-              </div>
-            </section>
-          </Slide>
-        </div>
-
-        <div className="feature-cards">
-          <Slide>
-            <article className="feature-card">
-              <h4>Parent portal</h4>
-              <ParentPortal />
-            </article>
-          </Slide>
-          <Slide>
-            <article className="feature-card">
-              <h4>QR photo capture</h4>
-              <QRPhotoCapture />
-            </article>
-          </Slide>
-          <Slide>
-            <article className="feature-card">
-              <h4>Smart timetable</h4>
-              <SmartTimetable />
-            </article>
-          </Slide>
-        </div>
-
-        {showForm && (
-          <Slide>
-            <section className="form-panel">
-              <PremiumAdmissionForm
-                onSubmit={activeAction === 'Add Student' ? handleSubmitStudent : handleSubmitAdmission}
-                onCancel={() => setShowForm(false)}
+          </div>
+          <ResponsiveContainer width="100%" height={350}>
+            <AreaChart data={earningsData}>
+              <defs>
+                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorFees" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f5" vertical={false} />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+                dy={10}
               />
-            </section>
-          </Slide>
-        )}
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="total"
+                stroke="#3b82f6"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorTotal)"
+              />
+              <Area
+                type="monotone"
+                dataKey="fees"
+                stroke="#ef4444"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#colorFees)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
 
-        {toast && <div className="toast-notice">{toast}</div>}
+        {/* Expenses Bar Chart */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <div>
+              <h2 className="chart-title">Monthly Expenses</h2>
+              <p className="chart-subtitle">Expense breakdown by month</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={expensesData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f5" vertical={false} />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                }}
+              />
+              <Bar
+                dataKey="value"
+                fill="url(#barGradient)"
+                radius={[8, 8, 0, 0]}
+                barSize={32}
+              >
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#1d4ed8" />
+                  </linearGradient>
+                </defs>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Students Donut Chart */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <div>
+              <h2 className="chart-title">Student Distribution</h2>
+              <p className="chart-subtitle">Student status breakdown</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={350}>
+            <PieChart>
+              <Pie
+                data={studentsData}
+                cx="50%"
+                cy="50%"
+                innerRadius={80}
+                outerRadius={120}
+                paddingAngle={8}
+                dataKey="value"
+              >
+                {studentsData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                height={36}
+                iconType="circle"
+                wrapperStyle={{ paddingTop: '16px' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="bottom-section">
+        <div className="bottom-card">
+          <div className="bottom-card-header">
+            <div className="bottom-card-icon purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </div>
+            <h3 className="bottom-card-title">Event Calendar</h3>
+          </div>
+          <p className="bottom-card-text">Upcoming school events and holidays</p>
+          <div className="bottom-card-actions">
+            <Link to="/" className="bottom-card-link">
+              View All Events →
+            </Link>
+          </div>
+        </div>
+
+        <div className="bottom-card">
+          <div className="bottom-card-header">
+            <div className="bottom-card-icon cyan">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </div>
+            <h3 className="bottom-card-title">Website Traffic</h3>
+          </div>
+          <p className="bottom-card-text">Visitor analytics and page views</p>
+          <div className="bottom-card-actions">
+            <Link to="/" className="bottom-card-link">
+              See Analytics →
+            </Link>
+          </div>
+        </div>
+
+        <div className="bottom-card">
+          <div className="bottom-card-header">
+            <div className="bottom-card-icon pink">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+            </div>
+            <h3 className="bottom-card-title">Notice Board</h3>
+          </div>
+          <p className="bottom-card-text">Important announcements and updates</p>
+          <div className="bottom-card-actions">
+            <Link to="/" className="bottom-card-link">
+              Check Notices →
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

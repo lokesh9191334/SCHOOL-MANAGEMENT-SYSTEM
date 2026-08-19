@@ -9,6 +9,12 @@ import { lookupIndianPincode } from '../services/pincode'
 import { verifyAadharWithUIDI, formatAadharNumber } from '../services/aadhar'
 import './PremiumAdmissionForm.css'
 
+const LANGUAGE_OPTIONS = [
+  'Hindi', 'English', 'Marathi', 'Gujarati', 'Tamil', 'Telugu',
+  'Kannada', 'Malayalam', 'Bengali', 'Punjabi', 'Urdu', 'Sanskrit',
+  'French', 'German', 'Spanish', 'Japanese', 'Chinese', 'Arabic'
+]
+
 const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
   const [formData, setFormData] = useState({
     // Personal Information
@@ -30,16 +36,19 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     
     // Address Information
     currentAddress: '',
+    currentPostalCode: '',
+    currentState: '',
+    currentDistrict: '',
+    currentAreaName: '',
     permanentAddress: '',
-    postalCode: '',
-    state: '',
-    district: '',
-    areaName: '',
+    permanentPostalCode: '',
+    permanentState: '',
+    permanentDistrict: '',
+    permanentAreaName: '',
     
     // Academic Information
     applyingForClass: '',
     previousSchool: '',
-    previousClass: '',
     lastExamResult: '',
     transferCertificate: false,
     
@@ -54,19 +63,17 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     motherAadhar: '',
     motherPhone: '',
     motherEmail: '',
-    guardianName: '',
-    guardianRelation: '',
-    guardianAadhar: '',
-    guardianPhone: '',
-    guardianEmail: '',
+
     
     // Additional Information
     transportRequired: false,
+    transportRoute: '',
     hostelRequired: false,
+    hostelRoomType: '',
+    medicalInfoRequired: 'No',
     medicalConditions: '',
     allergies: '',
     specialNeeds: '',
-    hobbies: '',
     languages: [],
     
     // Documents
@@ -100,33 +107,47 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
 
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [pincodeStatus, setPincodeStatus] = useState('idle')
-  const [pincodeMessage, setPincodeMessage] = useState('')
+  const [pincodeStatus, setPincodeStatus] = useState({ current: 'idle', permanent: 'idle' })
+  const [pincodeMessage, setPincodeMessage] = useState({ current: '', permanent: '' })
   const [studentPhotoPreview, setStudentPhotoPreview] = useState('')
-  const pincodeTimerRef = useRef(null)
+  const pincodeTimerRef = useRef({ current: null, permanent: null })
+
+  const PIN_FIELD_MAP = {
+    current: {
+      postalCode: 'currentPostalCode',
+      state: 'currentState',
+      district: 'currentDistrict',
+      areaName: 'currentAreaName',
+    },
+    permanent: {
+      postalCode: 'permanentPostalCode',
+      state: 'permanentState',
+      district: 'permanentDistrict',
+      areaName: 'permanentAreaName',
+    },
+  }
 
   // Aadhar verification states
   const [aadharVerification, setAadharVerification] = useState({
     studentAadhar: { status: 'idle', message: '' },
     fatherAadhar: { status: 'idle', message: '' },
     motherAadhar: { status: 'idle', message: '' },
-    guardianAadhar: { status: 'idle', message: '' },
   })
+
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
   const aadharTimerRef = useRef({
     studentAadhar: null,
     fatherAadhar: null,
     motherAadhar: null,
-    guardianAadhar: null,
   })
 
   useEffect(() => {
     return () => {
-      if (pincodeTimerRef.current) {
-        clearTimeout(pincodeTimerRef.current)
-      }
-      // Clear all Aadhar timers
-      Object.values(aadharTimerRef.current).forEach(timer => {
+      Object.values(pincodeTimerRef.current).forEach((timer) => {
+        if (timer) clearTimeout(timer)
+      })
+      Object.values(aadharTimerRef.current).forEach((timer) => {
         if (timer) clearTimeout(timer)
       })
     }
@@ -149,13 +170,26 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format'
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required'
 
-    // Address Information
+    // Address Information — current (required)
     if (!formData.currentAddress.trim()) newErrors.currentAddress = 'Current address is required'
-    if (!formData.postalCode.trim()) newErrors.postalCode = 'PIN code is required'
-    else if (!/^\d{6}$/.test(formData.postalCode)) newErrors.postalCode = 'Enter a valid 6-digit PIN code'
-    if (!formData.state.trim()) newErrors.state = 'State is required'
-    if (!formData.district.trim()) newErrors.district = 'District is required'
-    if (!formData.areaName.trim()) newErrors.areaName = 'Area name is required'
+    if (!formData.currentPostalCode.trim()) newErrors.currentPostalCode = 'Current PIN code is required'
+    else if (!/^\d{6}$/.test(formData.currentPostalCode)) newErrors.currentPostalCode = 'Enter a valid 6-digit PIN code'
+    if (!formData.currentState.trim()) newErrors.currentState = 'Current state is required'
+    if (!formData.currentDistrict.trim()) newErrors.currentDistrict = 'Current district is required'
+    if (!formData.currentAreaName.trim()) newErrors.currentAreaName = 'Current area name is required'
+
+    const needsPermanentValidation =
+      formData.permanentAddress.trim() || formData.permanentPostalCode.trim()
+
+    if (needsPermanentValidation) {
+      if (!formData.permanentPostalCode.trim()) newErrors.permanentPostalCode = 'Permanent PIN code is required'
+      else if (!/^\d{6}$/.test(formData.permanentPostalCode)) {
+        newErrors.permanentPostalCode = 'Enter a valid 6-digit PIN code'
+      }
+      if (!formData.permanentState.trim()) newErrors.permanentState = 'Permanent state is required'
+      if (!formData.permanentDistrict.trim()) newErrors.permanentDistrict = 'Permanent district is required'
+      if (!formData.permanentAreaName.trim()) newErrors.permanentAreaName = 'Permanent area name is required'
+    }
 
     // Academic Information
     if (!formData.applyingForClass) newErrors.applyingForClass = 'Class selection is required'
@@ -214,45 +248,149 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     reader.readAsDataURL(file)
   }
 
-  const handlePostalCodeChange = (value) => {
-    const digits = value.replace(/\D/g, '').slice(0, 6)
-    handleInputChange('postalCode', digits)
+  const toggleSelection = (field, value) => {
+    setFormData(prev => {
+      const currentValues = prev[field] || []
+      if (currentValues.includes(value)) {
+        return { ...prev, [field]: currentValues.filter(item => item !== value) }
+      } else {
+        return { ...prev, [field]: [...currentValues, value] }
+      }
+    })
+  }
 
-    if (pincodeTimerRef.current) {
-      clearTimeout(pincodeTimerRef.current)
+
+  const handlePostalCodeChange = (type, value) => {
+    const fields = PIN_FIELD_MAP[type]
+    const digits = value.replace(/\D/g, '').slice(0, 6)
+    handleInputChange(fields.postalCode, digits)
+
+    if (pincodeTimerRef.current[type]) {
+      clearTimeout(pincodeTimerRef.current[type])
     }
 
     if (digits.length < 6) {
-      setPincodeStatus(digits.length ? 'typing' : 'idle')
-      setPincodeMessage('')
+      setPincodeStatus((prev) => ({ ...prev, [type]: digits.length ? 'typing' : 'idle' }))
+      setPincodeMessage((prev) => ({ ...prev, [type]: '' }))
       if (digits.length === 0) {
-        setFormData((prev) => ({ ...prev, state: '', district: '', areaName: '' }))
+        setFormData((prev) => ({
+          ...prev,
+          [fields.state]: '',
+          [fields.district]: '',
+          [fields.areaName]: '',
+        }))
       }
       return
     }
 
-    setPincodeStatus('loading')
-    setPincodeMessage('Fetching state, district and area details...')
+    setPincodeStatus((prev) => ({ ...prev, [type]: 'loading' }))
+    setPincodeMessage((prev) => ({ ...prev, [type]: 'Fetching state, district and area details...' }))
 
-    pincodeTimerRef.current = setTimeout(async () => {
+    pincodeTimerRef.current[type] = setTimeout(async () => {
       const result = await lookupIndianPincode(digits)
 
       if (result.error) {
-        setPincodeStatus('error')
-        setPincodeMessage(result.error)
-        setFormData((prev) => ({ ...prev, state: '', district: '', areaName: '' }))
+        setPincodeStatus((prev) => ({ ...prev, [type]: 'error' }))
+        setPincodeMessage((prev) => ({ ...prev, [type]: result.error }))
+        setFormData((prev) => ({
+          ...prev,
+          [fields.state]: '',
+          [fields.district]: '',
+          [fields.areaName]: '',
+        }))
         return
       }
 
-      setPincodeStatus('success')
-      setPincodeMessage('State, district and area filled automatically.')
+      setPincodeStatus((prev) => ({ ...prev, [type]: 'success' }))
+      setPincodeMessage((prev) => ({
+        ...prev,
+        [type]: 'State, district and area filled automatically.',
+      }))
       setFormData((prev) => ({
         ...prev,
-        state: result.state,
-        district: result.district,
-        areaName: result.areaName,
+        [fields.state]: result.state,
+        [fields.district]: result.district,
+        [fields.areaName]: result.areaName,
       }))
     }, 400)
+  }
+
+  const renderPinFields = (type, { required = false } = {}) => {
+    const fields = PIN_FIELD_MAP[type]
+    const prefix = type === 'current' ? 'Current' : 'Permanent'
+    const status = pincodeStatus[type]
+    const message = pincodeMessage[type]
+
+    return (
+      <>
+        <div className="form-group">
+          <label>
+            {prefix} PIN Code{required ? ' *' : ''}
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={formData[fields.postalCode]}
+            onChange={(e) => handlePostalCodeChange(type, e.target.value)}
+            className={errors[fields.postalCode] ? 'error' : ''}
+            placeholder="Enter 6-digit PIN code"
+          />
+          {errors[fields.postalCode] && (
+            <span className="error-message">{errors[fields.postalCode]}</span>
+          )}
+          {message ? (
+            <span className={`pincode-hint pincode-hint--${status}`}>{message}</span>
+          ) : null}
+        </div>
+
+        <div className="form-group">
+          <label>
+            {prefix} State{required ? ' *' : ''}
+          </label>
+          <input
+            type="text"
+            value={formData[fields.state]}
+            onChange={(e) => handleInputChange(fields.state, e.target.value)}
+            className={errors[fields.state] ? 'error' : ''}
+            placeholder="Auto-filled from PIN code"
+          />
+          {errors[fields.state] && <span className="error-message">{errors[fields.state]}</span>}
+        </div>
+
+        <div className="form-group">
+          <label>
+            {prefix} District{required ? ' *' : ''}
+          </label>
+          <input
+            type="text"
+            value={formData[fields.district]}
+            onChange={(e) => handleInputChange(fields.district, e.target.value)}
+            className={errors[fields.district] ? 'error' : ''}
+            placeholder="Auto-filled from PIN code"
+          />
+          {errors[fields.district] && (
+            <span className="error-message">{errors[fields.district]}</span>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label>
+            {prefix} Area/Locality{required ? ' *' : ''}
+          </label>
+          <input
+            type="text"
+            value={formData[fields.areaName]}
+            onChange={(e) => handleInputChange(fields.areaName, e.target.value)}
+            className={errors[fields.areaName] ? 'error' : ''}
+            placeholder="Area / locality from PIN code"
+          />
+          {errors[fields.areaName] && (
+            <span className="error-message">{errors[fields.areaName]}</span>
+          )}
+        </div>
+      </>
+    )
   }
 
   const handleAadharChange = async (field, value) => {
@@ -302,6 +440,8 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                   ...prev,
                   firstName: prev.firstName?.trim() ? prev.firstName : result.profile.firstName,
                   lastName: prev.lastName?.trim() ? prev.lastName : result.profile.lastName,
+                  dateOfBirth: prev.dateOfBirth?.trim() ? prev.dateOfBirth : result.profile.dob,
+                  gender: prev.gender?.trim() ? prev.gender : result.profile.gender,
                 }
               case 'fatherAadhar':
                 return {
@@ -312,11 +452,6 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 return {
                   ...prev,
                   motherName: prev.motherName?.trim() ? prev.motherName : result.profile.fullName,
-                }
-              case 'guardianAadhar':
-                return {
-                  ...prev,
-                  guardianName: prev.guardianName?.trim() ? prev.guardianName : result.profile.fullName,
                 }
               default:
                 return prev
@@ -595,79 +730,38 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             </div>
           </div>
           <div className="form-grid">
-            <div className="form-group full-width">
-              <label>Current Address *</label>
-              <textarea
-                value={formData.currentAddress}
-                onChange={(e) => handleInputChange('currentAddress', e.target.value)}
-                className={errors.currentAddress ? 'error' : ''}
-                placeholder="Enter current address"
-                rows="3"
-              />
-              {errors.currentAddress && <span className="error-message">{errors.currentAddress}</span>}
-            </div>
-            
-            <div className="form-group full-width">
-              <label>Permanent Address</label>
-              <textarea
-                value={formData.permanentAddress}
-                onChange={(e) => handleInputChange('permanentAddress', e.target.value)}
-                placeholder="Enter permanent address (if different)"
-                rows="3"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>PIN Code *</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={formData.postalCode}
-                onChange={(e) => handlePostalCodeChange(e.target.value)}
-                className={errors.postalCode ? 'error' : ''}
-                placeholder="Enter 6-digit PIN code"
-              />
-              {errors.postalCode && <span className="error-message">{errors.postalCode}</span>}
-              {pincodeMessage ? (
-                <span className={`pincode-hint pincode-hint--${pincodeStatus}`}>{pincodeMessage}</span>
-              ) : null}
+            <div className="address-block full-width">
+              <div className="form-group full-width">
+                <label>Current Address *</label>
+                <textarea
+                  value={formData.currentAddress}
+                  onChange={(e) => handleInputChange('currentAddress', e.target.value)}
+                  className={errors.currentAddress ? 'error' : ''}
+                  placeholder="Enter current address"
+                  rows="3"
+                />
+                {errors.currentAddress && (
+                  <span className="error-message">{errors.currentAddress}</span>
+                )}
+              </div>
+              <div className="form-grid address-block__pin-grid">
+                {renderPinFields('current', { required: true })}
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>State *</label>
-              <input
-                type="text"
-                value={formData.state}
-                onChange={(e) => handleInputChange('state', e.target.value)}
-                className={errors.state ? 'error' : ''}
-                placeholder="Auto-filled from PIN code"
-              />
-              {errors.state && <span className="error-message">{errors.state}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>District *</label>
-              <input
-                type="text"
-                value={formData.district}
-                onChange={(e) => handleInputChange('district', e.target.value)}
-                className={errors.district ? 'error' : ''}
-                placeholder="Auto-filled from PIN code"
-              />
-              {errors.district && <span className="error-message">{errors.district}</span>}
-            </div>
-
-            <div className="form-group">
-              <label>Area/Locality Name *</label>
-              <input
-                type="text"
-                value={formData.areaName}
-                onChange={(e) => handleInputChange('areaName', e.target.value)}
-                className={errors.areaName ? 'error' : ''}
-                placeholder="Area / locality from PIN code"
-              />
-              {errors.areaName && <span className="error-message">{errors.areaName}</span>}
+            <div className="address-block full-width">
+              <div className="form-group full-width">
+                <label>Permanent Address</label>
+                <textarea
+                  value={formData.permanentAddress}
+                  onChange={(e) => handleInputChange('permanentAddress', e.target.value)}
+                  placeholder="Enter permanent address (if different)"
+                  rows="3"
+                />
+              </div>
+              <div className="form-grid address-block__pin-grid">
+                {renderPinFields('permanent')}
+              </div>
             </div>
           </div>
         </div>
@@ -711,20 +805,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
               {errors.previousSchool && <span className="error-message">{errors.previousSchool}</span>}
             </div>
             
-            <div className="form-group">
-              <label>Previous Class</label>
-              <select
-                value={formData.previousClass}
-                onChange={(e) => handleInputChange('previousClass', e.target.value)}
-              >
-                <option value="">Select Previous Class</option>
-                {ADMISSION_CLASS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
+
             
             <div className="form-group">
               <label>Last Exam Result</label>
@@ -890,67 +971,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             </div>
           </div>
           
-          <div className="subsection">
-            <h4>🤝 Guardian Information (if applicable)</h4>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Guardian Name</label>
-                <input
-                  type="text"
-                  value={formData.guardianName}
-                  onChange={(e) => handleInputChange('guardianName', e.target.value)}
-                  placeholder="Enter guardian name"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Guardian Relation</label>
-                <input
-                  type="text"
-                  value={formData.guardianRelation}
-                  onChange={(e) => handleInputChange('guardianRelation', e.target.value)}
-                  placeholder="Relationship with student"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Guardian Aadhar Number</label>
-                <input
-                  type="text"
-                  value={formData.guardianAadhar}
-                  onChange={(e) => handleAadharChange('guardianAadhar', e.target.value)}
-                  placeholder="Enter 12-digit Aadhar number"
-                  maxLength="14"
-                />
-                {formData.guardianAadhar && (
-                  <span className={`aadhar-hint aadhar-hint--${aadharVerification.guardianAadhar.status}`}>
-                    {aadharVerification.guardianAadhar.message}
-                    {aadharVerification.guardianAadhar.status === 'verified' && ' ✓'}
-                  </span>
-                )}
-              </div>
-              
-              <div className="form-group">
-                <label>Guardian Phone</label>
-                <input
-                  type="tel"
-                  value={formData.guardianPhone}
-                  onChange={(e) => handleInputChange('guardianPhone', e.target.value)}
-                  placeholder="Enter guardian phone"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Guardian Email</label>
-                <input
-                  type="email"
-                  value={formData.guardianEmail}
-                  onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
-                  placeholder="Enter guardian email"
-                />
-              </div>
-            </div>
-          </div>
+
         </div>
 
         {/* Additional Information Section */}
@@ -963,56 +984,69 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             </div>
           </div>
           <div className="form-grid">
-            <div className="form-group full-width">
-              <label>Medical Conditions</label>
-              <textarea
-                value={formData.medicalConditions}
-                onChange={(e) => handleInputChange('medicalConditions', e.target.value)}
-                placeholder="Enter any medical conditions (if any)"
-                rows="2"
-              />
-            </div>
-            
-            <div className="form-group full-width">
-              <label>Allergies</label>
-              <textarea
-                value={formData.allergies}
-                onChange={(e) => handleInputChange('allergies', e.target.value)}
-                placeholder="Enter any allergies (if any)"
-                rows="2"
-              />
-            </div>
-            
-            <div className="form-group full-width">
-              <label>Special Needs</label>
-              <textarea
-                value={formData.specialNeeds}
-                onChange={(e) => handleInputChange('specialNeeds', e.target.value)}
-                placeholder="Enter any special needs or requirements"
-                rows="2"
-              />
-            </div>
-            
+            {/* Medical Info Toggle */}
             <div className="form-group">
-              <label>Hobbies & Interests</label>
-              <input
-                type="text"
-                value={formData.hobbies}
-                onChange={(e) => handleInputChange('hobbies', e.target.value)}
-                placeholder="Enter hobbies and interests"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Languages Known</label>
-              <input
-                type="text"
-                value={formData.languages}
-                onChange={(e) => handleInputChange('languages', e.target.value)}
-                placeholder="Enter languages known"
-              />
+              <label>Is there any medical information to share?</label>
+              <div className="radio-group">
+                <label className="radio-label">
+                  <input
+                    type="radio"
+                    name="medicalInfoRequired"
+                    value="No"
+                    checked={formData.medicalInfoRequired === 'No'}
+                    onChange={(e) => handleInputChange('medicalInfoRequired', e.target.value)}
+                  />
+                  <span>No</span>
+                </label>
+                <label className="radio-label">
+                  <input
+                    type="radio"
+                    name="medicalInfoRequired"
+                    value="Yes"
+                    checked={formData.medicalInfoRequired === 'Yes'}
+                    onChange={(e) => handleInputChange('medicalInfoRequired', e.target.value)}
+                  />
+                  <span>Yes</span>
+                </label>
+              </div>
             </div>
 
+            {/* Medical Form - Only shown when Yes */}
+            {formData.medicalInfoRequired === 'Yes' && (
+              <>
+                <div className="form-group full-width">
+                  <label>Medical Conditions *</label>
+                  <textarea
+                    value={formData.medicalConditions}
+                    onChange={(e) => handleInputChange('medicalConditions', e.target.value)}
+                    placeholder="Enter any medical conditions (if any)"
+                    rows="2"
+                  />
+                </div>
+                
+                <div className="form-group full-width">
+                  <label>Allergies</label>
+                  <textarea
+                    value={formData.allergies}
+                    onChange={(e) => handleInputChange('allergies', e.target.value)}
+                    placeholder="Enter any allergies (if any)"
+                    rows="2"
+                  />
+                </div>
+                
+                <div className="form-group full-width">
+                  <label>Special Needs</label>
+                  <textarea
+                    value={formData.specialNeeds}
+                    onChange={(e) => handleInputChange('specialNeeds', e.target.value)}
+                    placeholder="Enter any special needs or requirements"
+                    rows="2"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Transport & Hostel */}
             <div className="form-group full-width">
               <div className="checkbox-group">
                 <label className="checkbox-label">
@@ -1031,6 +1065,65 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                   />
                   <span>Hostel Required</span>
                 </label>
+              </div>
+            </div>
+
+            {/* Transport Route - Shown when Transport Required */}
+            {formData.transportRequired && (
+              <div className="form-group">
+                <label>Transport Route</label>
+                <input
+                  type="text"
+                  value={formData.transportRoute}
+                  onChange={(e) => handleInputChange('transportRoute', e.target.value)}
+                  placeholder="Enter transport route/pickup point"
+                />
+              </div>
+            )}
+
+            {/* Hostel Room Type - Shown when Hostel Required */}
+            {formData.hostelRequired && (
+              <div className="form-group">
+                <label>Hostel Room Type</label>
+                <select
+                  value={formData.hostelRoomType}
+                  onChange={(e) => handleInputChange('hostelRoomType', e.target.value)}
+                >
+                  <option value="">Select Room Type</option>
+                  <option value="Single">Single Room</option>
+                  <option value="Double">Double Room</option>
+                  <option value="Triple">Triple Room</option>
+                  <option value="Dormitory">Dormitory</option>
+                </select>
+              </div>
+            )}
+            
+            <div className="form-group">
+              <label>Languages Known</label>
+              <div className="compact-dropdown">
+                <div 
+                  className="dropdown-trigger"
+                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                >
+                  {formData.languages.length > 0 
+                    ? formData.languages.join(', ') 
+                    : 'Select languages'}
+                  <span className="dropdown-arrow">▼</span>
+                </div>
+                {showLanguageDropdown && (
+                  <div className="dropdown-options">
+                    {LANGUAGE_OPTIONS.map((language) => (
+                      <label key={language} className="dropdown-option">
+                        <input
+                          type="checkbox"
+                          checked={formData.languages.includes(language)}
+                          onChange={() => toggleSelection('languages', language)}
+                        />
+                        <span>{language}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1059,14 +1152,18 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 <label>Activity Fee</label>
                 <input type="number" value={formData.activityFee} onChange={(e) => handleInputChange('activityFee', e.target.value)} />
               </div>
-              <div className="form-group">
-                <label>Transport Fee</label>
-                <input type="number" value={formData.transportFee} onChange={(e) => handleInputChange('transportFee', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Hostel Fee</label>
-                <input type="number" value={formData.hostelFee} onChange={(e) => handleInputChange('hostelFee', e.target.value)} />
-              </div>
+              {formData.transportRequired && (
+                <div className="form-group">
+                  <label>Transport Fee</label>
+                  <input type="number" value={formData.transportFee} onChange={(e) => handleInputChange('transportFee', e.target.value)} />
+                </div>
+              )}
+              {formData.hostelRequired && (
+                <div className="form-group">
+                  <label>Hostel Fee</label>
+                  <input type="number" value={formData.hostelFee} onChange={(e) => handleInputChange('hostelFee', e.target.value)} />
+                </div>
+              )}
               <div className="form-group">
                 <label>Payment Mode</label>
                 <select value={formData.paymentMode} onChange={(e) => handleInputChange('paymentMode', e.target.value)}>

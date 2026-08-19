@@ -83,6 +83,9 @@ const LoginPage = () => {
               </div>
 
               {error && <div style={{ color: 'salmon', marginBottom: 8 }}>{error}</div>}
+              <p style={{ margin: '0 0 12px', fontSize: 13, opacity: 0.8 }}>
+                Demo login: {auth.DEMO_LOGIN.email} / {auth.DEMO_LOGIN.password}
+              </p>
               <button type="submit" className="auth-premium-submit">
                 Sign in
               </button>

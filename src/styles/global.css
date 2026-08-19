@@ -335,3 +335,24 @@ body {
   color: #fff;
   background: linear-gradient(135deg, #4157ff, #7c8cff);
 }
+
+/* Attendance charts */
+.gender-chart-wrap { display: flex; flex-direction: column; gap: 10px }
+.gender-legend { display:flex; gap:12px }
+.gender-item { display:flex; gap:8px; align-items:center }
+.gender-color { width:14px; height:14px; border-radius:4px }
+.gender-color.male { background:#7c6cff }
+.gender-color.female { background:#ff80bf }
+.gender-label { font-size:12px; color:#6b7388 }
+.gender-bars .bar-row { display:flex; gap:8px; align-items:center; margin:6px 0 }
+.bar-label { width:56px; font-size:13px; color:#5c6b8c }
+.bar-track { flex:1; height:12px; background:#eef2fb; border-radius:999px; overflow:hidden }
+.bar-fill { height:100%; border-radius:999px }
+.bar-fill.male { background:#7c6cff }
+.bar-fill.female { background:#ff80bf }
+.bar-value { width:44px; text-align:right; font-weight:700 }
+
+/* Trend chart legend spacing */
+.trend-chart-wrap { display:flex; flex-direction:column; gap:8px }
+.chart-months { display:flex; gap:12px; color:#7f8ba5; font-size:12px; margin-top:6px }
+

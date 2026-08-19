@@ -1,13 +1,38 @@
+import React from 'react'
 import ActionFormPanel from '../components/forms/ActionFormPanel'
 import TrendChart from '../components/charts/TrendChart'
 import RingChart from '../components/charts/RingChart'
+import GenderChart from '../components/charts/GenderChart'
 
 function AttendanceModule({
   module, onActionClick, searchTerm, setSearchTerm, filteredRecords,
   selectedRecordKey, setSelectedRecordKey, activeAction, actionConfig,
   formValues, onFieldChange, onFormSubmit, onFormReset, onActionSelect,
-  systemMessage, notificationsEnabled, selectedRecord,
+  systemMessage, notificationsEnabled, selectedRecord, onBulkAction, onGenderFilter,
 }) {
+  const [selectedIds, setSelectedIds] = React.useState(new Set())
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAll = (visibleRows) => {
+    setSelectedIds(new Set(visibleRows.map((r) => r.id ?? r.subtitle)))
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const markSelected = (status) => {
+    if (!onBulkAction) return
+    onBulkAction(status, Array.from(selectedIds))
+    clearSelection()
+  }
+
   return (
     <>
       <div className="admin-header">
@@ -56,7 +81,7 @@ function AttendanceModule({
                   key={action}
                   type="button"
                   className="small-action"
-                  onClick={() => onActionSelect(action)}
+                  onClick={() => onActionClick(action)}
                 >
                   {action}
                 </button>
@@ -65,35 +90,72 @@ function AttendanceModule({
           </div>
           <div className="panel-content">
             {module.rows.length > 0 ? (
-              <div className="table-responsive">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      {module.columns.map((col) => (
-                        <th key={col}>{col}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((row) => (
-                      <tr
-                        key={row.id ?? row.subtitle}
-                        className={selectedRecordKey === (row.id ?? row.subtitle) ? 'selected' : ''}
-                        onClick={() => setSelectedRecordKey(row.id ?? row.subtitle)}
-                      >
-                        <td>
-                          <div className="record-title">{row.title}</div>
-                          <div className="record-subtitle">{row.subtitle}</div>
-                        </td>
-                        <td>{row.primary}</td>
-                        <td>
-                          <span className={`status-pill ${row.tone}`}>{row.status}</span>
-                        </td>
-                        <td>{row.owner}</td>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <button type="button" className="small-action" onClick={() => selectAll(filteredRecords)}>
+                      Select Visible
+                    </button>
+                    <button type="button" className="small-action" onClick={() => clearSelection()}>
+                      Clear
+                    </button>
+                  </div>
+                  <div>
+                    <button type="button" className="small-action" onClick={() => markSelected('Present')}>
+                      Mark Selected Present
+                    </button>
+                    <button type="button" className="small-action" onClick={() => markSelected('Absent')}>
+                      Mark Selected Absent
+                    </button>
+                  </div>
+                </div>
+                <div className="table-responsive">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 36 }}>
+                          <input type="checkbox" onChange={(e) => (e.target.checked ? selectAll(filteredRecords) : clearSelection())} />
+                        </th>
+                        {module.columns.map((col) => (
+                          <th key={col}>{col}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredRecords.map((row) => {
+                        const key = row.id ?? row.subtitle
+                        return (
+                          <tr
+                            key={key}
+                            className={selectedRecordKey === key ? 'selected' : ''}
+                            onClick={() => setSelectedRecordKey(key)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(key)}
+                                onChange={(e) => {
+                                  e.stopPropagation()
+                                  toggleSelect(key)
+                                }}
+                              />
+                            </td>
+                            <td>
+                              <div className="record-title">{row.title}</div>
+                              <div className="record-subtitle">{row.subtitle}</div>
+                            </td>
+                            <td>{row.primary}</td>
+                            <td>
+                              <span className={`status-pill ${row.tone}`}>{row.status}</span>
+                            </td>
+                            <td>{row.owner}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <div className="empty-state">
@@ -172,6 +234,19 @@ function AttendanceModule({
               </div>
             </div>
           </article>
+          <article className="panel-card info-panel">
+            <div className="panel-header">
+              <h3>Gender Breakdown</h3>
+            </div>
+            <div className="panel-content">
+              <GenderChart male={module.gender?.male || 0} female={module.gender?.female || 0} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button type="button" className="small-action" onClick={() => onGenderFilter && onGenderFilter('All')}>All</button>
+                <button type="button" className="small-action" onClick={() => onGenderFilter && onGenderFilter('Male')}>Boys</button>
+                <button type="button" className="small-action" onClick={() => onGenderFilter && onGenderFilter('Female')}>Girls</button>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
       <section className="bottom-grid">
@@ -180,7 +255,19 @@ function AttendanceModule({
             <h3>{module.trendLabel}</h3>
           </div>
           <div className="panel-content">
-            <TrendChart />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <TrendChart seriesA={module.trendSeries || []} seriesB={module.trendSeriesAbsent || []} labels={module.trendLabels} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 12, height: 12, background: '#7c6cff', borderRadius: 3, display: 'inline-block' }}></span>
+                  Present
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 12, height: 12, background: '#5ed6ca', borderRadius: 3, display: 'inline-block' }}></span>
+                  Absent
+                </span>
+              </div>
+            </div>
           </div>
         </article>
         <article className="panel-card automation-panel">

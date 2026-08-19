@@ -14,8 +14,8 @@ import { FEATURE_WORKSPACES } from './utils/constants'
 
 import StudentsPage from './pages/students/index'
 import AdmissionFormPage from './pages/students/AdmissionFormPage'
-import StudentProfilePage from './pages/students/profile'
 import StudentDataFilesPage from './pages/students/dataFiles'
+import IDCardPage from './pages/students/idCard'
 
 import TeachersPage from './pages/teachers/index'
 import AddTeacherPage from './pages/teachers/add'
@@ -61,7 +61,7 @@ function App() {
           <Route path="/students/add" element={<AdmissionFormPage />} />
           <Route path="/students/admission-form" element={<AdmissionFormPage />} />
 
-          {FEATURE_WORKSPACES.filter((ws) => ws.to !== '/students/admission-form').map((ws) => (
+          {FEATURE_WORKSPACES.filter((ws) => !['/students/admission-form', '/students/id-card', '/students/attendance', '/attendance/students'].includes(ws.to)).map((ws) => (
             <Route
               key={ws.to}
               path={ws.to}
@@ -81,18 +81,22 @@ function App() {
 
           <Route path="/students">
             <Route index element={<StudentsPage />} />
-            <Route path="profile" element={<StudentProfilePage />} />
+            <Route path="list" element={<StudentsPage />} />
+            <Route path="attendance" element={<AttendancePage />} />
+            <Route path="id-card" element={<IDCardPage />} />
             <Route path="data-files" element={<StudentDataFilesPage />} />
           </Route>
 
           <Route path="/teachers">
             <Route index element={<TeachersPage />} />
+            <Route path="list" element={<TeachersPage />} />
             <Route path="add" element={<AddTeacherPage />} />
             <Route path="profile" element={<TeacherProfilePage />} />
           </Route>
 
           <Route path="/attendance">
             <Route index element={<AttendancePage />} />
+            <Route path="students" element={<AttendancePage />} />
             <Route path="report" element={<AttendanceReportPage />} />
           </Route>
 

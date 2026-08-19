@@ -107,24 +107,27 @@ app.post('/api/auth/register', async (req, res) => {
 })
 
 app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
-  const users = readJsonFile(join('data', 'users.json'), [])
-  const user = users.find((u) => u.email === email)
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' })
-  if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Invalid credentials' })
+  try {
+    const { email, password } = req.body || {}
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
+    const users = readJsonFile(join('data', 'users.json'), [])
+    const user = users.find((u) => String(u.email || '').toLowerCase() === String(email).toLowerCase())
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' })
+    if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Invalid credentials' })
 
-  // If user has 2FA enabled, create a temporary login token requiring 2FA verification
-  if (user.twoFactor && user.twoFactor.enabled) {
-    const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-    const updated = users.map((u) => (u.email === email ? { ...u, loginToken, loginTokenExpiry: Date.now() + 5 * 60 * 1000 } : u))
-    writeJsonFile(join('data', 'users.json'), updated)
-    return res.json({ twoFactor: true, loginToken })
+    if (user.twoFactor && user.twoFactor.enabled) {
+      const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      const updated = users.map((u) => (u.email === user.email ? { ...u, loginToken, loginTokenExpiry: Date.now() + 5 * 60 * 1000 } : u))
+      writeJsonFile(join('data', 'users.json'), updated)
+      return res.json({ twoFactor: true, loginToken })
+    }
+
+    const token = `demo-token-${Date.now()}`
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name } })
+  } catch (err) {
+    console.error('Error in /api/auth/login:', err)
+    res.status(500).json({ error: 'Server error during login' })
   }
-
-  // No 2FA: issue a simple demo token
-  const token = `demo-token-${Date.now()}`
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name } })
 })
 
 app.post('/api/auth/2fa/setup', async (req, res) => {

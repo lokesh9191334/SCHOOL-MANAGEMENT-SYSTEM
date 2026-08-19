@@ -28,9 +28,10 @@ const lineToArea = (values, width, height, padding = 18) => {
   return `M ${firstX} ${baseY} ${coordinates.map(([x, y]) => `L ${x} ${y}`).join(' ')} L ${lastX} ${baseY} Z`
 }
 
-function TrendChart() {
-  const primarySeries = [22, 28, 25, 31, 34, 39, 36, 42, 40, 44, 46, 48]
-  const secondarySeries = [18, 20, 24, 22, 28, 30, 27, 31, 35, 33, 38, 37]
+function TrendChart({ seriesA, seriesB, labels }) {
+  const primarySeries = seriesA || [22, 28, 25, 31, 34, 39, 36, 42, 40, 44, 46, 48]
+  const secondarySeries = seriesB || [18, 20, 24, 22, 28, 30, 27, 31, 35, 33, 38, 37]
+  const months = labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
   return (
     <div className="trend-chart-wrap">
@@ -57,7 +58,7 @@ function TrendChart() {
       </svg>
 
       <div className="chart-months">
-        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month) => (
+        {months.map((month) => (
           <span key={month}>{month}</span>
         ))}
       </div>

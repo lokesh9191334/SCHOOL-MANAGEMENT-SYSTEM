@@ -1,10 +1,42 @@
 export const STORAGE_KEYS = {
+  users: 'sms_users',
   students: 'sms_students',
   admissions: 'sms_admissions',
   teachers: 'sms_teachers',
+  teacherAttendance: 'sms_teacher_attendance',
+  classes: 'sms_classes',
+  sections: 'sms_sections',
+  subjects: 'sms_subjects',
+  subjectAssignments: 'sms_subject_assignments',
+  classTeachers: 'sms_class_teachers',
   attendance: 'sms_attendance_day',
-  fees: 'sms_fee_payments',
+  exams: 'sms_exams',
+  examSchedules: 'sms_exam_schedules',
   examMarks: 'sms_exam_marks',
+  feeStructures: 'sms_fee_structures',
+  fees: 'sms_fee_payments',
+  scholarships: 'sms_scholarships',
+  expenses: 'sms_expenses',
+  transportRoutes: 'sms_transport_routes',
+  drivers: 'sms_drivers',
+  vehicles: 'sms_vehicles',
+  pickupPoints: 'sms_pickup_points',
+  transportFees: 'sms_transport_fees',
+  books: 'sms_books',
+  bookIssues: 'sms_book_issues',
+  bookReturns: 'sms_book_returns',
+  libraryFines: 'sms_library_fines',
+  bookCategories: 'sms_book_categories',
+  notices: 'sms_notices',
+  events: 'sms_events',
+  holidays: 'sms_holidays',
+  parentNotifications: 'sms_parent_notifications',
+  chatMessages: 'sms_chat_messages',
+  leaveRequests: 'sms_leave_requests',
+  studentDocuments: 'sms_student_documents',
+  transferCertificates: 'sms_transfer_certificates',
+  salaryRecords: 'sms_salary_records',
+  teacherTimetables: 'sms_teacher_timetables',
 }
 
 export const ROLES = {
@@ -78,9 +110,7 @@ export const ERP_NAV_SECTIONS = [
     items: [
       { to: '/students/add', label: 'New Admission', icon: '＋' },
       { to: '/students/list', label: 'Student List', icon: '▤' },
-      { to: '/students/profile', label: 'Student Profile', icon: '◫' },
       { to: '/students/id-card', label: 'Student ID Card', icon: '▣' },
-      { to: '/students/admission-form', label: 'Admission Form', icon: '✎' },
       { to: '/students/attendance', label: 'Student Attendance', icon: '☑' },
       { to: '/students/performance', label: 'Student Performance', icon: '◔' },
       { to: '/students/parent-details', label: 'Parent Details', icon: '☏' },
@@ -210,7 +240,7 @@ export const MAIN_NAV = ERP_NAV_SECTIONS.flatMap((section) => section.items)
 
 export const FEATURE_WORKSPACES = [
   workspace('/students/id-card', 'Student ID Card', 'Student Management', '▣', 'Generate, preview and manage school ID cards with premium profile presentation.', [
-    { label: 'Print preview', to: '/students/profile' },
+    { label: 'Print preview', to: '/students/id-card' },
     { label: 'Open registry', to: '/students/list' },
   ]),
   workspace('/students/admission-form', 'Admission Form', 'Student Management', '✎', 'Handle detailed admission workflows, guardian intake and verification steps.', [
@@ -226,7 +256,7 @@ export const FEATURE_WORKSPACES = [
     { label: 'Report cards', to: '/examination/report-cards' },
   ]),
   workspace('/students/parent-details', 'Parent Details', 'Student Management', '☏', 'Manage guardian identities, contact details and parent communication readiness.', [
-    { label: 'Open profile', to: '/students/profile' },
+    { label: 'Open parent details', to: '/students/parent-details' },
     { label: 'Parent notices', to: '/communication/parent-notifications' },
   ]),
   workspace('/students/transfer-certificate', 'Transfer Certificate', 'Student Management', '⇄', 'Prepare and issue transfer certificates with document control.', [

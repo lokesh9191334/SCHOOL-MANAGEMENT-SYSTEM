@@ -75,10 +75,15 @@ const getMockAadharProfile = (aadharNumber, personField) => {
   const cleanAadhar = aadharNumber.replace(/\s/g, '')
   const profileMap = {
     studentAadhar: {
-      '111122223333': { fullName: 'Aarav Sharma', firstName: 'Aarav', lastName: 'Sharma' },
-      '111122223334': { fullName: 'Ananya Sharma', firstName: 'Ananya', lastName: 'Sharma' },
-      '111122223335': { fullName: 'Ishaan Verma', firstName: 'Ishaan', lastName: 'Verma' },
-      '111122223336': { fullName: 'Diya Patel', firstName: 'Diya', lastName: 'Patel' },
+      '111122223333': { fullName: 'Aarav Sharma', firstName: 'Aarav', lastName: 'Sharma', dob: '2010-05-15', gender: 'Male' },
+      '111122223334': { fullName: 'Ananya Sharma', firstName: 'Ananya', lastName: 'Sharma', dob: '2011-08-22', gender: 'Female' },
+      '111122223335': { fullName: 'Ishaan Verma', firstName: 'Ishaan', lastName: 'Verma', dob: '2009-12-03', gender: 'Male' },
+      '111122223336': { fullName: 'Diya Patel', firstName: 'Diya', lastName: 'Patel', dob: '2012-03-18', gender: 'Female' },
+      '123456789012': { fullName: 'Rajesh Kumar', firstName: 'Rajesh', lastName: 'Kumar', dob: '2008-07-25', gender: 'Male' },
+      '987654321098': { fullName: 'Priya Singh', firstName: 'Priya', lastName: 'Singh', dob: '2010-11-10', gender: 'Female' },
+      '234567890123': { fullName: 'Aman Gupta', firstName: 'Aman', lastName: 'Gupta', dob: '2009-02-28', gender: 'Male' },
+      '876543210987': { fullName: 'Neha Verma', firstName: 'Neha', lastName: 'Verma', dob: '2011-09-14', gender: 'Female' },
+      '923432464531': { fullName: 'Lokesh', firstName: 'Lokesh', lastName: 'Kumar', dob: '2000-06-15', gender: 'Male' },
     },
     fatherAadhar: {
       '222233334444': { fullName: 'Rohit Sharma', firstName: 'Rohit', lastName: 'Sharma' },
@@ -100,7 +105,42 @@ const getMockAadharProfile = (aadharNumber, personField) => {
     },
   }
 
-  return profileMap[personField]?.[cleanAadhar] || null
+  // Check if we have a predefined profile
+  const predefinedProfile = profileMap[personField]?.[cleanAadhar]
+  if (predefinedProfile) return predefinedProfile
+
+  // Generate a fallback profile for any Aadhar number
+  const firstNames = [
+    'Aarav', 'Ananya', 'Ishaan', 'Diya', 'Vivaan', 'Aisha', 'Vihaan', 'Riya',
+    'Rohan', 'Anvi', 'Dev', 'Ira', 'Kabir', 'Tara', 'Arjun', 'Mira',
+    'Atharv', 'Kiara', 'Ayaan', 'Sara', 'Krishna', 'Radhika', 'Aadi', 'Myra'
+  ]
+  const lastNames = [
+    'Sharma', 'Gupta', 'Verma', 'Patel', 'Singh', 'Khan', 'Joshi', 'Mehta',
+    'Desai', 'Reddy', 'Iyer', 'Jain', 'Sinha', 'Das', 'Pandey', 'Chopra'
+  ]
+  
+  // Use the Aadhar number to pick consistent random names
+  const num1 = parseInt(cleanAadhar.slice(-4), 10)
+  const num2 = parseInt(cleanAadhar.slice(4, 8), 10)
+  const num3 = parseInt(cleanAadhar.slice(0, 4), 10)
+  const firstName = firstNames[num1 % firstNames.length]
+  const lastName = lastNames[num2 % lastNames.length]
+  const gender = num3 % 2 === 0 ? 'Male' : 'Female'
+  
+  // Generate random but consistent DOB (between 2005 and 2015)
+  const year = 2005 + (num3 % 11)
+  const month = String(1 + (num1 % 12)).padStart(2, '0')
+  const day = String(1 + (num2 % 28)).padStart(2, '0')
+  const dob = `${year}-${month}-${day}`
+  
+  return {
+    fullName: `${firstName} ${lastName}`,
+    firstName,
+    lastName,
+    dob,
+    gender
+  }
 }
 
 /**
