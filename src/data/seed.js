@@ -229,23 +229,24 @@ SEED_STUDENTS.forEach(s => { studentMap[s.id] = s })
 
 const tFirstNames = ['Meera', 'James', 'Sara', 'Rajesh', 'Anjali', 'Arvind', 'Priya', 'Vikas', 'Suman', 'Kunal', 'Deepa', 'Amit', 'Shalini', 'Rahul', 'Neetu', 'Alok', 'Madhuri', 'Sandeep']
 const tLastNames = ['Iyer', 'Okonkwo', 'Lindqvist', 'Kumar', 'Verma', 'Sharma', 'Natarajan', 'Singh', 'Pillai', 'Mehta', 'Rao', 'Choudhary', 'Mishra', 'Bhatia', 'Kohli', 'Dubey', 'Nair', 'Trivedi']
-const tQualifications = ['Ph.D. in Mathematics', 'M.Sc. Physics, B.Ed.', 'MA English Literature, B.Ed.', 'M.Tech Computer Science', 'M.Sc. Chemistry, B.Ed.', 'MBBS, MD (Biology Teacher)', 'B.Com, M.Com, B.Ed.', 'MA History, M.Phil.', 'MA Geography, B.Ed.', 'M.Sc. Zoology, B.Ed.', 'MCA, B.Ed.', 'BA, B.Ed., Diploma in Art', 'M.P.Ed., Sports Diploma', 'MA Hindi, B.Ed.', 'MA Sanskrit, B.Ed.']
+const tQualifications = ['Ph.D. in Mathematics', 'M.Sc. Physics, B.Ed.', 'MA English Literature, B.Ed.', 'M.Tech Computer Science', 'M.Sc. Chemistry, B.Ed.', 'MBBS, MD (Biology Teacher)', 'B.Com, M.Com, B.Ed.', 'MA History, M.Phil.', 'MA Geography, B.Ed.', 'M.Sc. Zoology, B.Ed.', 'MCA, B.Ed.', 'BA, B.Ed., Diploma in Art', 'M.P.Ed., Sports Diploma', 'MA Hindi, B.Ed.', 'MA Sanskrit, B.Ed.', 'MA Music, B.Ed.', 'MA Economics, B.Ed.', 'M.Sc. Environmental Science, B.Ed.']
 const tExp = [18, 12, 8, 15, 20, 6, 10, 22, 5, 14, 9, 25, 7, 11, 17, 19, 13, 16]
 const tSubjects = ['Mathematics', 'Physics', 'English', 'Computer Science', 'Chemistry', 'Biology', 'Accountancy', 'History', 'Geography', 'Science', 'Hindi', 'Art & Drawing', 'Physical Education', 'Sanskrit', 'Music', 'Social Studies', 'Economics', 'Environmental Science']
 
 export const SEED_TEACHERS = tFirstNames.map((fn, i) => {
-  const ln = tLastNames[i]
-  const qual = tQualifications[i]
-  const subj = tSubjects[i]
-  const exp = tExp[i]
+  const ln = tLastNames[i] || 'Sharma'
+  const qual = tQualifications[i] || 'B.Ed.'
+  const subj = tSubjects[i] || 'General'
+  const exp = tExp[i] ?? 8
   const salary = (35000 + exp * 2500 + (i % 5) * 3000)
   const jY = 2026 - exp
   const jM = (i % 12) + 1
   const classes = academicClasses.filter((_, idx) => idx >= i % 3 && idx < (i % 3) + 3)
+  const honorific = String(qual).startsWith('Ph.D') || String(qual).startsWith('MBBS') ? 'Dr. ' : ''
   return {
     id: `TCH-${String(501 + i).padStart(3, '0')}`,
     employeeId: `EMP-${String(2001 + i).padStart(5, '0')}`,
-    title: `${qual.startsWith('Ph.D') || qual.startsWith('MBBS') ? 'Dr. ' : ''}${fn} ${ln}`,
+    title: `${honorific}${fn} ${ln}`,
     subtitle: subj,
     primary: `${fn.toLowerCase()}.${ln.toLowerCase()}@school.edu`,
     status: i % 10 === 0 ? 'On Leave' : i % 15 === 0 ? 'Resigned' : 'Active',
@@ -253,7 +254,7 @@ export const SEED_TEACHERS = tFirstNames.map((fn, i) => {
     tone: i % 10 === 0 ? 'warning' : i % 15 === 0 ? 'danger' : 'success',
     firstName: fn,
     lastName: ln,
-    fullName: `${qual.startsWith('Ph.D') || qual.startsWith('MBBS') ? 'Dr. ' : ''}${fn} ${ln}`,
+    fullName: `${honorific}${fn} ${ln}`,
     dateOfBirth: `19${80 + (i % 15)}-${String(((i * 2) % 12) + 1).padStart(2, '0')}-${String((i % 27) + 1).padStart(2, '0')}`,
     gender: i % 2 === 0 ? 'Female' : 'Male',
     bloodGroup: bloodGroups[i % bloodGroups.length],
