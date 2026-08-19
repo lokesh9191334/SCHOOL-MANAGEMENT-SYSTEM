@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppShell from './layouts/AppShell'
+import ProtectedRoute from './components/ProtectedRoute'
 import './App-premium.css'
 import './styles/global.css'
 import './styles/modules-premium.css'
@@ -54,78 +55,80 @@ function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
-        <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate replace to="/dashboard" />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<Navigate replace to="/dashboard" />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
 
-          <Route path="/students/add" element={<AdmissionFormPage />} />
-          <Route path="/students/admission-form" element={<AdmissionFormPage />} />
+            <Route path="/students/add" element={<AdmissionFormPage />} />
+            <Route path="/students/admission-form" element={<AdmissionFormPage />} />
 
-          {FEATURE_WORKSPACES.filter((ws) => ws && typeof ws.to === 'string' && !['/students/admission-form', '/students/id-card', '/students/attendance', '/attendance/students'].includes(ws.to)).map((ws) => (
-            <Route
-              key={ws.to}
-              path={ws.to}
-              element={
-                <FeatureWorkspacePage
-                  kicker={ws.section}
-                  title={ws.label}
-                  description={ws.description}
-                  actions={ws.actions ?? []}
-                  metrics={ws.metrics ?? []}
-                  highlights={ws.highlights ?? []}
-                  checklist={ws.checklist ?? []}
-                />
-              }
-            />
-          ))}
+            {FEATURE_WORKSPACES.filter((ws) => ws && typeof ws.to === 'string' && !['/students/admission-form', '/students/id-card', '/students/attendance', '/attendance/students'].includes(ws.to)).map((ws) => (
+              <Route
+                key={ws.to}
+                path={ws.to}
+                element={
+                  <FeatureWorkspacePage
+                    kicker={ws.section}
+                    title={ws.label}
+                    description={ws.description}
+                    actions={ws.actions ?? []}
+                    metrics={ws.metrics ?? []}
+                    highlights={ws.highlights ?? []}
+                    checklist={ws.checklist ?? []}
+                  />
+                }
+              />
+            ))}
 
-          <Route path="/students">
-            <Route index element={<StudentsPage />} />
-            <Route path="list" element={<StudentsPage />} />
-            <Route path="attendance" element={<AttendancePage />} />
-            <Route path="id-card" element={<IDCardPage />} />
-            <Route path="data-files" element={<StudentDataFilesPage />} />
-          </Route>
+            <Route path="/students">
+              <Route index element={<StudentsPage />} />
+              <Route path="list" element={<StudentsPage />} />
+              <Route path="attendance" element={<AttendancePage />} />
+              <Route path="id-card" element={<IDCardPage />} />
+              <Route path="data-files" element={<StudentDataFilesPage />} />
+            </Route>
 
-          <Route path="/teachers">
-            <Route index element={<TeachersPage />} />
-            <Route path="list" element={<TeachersPage />} />
-            <Route path="add" element={<AddTeacherPage />} />
-            <Route path="profile" element={<TeacherProfilePage />} />
-          </Route>
+            <Route path="/teachers">
+              <Route index element={<TeachersPage />} />
+              <Route path="list" element={<TeachersPage />} />
+              <Route path="add" element={<AddTeacherPage />} />
+              <Route path="profile" element={<TeacherProfilePage />} />
+            </Route>
 
-          <Route path="/attendance">
-            <Route index element={<AttendancePage />} />
-            <Route path="students" element={<AttendancePage />} />
-            <Route path="report" element={<AttendanceReportPage />} />
-          </Route>
+            <Route path="/attendance">
+              <Route index element={<AttendancePage />} />
+              <Route path="students" element={<AttendancePage />} />
+              <Route path="report" element={<AttendanceReportPage />} />
+            </Route>
 
-          <Route path="/transport">
-            <Route index element={<TransportPage />} />
-            <Route path="routes" element={<TransportRoutesPage />} />
-            <Route path="drivers" element={<TransportDriversPage />} />
-          </Route>
+            <Route path="/transport">
+              <Route index element={<TransportPage />} />
+              <Route path="routes" element={<TransportRoutesPage />} />
+              <Route path="drivers" element={<TransportDriversPage />} />
+            </Route>
 
-          <Route path="/examination">
-            <Route index element={<ExaminationPage />} />
-            <Route path="schedule" element={<ExaminationSchedulePage />} />
-            <Route path="results" element={<ExaminationResultsPage />} />
-            <Route path="grading" element={<ExaminationGradingPage />} />
-          </Route>
+            <Route path="/examination">
+              <Route index element={<ExaminationPage />} />
+              <Route path="schedule" element={<ExaminationSchedulePage />} />
+              <Route path="results" element={<ExaminationResultsPage />} />
+              <Route path="grading" element={<ExaminationGradingPage />} />
+            </Route>
 
-          <Route path="/fees">
-            <Route index element={<FeesPage />} />
-            <Route path="payments" element={<FeesPaymentsPage />} />
-            <Route path="reports" element={<FeesReportsPage />} />
-          </Route>
+            <Route path="/fees">
+              <Route index element={<FeesPage />} />
+              <Route path="payments" element={<FeesPaymentsPage />} />
+              <Route path="reports" element={<FeesReportsPage />} />
+            </Route>
 
-          <Route path="/academics/timetable" element={<TimetablePage />} />
-          <Route path="/library" element={<LibraryPage />} />
+            <Route path="/academics/timetable" element={<TimetablePage />} />
+            <Route path="/library" element={<LibraryPage />} />
 
-          <Route path="/settings">
-            <Route path="profile" element={<SettingsProfilePage />} />
-            <Route path="security" element={<SettingsProfilePage />} />
-            <Route path="logout" element={<LogoutPage />} />
+            <Route path="/settings">
+              <Route path="profile" element={<SettingsProfilePage />} />
+              <Route path="security" element={<SettingsProfilePage />} />
+              <Route path="logout" element={<LogoutPage />} />
+            </Route>
           </Route>
         </Route>
 

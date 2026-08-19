@@ -1,9 +1,11 @@
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import * as auth from '../../services/auth'
 
 const LoginPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state && location.state.from) || '/dashboard'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -24,7 +26,7 @@ const LoginPage = () => {
         return
       }
       auth.saveSession(res)
-      navigate('/dashboard')
+      navigate(from, { replace: true })
     } catch (err) {
       setError(err.message || String(err))
     }
@@ -36,7 +38,7 @@ const LoginPage = () => {
     try {
       const res = await auth.twoFAVerify({ email, code, loginToken })
       auth.saveSession(res)
-      navigate('/dashboard')
+      navigate(from, { replace: true })
     } catch (err) {
       setError(err.message || String(err))
     }

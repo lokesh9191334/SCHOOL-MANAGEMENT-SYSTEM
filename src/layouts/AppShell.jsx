@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ERP_NAV_SECTIONS, titleForPath } from '../utils/constants'
+import { clearSession } from '../services/auth'
 import './AppShell.css'
 import SlideProvider from '../context/SlideContext'
 
 const AppShell = () => {
+  const navigate = useNavigate()
   const location = useLocation()
   const { pathname } = location
   const subtitle = titleForPath(pathname)
@@ -77,9 +79,17 @@ const AppShell = () => {
         <div className="sms-sidebar-card">
           <p className="sms-sidebar-card-label">Session</p>
           <p className="sms-sidebar-card-value">2026–27</p>
-          <NavLink to="/auth/login" className="sms-sidebar-link">
+          <button
+            type="button"
+            onClick={() => {
+              clearSession()
+              navigate('/auth/login', { replace: true })
+            }}
+            className="sms-sidebar-link"
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+          >
             Switch account
-          </NavLink>
+          </button>
         </div>
       </aside>
 
