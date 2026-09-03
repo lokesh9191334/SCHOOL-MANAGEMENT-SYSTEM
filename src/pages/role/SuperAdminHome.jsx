@@ -1,4 +1,7 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { getModuleConfig } from '../../data/moduleRegistry'
+import { usePersistentState } from '../../hooks/usePersistentState'
 import './RoleHome.css'
 
 const cards = [
@@ -12,6 +15,19 @@ const cards = [
 ]
 
 export default function SuperAdminHome() {
+  const schoolsConfig = getModuleConfig('/super-admin/schools')
+  const subscriptionsConfig = getModuleConfig('/super-admin/subscriptions')
+  const ticketsConfig = getModuleConfig('/super-admin/tickets')
+  const [schools] = usePersistentState(schoolsConfig.storageKey, schoolsConfig.seed)
+  const [subscriptions] = usePersistentState(subscriptionsConfig.storageKey, subscriptionsConfig.seed)
+  const [tickets] = usePersistentState(ticketsConfig.storageKey, ticketsConfig.seed)
+  const liveSchools = schools.filter((school) => ['Live', 'Trial'].includes(school.status)).length
+  const recurringRevenue = useMemo(
+    () => subscriptions.reduce((total, subscription) => total + Number(String(subscription.amount || subscription.mrr || 0).replace(/[^0-9.-]/g, '')), 0),
+    [subscriptions],
+  )
+  const openTickets = tickets.filter((ticket) => !['Resolved', 'Closed'].includes(ticket.status)).length
+
   return (
     <div className="role-home">
       <header className="role-home__hero role-home__hero--platform">
@@ -21,9 +37,9 @@ export default function SuperAdminHome() {
           <p>Schools, subscriptions, plans, analytics and support — no campus ERP noise.</p>
         </div>
         <div className="role-home__metrics">
-          <article><strong>81</strong><span>Live schools</span></article>
-          <article><strong>₹24.8L</strong><span>MRR</span></article>
-          <article><strong>19</strong><span>Open tickets</span></article>
+          <article><strong>{liveSchools}</strong><span>Live schools</span></article>
+          <article><strong>₹{recurringRevenue.toLocaleString('en-IN')}</strong><span>MRR tracked</span></article>
+          <article><strong>{openTickets}</strong><span>Open tickets</span></article>
         </div>
       </header>
 
