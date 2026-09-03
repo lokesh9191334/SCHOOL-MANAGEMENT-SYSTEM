@@ -17,6 +17,7 @@ const DashboardPage = () => {
   const [students, setStudents] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
   const [admissions, setAdmissions] = usePersistentState(STORAGE_KEYS.admissions, [])
   const [teachers] = usePersistentState(STORAGE_KEYS.teachers, SEED_TEACHERS)
+  const [attendanceRows] = usePersistentState(STORAGE_KEYS.attendance, SEED_ATTENDANCE)
   const [feeRows] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
 
   const [showForm, setShowForm] = useState(false)
@@ -41,7 +42,6 @@ const DashboardPage = () => {
   const totalRevenue = feeRows.reduce((sum, row) => sum + row.amount, 0)
   const collectionRate = totalRevenue ? Math.round((paidRevenue / totalRevenue) * 100) : 0
 
-  const attendanceRows = SEED_ATTENDANCE
   const presentCount = attendanceRows.filter((row) => row.status === 'Present').length
   const lateCount = attendanceRows.filter((row) => row.status === 'Late').length
   const absentCount = attendanceRows.filter((row) => row.status === 'Absent').length

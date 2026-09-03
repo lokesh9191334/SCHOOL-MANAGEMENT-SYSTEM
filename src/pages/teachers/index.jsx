@@ -12,6 +12,7 @@ const TeachersPage = () => {
   const [selectedRecordKey, setSelectedRecordKey] = useState(null)
   const [activeAction, setActiveAction] = useState(null)
   const [toast, setToast] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
 
   useEffect(() => {
     if (!toast) return
@@ -21,6 +22,7 @@ const TeachersPage = () => {
 
   const filteredRecords = teachers.filter(
     (r) =>
+      (statusFilter === 'All' || r.status === statusFilter) &&
       !searchQuery ||
       r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.subtitle.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -38,7 +40,14 @@ const TeachersPage = () => {
       navigate('/teachers/profile')
     }
     if (action === 'Assign Class') {
-      setToast('Assignment saved (demo).')
+      if (!selectedRecord) {
+        setToast('Select a teacher before assigning a class.')
+        return
+      }
+      const className = window.prompt('Enter class or section to assign:', selectedRecord.subtitle || '')
+      if (!className?.trim()) return
+      setTeachers((prev) => prev.map((teacher) => (teacher.id === selectedRecord.id ? { ...teacher, subtitle: className.trim() } : teacher)))
+      setToast(`Class ${className.trim()} assigned to ${selectedRecord.title}.`)
     }
   }
 
@@ -91,6 +100,8 @@ const TeachersPage = () => {
         systemMessage={toast || 'Faculty directory synced'}
         notificationsEnabled
         selectedRecord={selectedRecord}
+        onViewAll={() => { setStatusFilter('All'); setSearchQuery('') }}
+        onFilter={() => setStatusFilter((value) => (value === 'All' ? 'Active' : value === 'Active' ? 'On leave' : 'All'))}
       />
     </div>
   )

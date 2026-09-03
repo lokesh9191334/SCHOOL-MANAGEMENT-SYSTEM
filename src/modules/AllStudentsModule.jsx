@@ -1,6 +1,4 @@
 import ActionFormPanel from '../components/forms/ActionFormPanel'
-import TrendChart from '../components/charts/TrendChart'
-import RingChart from '../components/charts/RingChart'
 import Slide from '../components/Slide'
 
 function AllStudentsModule({
@@ -21,6 +19,8 @@ function AllStudentsModule({
   systemMessage,
   notificationsEnabled,
   selectedRecord,
+  onViewAll,
+  onFilter,
 }) {
   return (
     <>
@@ -56,10 +56,10 @@ function AllStudentsModule({
               <h3>Complete Registry</h3>
             </div>
             <div className="panel-actions">
-              <button type="button" className="small-action">
+              <button type="button" className="small-action" onClick={onViewAll}>
                 View All
               </button>
-              <button type="button" className="small-action">
+              <button type="button" className="small-action" onClick={onFilter}>
                 Filter
               </button>
             </div>
@@ -112,7 +112,7 @@ function AllStudentsModule({
                           // restore seeded demo data in localStorage and reload so parent picks it up
                           localStorage.setItem('sms_students', JSON.stringify(window.__SEED_STUDENTS__ || []))
                           window.location.reload()
-                        } catch (e) {
+                        } catch {
                           window.alert('Unable to restore demo data in this browser.')
                         }
                       }}
