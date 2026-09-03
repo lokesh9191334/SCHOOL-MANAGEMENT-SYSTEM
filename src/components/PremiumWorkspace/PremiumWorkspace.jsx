@@ -60,6 +60,7 @@ export default function PremiumWorkspace({ config }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [selectedId, setSelectedId] = useState(null)
+  const [editing, setEditing] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState(() => emptyForm(fields))
   const [toast, setToast] = useState('')
@@ -220,6 +221,7 @@ export default function PremiumWorkspace({ config }) {
 
     setRows((prev) => [next, ...prev])
     setSelectedId(next.id)
+    setEditing(false)
     setShowCreate(false)
     setForm(emptyForm(fields))
 
@@ -537,9 +539,10 @@ export default function PremiumWorkspace({ config }) {
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedId(row.id)
+                            setEditing(false)
                           }}
                         >
-                          Open
+                          View
                         </button>
                       </td>
                     </tr>
@@ -571,6 +574,9 @@ export default function PremiumWorkspace({ config }) {
                     </span>
                   </div>
                 </div>
+                <button type="button" className="pw-btn pw-btn-secondary pw-btn-sm" onClick={() => setEditing((value) => !value)}>
+                  {editing ? 'Cancel edit' : 'Edit record'}
+                </button>
               </div>
 
               <div className="pw-detail-body">
@@ -583,6 +589,7 @@ export default function PremiumWorkspace({ config }) {
                         {field.type === 'select' ? (
                           <select
                             value={selected[field.key] ?? ''}
+                            disabled={!editing}
                             onChange={(e) => {
                               const value = e.target.value
                               if (field.key === statusKey) {
@@ -601,6 +608,7 @@ export default function PremiumWorkspace({ config }) {
                         ) : field.type === 'textarea' ? (
                           <textarea
                             value={selected[field.key] ?? ''}
+                            disabled={!editing}
                             onChange={(e) => updateSelected({ [field.key]: e.target.value })}
                             rows={2}
                           />
@@ -608,6 +616,7 @@ export default function PremiumWorkspace({ config }) {
                           <input
                             type={field.type || 'text'}
                             value={selected[field.key] ?? ''}
+                            disabled={!editing}
                             onChange={(e) => updateSelected({ [field.key]: e.target.value })}
                           />
                         )}
@@ -757,8 +766,13 @@ export default function PremiumWorkspace({ config }) {
                 ) : null}
 
                 <div className="pw-hero-actions">
+                  {editing ? (
+                    <button type="button" className="pw-btn pw-btn-primary" onClick={() => { setEditing(false); setToast('Changes saved') }}>
+                      Save changes
+                    </button>
+                  ) : null}
                   <button type="button" className="pw-btn pw-btn-danger" onClick={removeSelected}>
-                    Remove
+                    Delete record
                   </button>
                 </div>
               </div>

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
 function readStored(key) {
-  if (typeof window === 'undefined') return undefined
+  if (typeof window === 'undefined') return { found: false, value: undefined }
   try {
     const raw = window.localStorage.getItem(key)
-    if (raw == null || raw === '') return undefined
-    return JSON.parse(raw)
+    if (raw == null || raw === '') return { found: false, value: undefined }
+    return { found: true, value: JSON.parse(raw) }
   } catch {
-    return undefined
+    return { found: false, value: undefined }
   }
 }
 
@@ -19,13 +19,7 @@ function readStored(key) {
 export function usePersistentState(key, fallback) {
   const [state, setState] = useState(() => {
     const stored = readStored(key)
-    if (stored !== undefined) {
-      if (Array.isArray(stored) && stored.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
-        return fallback
-      }
-      return stored
-    }
-    return fallback
+    return stored.found ? stored.value : fallback
   })
 
   useEffect(() => {
