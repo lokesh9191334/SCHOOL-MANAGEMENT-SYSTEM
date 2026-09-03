@@ -446,8 +446,8 @@ app.post('/api/auth/login', async (req, res) => {
     const users = readJsonFile(join('data', 'users.json'), [])
     const normalizedEmail = String(email).trim().toLowerCase()
     const user = users.find((u) => String(u.email).toLowerCase() === normalizedEmail)
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' })
-    if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Invalid credentials' })
+    if (!user) return res.status(401).json({ error: 'Wrong username or email address.' })
+    if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Wrong password.' })
     if (user.accountStatus === 'Pending approval') return res.status(403).json({ error: 'Your school account is awaiting Super Admin approval and subscription assignment.' })
 
     const role = String(user.role || 'admin').toLowerCase()

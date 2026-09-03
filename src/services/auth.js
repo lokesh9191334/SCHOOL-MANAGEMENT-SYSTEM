@@ -6,7 +6,10 @@ async function parseResponse(res) {
   try {
     return JSON.parse(txt)
   } catch {
-    throw new Error('Invalid JSON response from server')
+    if (!res.ok) {
+      return { error: res.status >= 500 ? 'Server is temporarily unavailable. Please try again.' : 'Request could not be completed.' }
+    }
+    return { error: 'Server returned an unreadable response. Please restart the app server.' }
   }
 }
 
@@ -14,8 +17,11 @@ function buildErrorMessage(resBody, res) {
   if (res && (res.status === 502 || res.status === 503 || res.status === 504)) {
     return 'API server is not running. Start it with: npm run server (or use npm run dev:all).'
   }
-  if (!resBody) return res.statusText || 'Request failed'
-  return resBody.error || resBody.message || JSON.stringify(resBody)
+  if (!resBody) return (res && res.statusText) || 'Request failed'
+  const detail = resBody.error ?? resBody.message
+  if (typeof detail === 'string') return detail
+  if (detail != null) return JSON.stringify(detail)
+  return JSON.stringify(resBody)
 }
 
 async function safeFetch(url, options) {
