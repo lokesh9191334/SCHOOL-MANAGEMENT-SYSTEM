@@ -132,19 +132,13 @@ const LoginPage = () => {
     <AuthShell
       mode="login"
       kicker="Secure sign in"
-      title={
-        otpStep
-          ? isAdminDual
-            ? 'OTP + special key'
-            : 'Email OTP verification'
-          : 'Welcome back'
-      }
+      title={otpStep ? (isAdminDual ? 'OTP + special key' : 'Email OTP verification') : null}
       subtitle={
         otpStep
           ? isAdminDual
             ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
             : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
-          : 'Admins need email OTP plus a rotating 7-character special key. Teachers/parents use email OTP.'
+          : null
       }
       footer={
         <>

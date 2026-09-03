@@ -17,8 +17,8 @@ export default function AuthShell({
               <div className="auth-mini-mark">SMS</div>
               <p className="admin-kicker">{kicker}</p>
             </div>
-            <h2>{title}</h2>
-            <p>{subtitle}</p>
+            {title ? <h2>{title}</h2> : null}
+            {subtitle ? <p>{subtitle}</p> : null}
           </header>
           {children}
           {footer ? (
