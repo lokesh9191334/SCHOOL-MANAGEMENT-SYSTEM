@@ -12,7 +12,7 @@ const StudentProfilePage = () => {
       <div className="page-card">
         <p className="admin-kicker">360° view</p>
         <h2>Student profile</h2>
-        <p>Snapshot of the first enrolled learner for demo purposes. Extend this route with dynamic IDs from the registry.</p>
+        <p>Live profile view for the selected learner, including contact, academic and guardian details.</p>
         <div className="link-row">
           <Link className="link-pill" to="/students">
             Registry

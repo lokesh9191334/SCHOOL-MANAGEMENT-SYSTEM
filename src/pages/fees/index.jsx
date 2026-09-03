@@ -28,7 +28,7 @@ const FeesPage = () => {
 
       <div className="content-grid">
         <article className="stat-card">
-          <span>Collected (demo)</span>
+          <span>Collected</span>
           <strong>₹{collected.toLocaleString('en-IN')}</strong>
           <p className="stat-note">Posted receipts</p>
         </article>

@@ -129,7 +129,7 @@ const AttendancePage = () => {
       <div className="page-card">
         <p className="admin-kicker">Daily operations</p>
         <h2>Attendance control</h2>
-        <p>Roll-call workspace with quick actions. Demo data updates in-browser when you mark attendance.</p>
+        <p>Roll-call workspace with quick actions. Attendance changes are saved and reflected across the school dashboard.</p>
         <div className="link-row">
           <Link className="link-pill" to="/attendance/report">
             Reports
