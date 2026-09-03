@@ -15,14 +15,15 @@ async function parseResponse(res) {
 }
 
 function buildErrorMessage(resBody, res) {
-  if (res && (res.status === 502 || res.status === 503 || res.status === 504)) {
-    return 'API server is not running. Start it with: npm run server (or use npm run dev:all).'
+  if (resBody) {
+    const detail = resBody.error ?? resBody.message
+    if (typeof detail === 'string' && detail.trim()) return detail
+    if (detail != null) return JSON.stringify(detail)
   }
-  if (!resBody) return (res && res.statusText) || 'Request failed'
-  const detail = resBody.error ?? resBody.message
-  if (typeof detail === 'string') return detail
-  if (detail != null) return JSON.stringify(detail)
-  return JSON.stringify(resBody)
+  if (res && (res.status === 502 || res.status === 503 || res.status === 504)) {
+    return 'Login server is temporarily unavailable. Please try again.'
+  }
+  return (res && res.statusText) || 'Request failed'
 }
 
 async function safeFetch(url, options) {
