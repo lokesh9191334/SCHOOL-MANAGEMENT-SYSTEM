@@ -1,4 +1,8 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { usePersistentState } from '../../hooks/usePersistentState'
+import { STORAGE_KEYS } from '../../utils/constants'
+import { SEED_ATTENDANCE, SEED_TEACHERS } from '../../data/seed'
 import './RoleHome.css'
 
 const cards = [
@@ -11,6 +15,13 @@ const cards = [
 ]
 
 export default function TeacherHome() {
+  const [teachers] = usePersistentState(STORAGE_KEYS.teachers, SEED_TEACHERS)
+  const [attendance] = usePersistentState(STORAGE_KEYS.attendance, SEED_ATTENDANCE)
+  const teacher = teachers[0]
+  const teacherClass = teacher?.subtitle || 'Unassigned'
+  const classRows = useMemo(() => attendance.filter((row) => row.subtitle === teacherClass || row.className === teacherClass), [attendance, teacherClass])
+  const attendanceExceptions = classRows.filter((row) => ['Absent', 'Late'].includes(row.status)).length
+
   return (
     <div className="role-home">
       <header className="role-home__hero role-home__hero--teacher">
@@ -20,9 +31,9 @@ export default function TeacherHome() {
           <p>Attendance, homework, exams, remarks and parent communication in one workspace.</p>
         </div>
         <div className="role-home__metrics">
-          <article><strong>9-B</strong><span>Homeroom</span></article>
-          <article><strong>36</strong><span>Students</span></article>
-          <article><strong>2</strong><span>Homework due</span></article>
+          <article><strong>{teacherClass}</strong><span>Homeroom</span></article>
+          <article><strong>{classRows.length}</strong><span>Attendance rows</span></article>
+          <article><strong>{attendanceExceptions}</strong><span>Exceptions</span></article>
         </div>
       </header>
       <section className="role-home__grid">
