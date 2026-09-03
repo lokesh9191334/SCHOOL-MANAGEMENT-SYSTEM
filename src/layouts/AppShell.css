@@ -17,7 +17,7 @@
   min-height: 0;
   padding: 20px 18px;
   border-radius: 28px;
-  background: linear-gradient(165deg, #0c1228 0%, #151d3d 42%, #1a2550 100%);
+  background: linear-gradient(165deg, #171717 0%, #303030 46%, #555555 100%);
   color: #e8ecff;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 28px 60px rgba(12, 18, 48, 0.35);
@@ -39,7 +39,7 @@
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #5a6bff 0%, #3d4fe0 100%);
+  background: linear-gradient(135deg, #666666 0%, #202020 100%);
   box-shadow: 0 14px 32px rgba(61, 79, 224, 0.45);
 }
 

@@ -30,6 +30,43 @@ body {
   touch-action: manipulation;
 }
 
+body {
+  background: linear-gradient(112deg, #202020 0%, #3f3f3f 34%, #a8a9aa 62%, #e6e7e8 100%);
+  background-attachment: fixed;
+  color: #202020;
+}
+
+.page-card,
+.panel-card,
+.stat-card,
+.premium-panel,
+.pw-panel,
+.pw-stat,
+.sl-panel,
+.sl-stat,
+.auth-form-card,
+.auth-premium-panel {
+  border-color: rgba(45, 45, 45, 0.16);
+  box-shadow: 0 18px 42px rgba(25, 25, 25, 0.1);
+}
+
+.btn-primary,
+.header-action.primary,
+.action-button.primary,
+.pw-btn-primary,
+.sl-btn-primary,
+.exec-btn--solid,
+.auth-submit {
+  background: linear-gradient(135deg, #202020 0%, #555555 100%);
+  box-shadow: 0 14px 28px rgba(25, 25, 25, 0.22);
+}
+
+.auth-shell,
+.auth-premium,
+.auth-stage {
+  background: linear-gradient(112deg, #202020 0%, #3f3f3f 34%, #a8a9aa 62%, #e6e7e8 100%);
+}
+
 img,
 svg,
 video,
