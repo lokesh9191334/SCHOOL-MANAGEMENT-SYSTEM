@@ -146,6 +146,12 @@ const RegisterPage = () => {
         code: otp,
         pendingToken,
       })
+      if (res.pendingApproval) {
+        setOtpStep(false)
+        setInfo(res.message)
+        setError('')
+        return
+      }
       auth.saveSession(res)
       navigate(homePathForRole(res?.user?.role))
     } catch (err) {

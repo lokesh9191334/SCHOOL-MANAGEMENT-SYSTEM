@@ -191,6 +191,7 @@ app.post('/api/students', (req, res) => {
 
 // Simple file-based users store and auth endpoints
 const USERS_FILE = join('data', 'users.json')
+const SCHOOL_REQUESTS_FILE = join('data', 'school_requests.json')
 
 function issueAuthToken(user) {
   return {
@@ -340,8 +341,26 @@ app.post('/api/auth/register/verify', async (req, res) => {
       inviteKey: pending.inviteKey || null,
       emailVerified: true,
       twoFactor: { enabled: true, method: 'email-otp' },
+      accountStatus: pending.role === 'admin' ? 'Pending approval' : 'Active',
+      subscriptionStatus: pending.role === 'admin' ? 'Awaiting plan' : null,
     }
     writeJsonFile(join('data', 'users.json'), [...users, user])
+
+    if (pending.role === 'admin') {
+      const requests = readJsonFile(join('data', 'school_requests.json'), [])
+      writeJsonFile(join('data', 'school_requests.json'), [{
+        id: `REQ-${Date.now()}`,
+        userId: user.id,
+        schoolName: pending.name || `${normalizedEmail} school`,
+        adminName: pending.name || '',
+        email: normalizedEmail,
+        status: 'Pending',
+        requestedAt: new Date().toISOString(),
+        plan: null,
+      }, ...requests])
+      clearPending(key)
+      return res.json({ pendingApproval: true, message: 'Email verified. Your school request is waiting for Super Admin approval.' })
+    }
 
     if (pending.inviteKey) {
       const consumed = consumeInvite(pending.inviteKey, user.id)
@@ -367,6 +386,25 @@ app.post('/api/auth/register/verify', async (req, res) => {
 /** Create / lookup special keys for teacher & parent account claim */
 app.get('/api/invite-keys', (_req, res) => {
   res.json(readInvites())
+})
+
+app.get('/api/school-requests', (_req, res) => {
+  res.json(readJsonFile(join('data', 'school_requests.json'), []))
+})
+
+app.patch('/api/school-requests/:id', (req, res) => {
+  const requests = readJsonFile(join('data', 'school_requests.json'), [])
+  const request = requests.find((item) => item.id === req.params.id)
+  if (!request) return res.status(404).json({ error: 'School request not found.' })
+  const status = String(req.body?.status || '')
+  const plan = String(req.body?.plan || '')
+  if (!['Approved', 'Rejected'].includes(status)) return res.status(400).json({ error: 'Invalid request status.' })
+  if (status === 'Approved' && !['Starter', 'Growth', 'Enterprise'].includes(plan)) return res.status(400).json({ error: 'Choose a subscription plan before approval.' })
+  const updatedRequest = { ...request, status, plan: status === 'Approved' ? plan : null, reviewedAt: new Date().toISOString() }
+  writeJsonFile(join('data', 'school_requests.json'), requests.map((item) => (item.id === request.id ? updatedRequest : item)))
+  const users = readJsonFile(join('data', 'users.json'), [])
+  writeJsonFile(join('data', 'users.json'), users.map((user) => (user.id === request.userId ? { ...user, accountStatus: status === 'Approved' ? 'Active' : 'Rejected', subscriptionStatus: status === 'Approved' ? 'Active' : 'Rejected', subscriptionPlan: status === 'Approved' ? plan : null } : user)))
+  res.json(updatedRequest)
 })
 
 app.get('/api/invite-keys/:key', (req, res) => {
@@ -410,6 +448,7 @@ app.post('/api/auth/login', async (req, res) => {
     const user = users.find((u) => String(u.email).toLowerCase() === normalizedEmail)
     if (!user) return res.status(401).json({ error: 'Invalid credentials' })
     if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Invalid credentials' })
+    if (user.accountStatus === 'Pending approval') return res.status(403).json({ error: 'Your school account is awaiting Super Admin approval and subscription assignment.' })
 
     const role = String(user.role || 'admin').toLowerCase()
     const isAdminLogin = role === 'admin' || role === 'super_admin'

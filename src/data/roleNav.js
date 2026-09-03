@@ -10,6 +10,7 @@ export const SUPER_ADMIN_NAV = [
   ]),
   section('Schools', '🏫', [
     item('/super-admin/schools', 'Add / Manage Schools', '＋'),
+    item('/super-admin/school-requests', 'Approval Requests', '✓'),
     item('/super-admin/schools/suspend', 'Suspend Schools', '⊘'),
   ]),
   section('Subscriptions', '💳', [
