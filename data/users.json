@@ -1,0 +1,29 @@
+[
+  {
+    "id": "demo-admin",
+    "email": "admin@school.edu",
+    "name": "School Admin",
+    "passwordHash": "$2a$10$Sz/i1x7xdmDikzjlysdH7ugNDiLOYjKaNHPhoG9mzd5cHjE1a5hpq",
+    "twoFactor": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "1782728177764",
+    "email": "test-register@example.com",
+    "name": "Test Register",
+    "passwordHash": "$2a$10$A21l8NuKqLdU59MNQe.sfuJOeo4yUtRzbHz2gtVeOnr4HJw3XZFlK",
+    "twoFactor": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "1782728218781",
+    "email": "lk5278127@gmail.com",
+    "name": "LOKESH KUMAR",
+    "passwordHash": "$2a$10$IkIXcvQTgAF7/wsQkpK15.RFvKfiGOBZzxQcEzaxxtxdXTmjRklX2",
+    "twoFactor": {
+      "enabled": false
+    }
+  }
+]
