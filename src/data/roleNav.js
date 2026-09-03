@@ -23,6 +23,7 @@ export const SUPER_ADMIN_NAV = [
   section('Support', '🎧', [
     item('/super-admin/tickets', 'Support Tickets', '✉'),
   ]),
+  section('Finance', '₹', [item('/fees/online-payments', 'Payment Verification', '✓')]),
   section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
   section('Account', '⚙️', [
     item('/settings/profile', 'Profile', '◫'),

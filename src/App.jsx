@@ -31,6 +31,7 @@ import ExamMarksStudio from './pages/teacher/ExamMarksStudio'
 import PremiumReportCard from './pages/teacher/PremiumReportCard'
 import ParentOnlinePaymentPage from './pages/parent/OnlinePaymentPage'
 import AIAssistantPage from './pages/ai-assistant'
+import PaymentReviewPage from './pages/fees/PaymentReviewPage'
 
 const SPECIAL_PATHS = new Set([
   '/dashboard',
@@ -47,6 +48,7 @@ const SPECIAL_PATHS = new Set([
   '/teacher/exams/report-cards',
   '/ai-assistant',
   '/parent/fees/online',
+  '/fees/online-payments',
 ])
 
 const modulePaths = getModulePaths().filter((path) => !SPECIAL_PATHS.has(path))
@@ -81,6 +83,7 @@ function App() {
             <Route path="/teacher/exams/report-cards" element={<PremiumReportCard />} />
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
             <Route path="/parent/fees/online" element={<ParentOnlinePaymentPage />} />
+            <Route path="/fees/online-payments" element={<PaymentReviewPage />} />
 
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/students/list" element={<StudentsPage />} />

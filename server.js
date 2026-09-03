@@ -821,6 +821,18 @@ app.post('/api/payments', (req, res) => {
   res.status(201).json(payment)
 })
 
+app.patch('/api/payments/:id', (req, res) => {
+  const payments = readJsonFile(join('data', 'payments.json'), [])
+  const index = payments.findIndex((payment) => payment.id === req.params.id)
+  if (index < 0) return res.status(404).json({ error: 'Payment not found.' })
+  const status = String(req.body?.status || '')
+  if (!['Verified', 'Rejected'].includes(status)) return res.status(400).json({ error: 'Invalid payment status.' })
+  const updated = { ...payments[index], status, reviewedAt: new Date().toISOString() }
+  payments[index] = updated
+  writeJsonFile(join('data', 'payments.json'), payments)
+  res.json(updated)
+})
+
 // API Routes - Exams
 app.get('/api/exams', (_req, res) => {
   res.json(readJsonFile(join('data', 'exams.json'), []))
