@@ -29,6 +29,7 @@ import TeacherHome from './pages/role/TeacherHome'
 import ParentHome from './pages/role/ParentHome'
 import ExamMarksStudio from './pages/teacher/ExamMarksStudio'
 import PremiumReportCard from './pages/teacher/PremiumReportCard'
+import ParentOnlinePaymentPage from './pages/parent/OnlinePaymentPage'
 import AIAssistantPage from './pages/ai-assistant'
 
 const SPECIAL_PATHS = new Set([
@@ -45,6 +46,7 @@ const SPECIAL_PATHS = new Set([
   '/teacher/exams/marks',
   '/teacher/exams/report-cards',
   '/ai-assistant',
+  '/parent/fees/online',
 ])
 
 const modulePaths = getModulePaths().filter((path) => !SPECIAL_PATHS.has(path))
@@ -78,6 +80,7 @@ function App() {
             <Route path="/teacher/exams/marks" element={<ExamMarksStudio />} />
             <Route path="/teacher/exams/report-cards" element={<PremiumReportCard />} />
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
+            <Route path="/parent/fees/online" element={<ParentOnlinePaymentPage />} />
 
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/students/list" element={<StudentsPage />} />

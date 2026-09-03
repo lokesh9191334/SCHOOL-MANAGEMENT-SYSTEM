@@ -42,6 +42,7 @@ function mod(config) {
     inviteRole,
     notifyParentsOnStatus,
     printEnabled,
+    parentScoped: path.startsWith('/parent/'),
   }
 }
 
