@@ -10,7 +10,7 @@ export default function AuthShell({
 }) {
   return (
     <div className="auth-stage">
-      <section className="auth-form-pane auth-form-pane--solo">
+      <section className={`auth-form-pane auth-form-pane--solo auth-form-pane--${mode}`}>
         <div className="auth-form-card">
           <header className="auth-form-head">
             <div className="auth-mini-brand">
