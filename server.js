@@ -812,6 +812,54 @@ app.post('/api/exams', (req, res) => {
   res.json(exam)
 })
 
+// Provider-agnostic AI proxy. The API key stays on the server and is never sent to the browser.
+app.post('/api/ai/chat', async (req, res) => {
+  const apiUrl = String(process.env.AI_API_URL || '').trim()
+  const apiKey = String(process.env.AI_API_KEY || '').trim()
+  const model = String(process.env.AI_MODEL || 'gpt-4o-mini').trim()
+  const { prompt, role = 'admin', history = [] } = req.body || {}
+
+  if (!prompt || String(prompt).trim().length > 2000) {
+    return res.status(400).json({ error: 'Enter a question up to 2,000 characters.' })
+  }
+  if (!apiUrl || !apiKey) {
+    return res.status(503).json({ error: 'AI provider is not configured. Add AI_API_URL and AI_API_KEY to .env.' })
+  }
+
+  try {
+    const safeHistory = Array.isArray(history)
+      ? history.slice(-8).map((message) => ({
+          role: message?.from === 'user' ? 'user' : 'assistant',
+          content: String(message?.text || '').slice(0, 2000),
+        }))
+      : []
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are SchoolSMS Assistant. Help a ${String(role)} user with school-management tasks. Be concise, practical, and never claim to have changed records. Ask for confirmation before destructive or financial actions.`,
+          },
+          ...safeHistory,
+          { role: 'user', content: String(prompt).trim() },
+        ],
+        temperature: 0.3,
+      }),
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) return res.status(502).json({ error: body?.error?.message || 'AI provider request failed.' })
+    const reply = body?.choices?.[0]?.message?.content
+    if (!reply) return res.status(502).json({ error: 'AI provider returned an empty response.' })
+    res.json({ reply: String(reply), model })
+  } catch (err) {
+    console.error('AI provider error:', err?.message || err)
+    res.status(502).json({ error: 'Could not reach the AI provider.' })
+  }
+})
+
 // Serve static files from dist (after build)
 const distPath = join(__dirname, 'dist')
 if (fs.existsSync(distPath)) {

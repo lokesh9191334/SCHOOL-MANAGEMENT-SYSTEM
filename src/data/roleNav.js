@@ -23,6 +23,7 @@ export const SUPER_ADMIN_NAV = [
   section('Support', '🎧', [
     item('/super-admin/tickets', 'Support Tickets', '✉'),
   ]),
+  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
   section('Account', '⚙️', [
     item('/settings/profile', 'Profile', '◫'),
     item('/settings/logout', 'Logout', '↦'),
@@ -89,6 +90,7 @@ export const ADMIN_NAV = [
     item('/approvals', 'Approvals', '✓'),
     item('/reports/campus', 'Reports', '▣'),
   ]),
+  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
   section('Settings', '⚙️', [
     item('/settings/profile', 'Profile', '◫'),
     item('/settings/logout', 'Logout', '↦'),
@@ -126,6 +128,7 @@ export const TEACHER_NAV = [
     item('/teacher/exams/results', 'Result Generation', '▣'),
     item('/teacher/exams/report-cards', 'Premium Report Cards', '▤'),
   ]),
+  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
   section('Account', '⚙️', [
     item('/settings/profile', 'Profile', '◫'),
     item('/settings/logout', 'Logout', '↦'),
@@ -161,6 +164,7 @@ export const PARENT_NAV = [
     item('/parent/transport/drop', 'Drop Point', '◎'),
     item('/parent/transport/allocation', 'Student Allocation', '↔'),
   ]),
+  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
   section('Account', '⚙️', [
     item('/settings/profile', 'Profile', '◫'),
     item('/settings/logout', 'Logout', '↦'),
