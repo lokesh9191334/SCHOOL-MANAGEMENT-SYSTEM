@@ -8,6 +8,8 @@ export function buildStudentRecord(formValues, index) {
   const last = formValues.lastName || 'Student'
   return {
     id: `STU-${1001 + index}`,
+    applicationId: formValues.applicationId || null,
+    parentInviteKey: formValues.parentInviteKey || null,
     title: `${first} ${last}`.trim(),
     subtitle: `Class ${cls}`,
     primary: formValues.guardianName || formValues.guardian || formValues.fatherName || 'Parent',

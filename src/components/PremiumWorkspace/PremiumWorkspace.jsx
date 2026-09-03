@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { notifyParentAttendance, resolveParentContact } from '../../services/parentNotify'
 import { createInviteKey } from '../../services/inviteKeys'
+import { getAuthUser } from '../../utils/session'
+import { STORAGE_KEYS } from '../../utils/constants'
+import { SEED_STUDENTS } from '../../data/seed'
 import './PremiumWorkspace.css'
 
 function toneForStatus(status, statusTones = {}) {
@@ -69,6 +72,14 @@ export default function PremiumWorkspace({ config }) {
   const [notifyEmail, setNotifyEmail] = useState(true)
   const [lastParentAlert, setLastParentAlert] = useState(null)
   const [issuedInvite, setIssuedInvite] = useState(null)
+  const authUser = getAuthUser()
+  const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
+  const childIds = students
+    .filter((student) => student.applicationId === authUser?.linkedId || student.id === authUser?.linkedId)
+    .map((student) => student.id)
+  const visibleRows = config.parentScoped && authUser?.role === 'parent'
+    ? rows.filter((row) => childIds.includes(row.studentId) || row.linkedId === authUser.linkedId)
+    : rows
 
   useEffect(() => {
     if (!toast) return
@@ -82,27 +93,27 @@ export default function PremiumWorkspace({ config }) {
 
   const stats = useMemo(() => {
     if (typeof config.computeStats === 'function') return config.computeStats(rows)
-    const total = rows.length
+    const total = visibleRows.length
     const byStatus = statusOptions.map((status) => ({
       label: status,
-      value: rows.filter((row) => row[statusKey] === status).length,
+      value: visibleRows.filter((row) => row[statusKey] === status).length,
       note: `${status} in ${title}`,
     }))
     return [{ label: 'Total', value: total, note: 'Records on file' }, ...byStatus.slice(0, 3)]
-  }, [rows, config, statusOptions, statusKey, title])
+  }, [visibleRows, config, statusOptions, statusKey, title])
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    return rows
+    return visibleRows
       .filter((row) => {
         if (statusFilter !== 'All' && row[statusKey] !== statusFilter) return false
         if (!q) return true
         return columns.some((col) => String(row[col.key] ?? '').toLowerCase().includes(q))
       })
       .sort((a, b) => String(a.title || a.name || a.id).localeCompare(String(b.title || b.name || b.id)))
-  }, [rows, searchQuery, statusFilter, statusKey, columns])
+  }, [visibleRows, searchQuery, statusFilter, statusKey, columns])
 
-  const selected = rows.find((row) => row.id === selectedId) ?? filtered[0] ?? null
+  const selected = visibleRows.find((row) => row.id === selectedId) ?? filtered[0] ?? null
 
   useEffect(() => {
     if (!selectedId && filtered[0]) setSelectedId(filtered[0].id)

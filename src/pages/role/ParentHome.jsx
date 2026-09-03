@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { SEED_ATTENDANCE, SEED_FEE_PAYMENTS, SEED_STUDENTS } from '../../data/seed'
+import { getAuthUser } from '../../utils/session'
 import './RoleHome.css'
 
 const cards = [
@@ -20,7 +21,8 @@ export default function ParentHome() {
   const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
   const [attendance] = usePersistentState(STORAGE_KEYS.attendance, SEED_ATTENDANCE)
   const [fees] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
-  const child = students[0]
+  const linkedId = getAuthUser()?.linkedId
+  const child = linkedId ? students.find((student) => student.applicationId === linkedId || student.id === linkedId) || null : null
   const childAttendance = useMemo(() => attendance.filter((row) => row.title === child?.title), [attendance, child?.title])
   const pendingFees = fees.filter((row) => row.status !== 'Paid').reduce((sum, row) => sum + Number(row.amount || 0), 0)
 
