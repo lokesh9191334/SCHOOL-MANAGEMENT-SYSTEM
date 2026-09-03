@@ -62,6 +62,7 @@ function readJsonFile(relPath, fallback) {
 function writeJsonFile(relPath, data) {
   ensureDataDir()
   const full = join(__dirname, relPath)
+  fs.mkdirSync(dirname(full), { recursive: true })
   fs.writeFileSync(full, JSON.stringify(data, null, 2), 'utf8')
 }
 
@@ -844,6 +845,22 @@ app.post('/api/exams', (req, res) => {
   const next = Array.isArray(list) ? [...list, exam] : [exam]
   writeJsonFile(join('data', 'exams.json'), next)
   res.json(exam)
+})
+
+app.get('/api/records/:key', (req, res) => {
+  const key = String(req.params.key || '')
+  if (!/^[A-Za-z0-9_-]+$/.test(key)) return res.status(400).json({ error: 'Invalid record store key.' })
+  const records = readJsonFile(join('data', 'records', `${key}.json`), [])
+  res.json(Array.isArray(records) ? records : [])
+})
+
+app.put('/api/records/:key', (req, res) => {
+  const key = String(req.params.key || '')
+  if (!/^[A-Za-z0-9_-]+$/.test(key)) return res.status(400).json({ error: 'Invalid record store key.' })
+  if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Record store must be an array.' })
+  if (JSON.stringify(req.body).length > 2_000_000) return res.status(413).json({ error: 'Record store is too large.' })
+  writeJsonFile(join('data', 'records', `${key}.json`), req.body)
+  res.json({ saved: true, count: req.body.length })
 })
 
 // Provider-agnostic AI proxy. The API key stays on the server and is never sent to the browser.

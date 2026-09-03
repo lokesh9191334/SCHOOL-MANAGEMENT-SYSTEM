@@ -17,6 +17,7 @@ dist-ssr
 
 # Runtime data may contain OTPs, email contents, and local user records.
 data/*.json
+data/records/*.json
 
 # Editor directories and files
 .vscode/*
