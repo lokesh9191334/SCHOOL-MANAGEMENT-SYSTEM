@@ -9,7 +9,7 @@ import './OnlinePaymentPage.css'
 
 const PAYMENT_SETTINGS_KEY = 'sms_payment_settings'
 const PAYMENT_RECORDS_KEY = 'sms_parent_payment_records'
-const defaultSettings = { holderName: 'School Management System', upiId: 'school@upi', mobile: '+91 90000 00000' }
+const defaultSettings = { holderName: '', upiId: '', mobile: '' }
 
 function receiptNumber() {
   return `RCP-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`
@@ -23,7 +23,7 @@ export default function ParentOnlinePaymentPage() {
   const child = user?.linkedId ? students.find((student) => student.id === user.linkedId || student.applicationId === user.linkedId) : null
   const childFees = child ? fees.filter((fee) => fee.studentId === child.id || fee.student === child.title) : []
   const due = childFees.filter((fee) => fee.status !== 'Paid').reduce((sum, fee) => sum + Number(fee.amount || 0), 0)
-  const [settings] = useState(() => {
+  const [settings, setSettings] = useState(() => {
     try {
       return { ...defaultSettings, ...JSON.parse(localStorage.getItem(PAYMENT_SETTINGS_KEY) || '{}') }
     } catch {
@@ -37,6 +37,13 @@ export default function ParentOnlinePaymentPage() {
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [message, setMessage] = useState('')
 
+  useEffect(() => {
+    fetch('/api/payment-config')
+      .then((response) => response.json())
+      .then((config) => setSettings((current) => ({ ...current, ...config })))
+      .catch(() => setMessage('Payment receiver details could not be loaded.'))
+  }, [])
+
   const upiLink = useMemo(() => `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName)}&am=${encodeURIComponent(amount || 0)}&cu=INR`, [settings, amount])
 
   useEffect(() => {
@@ -48,6 +55,7 @@ export default function ParentOnlinePaymentPage() {
   const startQr = async () => {
     if (!child) return setMessage('This parent account is not linked to a student yet.')
     if (!Number(amount) || Number(amount) <= 0) return setMessage('Enter a valid payment amount.')
+    if (!settings.upiId.trim()) return setMessage('School payment UPI ID is not configured. Ask the admin to add it first.')
     setQr(await QRCode.toDataURL(upiLink, { width: 260, margin: 2 }))
     setExpiresAt(Date.now() + 120000)
     setMessage('Scan the QR and submit the UTR/reference after payment.')

@@ -799,6 +799,14 @@ app.post('/api/fees', (req, res) => {
   res.json(payment)
 })
 
+app.get('/api/payment-config', (_req, res) => {
+  res.json({
+    holderName: process.env.PAYMENT_HOLDER_NAME || '',
+    upiId: process.env.PAYMENT_UPI_ID || '',
+    mobile: process.env.PAYMENT_MOBILE || '',
+  })
+})
+
 // API Routes - Exams
 app.get('/api/exams', (_req, res) => {
   res.json(readJsonFile(join('data', 'exams.json'), []))
