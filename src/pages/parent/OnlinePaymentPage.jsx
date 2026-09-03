@@ -44,6 +44,15 @@ export default function ParentOnlinePaymentPage() {
       .catch(() => setMessage('Payment receiver details could not be loaded.'))
   }, [])
 
+  useEffect(() => {
+    fetch('/api/payments')
+      .then((response) => response.json())
+      .then((remotePayments) => {
+        if (Array.isArray(remotePayments) && remotePayments.length) setPayments(remotePayments)
+      })
+      .catch(() => undefined)
+  }, [setPayments])
+
   const upiLink = useMemo(() => `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName)}&am=${encodeURIComponent(amount || 0)}&cu=INR`, [settings, amount])
 
   useEffect(() => {
@@ -66,6 +75,7 @@ export default function ParentOnlinePaymentPage() {
     if (!child || !reference.trim() || secondsLeft === 0) return setMessage('Enter the payment reference while the QR session is active.')
     const record = { id: `PAY-${Date.now()}`, receiptNo: receiptNumber(), studentId: child.id, studentName: child.title, className: child.subtitle, rollNo: child.rollNo || '—', parentName: user.name, amount: Number(amount), reference: reference.trim(), method: 'UPI', status: 'Verification pending', createdAt: new Date().toISOString() }
     setPayments((current) => [record, ...current])
+    fetch('/api/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => undefined)
     setReference('')
     setQr('')
     setExpiresAt(0)

@@ -807,6 +807,20 @@ app.get('/api/payment-config', (_req, res) => {
   })
 })
 
+app.get('/api/payments', (_req, res) => {
+  res.json(readJsonFile(join('data', 'payments.json'), []))
+})
+
+app.post('/api/payments', (req, res) => {
+  const payment = req.body && typeof req.body === 'object' ? { ...req.body, id: req.body.id || `PAY-${Date.now()}` } : null
+  if (!payment?.studentId || !payment.reference || !Number(payment.amount)) {
+    return res.status(400).json({ error: 'Student, amount and payment reference are required.' })
+  }
+  const payments = readJsonFile(join('data', 'payments.json'), [])
+  writeJsonFile(join('data', 'payments.json'), [payment, ...payments].slice(0, 500))
+  res.status(201).json(payment)
+})
+
 // API Routes - Exams
 app.get('/api/exams', (_req, res) => {
   res.json(readJsonFile(join('data', 'exams.json'), []))
