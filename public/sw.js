@@ -1,5 +1,5 @@
 /* SMS Progressive Web App service worker */
-const CACHE_VERSION = 'sms-shell-v1'
+const CACHE_VERSION = 'sms-shell-v2'
 const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png']
 
 self.addEventListener('install', (event) => {

@@ -7,7 +7,8 @@ async function parseResponse(res) {
     return JSON.parse(txt)
   } catch {
     if (!res.ok) {
-      return { error: res.status >= 500 ? 'Server is temporarily unavailable. Please try again.' : 'Request could not be completed.' }
+      if (res.status === 404) return { error: 'Login service is unavailable. Restart the API server.' }
+      return { error: res.status >= 500 ? 'Server is temporarily unavailable. Please try again.' : `Request failed (${res.status}).` }
     }
     return { error: 'Server returned an unreadable response. Please restart the app server.' }
   }
@@ -28,7 +29,7 @@ async function safeFetch(url, options) {
   try {
     return await fetch(url, options)
   } catch {
-    throw new Error('Cannot reach API server. Run “npm run server” in another terminal (port 5000), or use “npm run dev:all”.')
+    throw new Error('Cannot reach the login server. Make sure the API is running with npm run dev:all.')
   }
 }
 
