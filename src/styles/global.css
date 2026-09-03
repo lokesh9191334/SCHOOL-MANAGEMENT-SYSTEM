@@ -67,6 +67,37 @@ body {
   background: linear-gradient(112deg, #202020 0%, #3f3f3f 34%, #a8a9aa 62%, #e6e7e8 100%);
 }
 
+.auth-panel,
+.auth-premium-panel,
+.auth-form-card {
+  background: linear-gradient(145deg, rgba(31, 31, 31, 0.98), rgba(67, 67, 67, 0.96));
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #f3f3f3;
+}
+
+.auth-header h1,
+.auth-form-head h2,
+.auth-premium-header h1,
+.auth-form-card h2 {
+  color: #f7f7f7;
+}
+
+.auth-header p,
+.auth-form-head p,
+.auth-premium-header p,
+.auth-form-card p {
+  color: #c4c4c4;
+}
+
+.auth-form input,
+.auth-form-card input,
+.auth-form-card select,
+.auth-form-card textarea {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
 img,
 svg,
 video,
