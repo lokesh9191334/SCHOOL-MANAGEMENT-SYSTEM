@@ -819,6 +819,7 @@
 .auth-stage--login {
   position: relative;
   isolation: isolate;
+  justify-items: center;
   background: #242629;
 }
 
