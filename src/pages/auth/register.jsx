@@ -333,9 +333,10 @@ const RegisterPage = () => {
             </div>
           ) : (
             <div className="demo-mail-card">
-              <strong>OTP emailed to your inbox</strong>
+              <strong>Email provider accepted the OTP</strong>
               <p>
-                We sent a 6-digit code to <strong>{maskedEmail}</strong>. Check inbox and spam, then enter it below.
+                The 6-digit code was submitted for <strong>{maskedEmail}</strong>. Delivery can take a few minutes.
+                Check inbox, spam and Promotions. If it does not arrive, resend the OTP or edit the account email.
               </p>
             </div>
           )}

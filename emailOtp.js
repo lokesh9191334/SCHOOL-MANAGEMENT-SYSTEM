@@ -86,6 +86,13 @@ export function isSmtpConfigured() {
   return Boolean(getSmtpConfig())
 }
 
+export function wasRecipientAccepted(info, email) {
+  const normalizedEmail = String(email).trim().toLowerCase()
+  return Array.isArray(info?.accepted) && info.accepted.some(
+    (recipient) => String(recipient).trim().toLowerCase() === normalizedEmail,
+  )
+}
+
 export function allowDemoEmail() {
   return String(process.env.SMTP_ALLOW_DEMO || 'false').toLowerCase() === 'true'
 }
@@ -112,13 +119,16 @@ async function deliverMail({ to, subject, html, text, demoCode, purpose, logLabe
     })
 
     await transporter.verify()
-    await transporter.sendMail({
+    const result = await transporter.sendMail({
       from: smtp.from,
       to,
       subject: mailSubject,
       text,
       html,
     })
+    if (!wasRecipientAccepted(result, to)) {
+      throw new Error(`The mail server did not accept the recipient ${maskEmail(to)}.`)
+    }
 
     const outbox = readJson(OUTBOX_FILE, [])
     writeJson(OUTBOX_FILE, [
@@ -139,7 +149,7 @@ async function deliverMail({ to, subject, html, text, demoCode, purpose, logLabe
       delivery: 'smtp',
       maskedEmail: maskEmail(to),
       demoOtp: undefined,
-      message: `Sent to ${maskEmail(to)}. Check your inbox (and spam folder).`,
+      message: `Your email provider accepted the OTP message for ${maskEmail(to)}. Delivery may take a few minutes; check your inbox, spam and Promotions folders.`,
     }
   } catch (err) {
     const detail = err?.message || String(err)
