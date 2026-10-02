@@ -4,9 +4,17 @@ import cors from 'cors'
 import bcrypt from 'bcryptjs'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
+import { Buffer } from 'node:buffer'
+import process from 'node:process'
 import { fileURLToPath } from 'url'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'path'
 import fs from 'fs'
+import {
+  getDataDirectory,
+  hasVercelBlobCredentials,
+  vercelBlobDataMiddleware,
+} from './vercelBlobStore.js'
 import {
   clearPending,
   generateOtp,
@@ -37,7 +45,7 @@ const INVITE_ROLES = new Set(['teacher', 'parent'])
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const dataDir = resolve(process.env.DATA_DIR || join(__dirname, 'data'))
+const dataDir = getDataDirectory()
 
 function ensureDataDir() {
   if (!fs.existsSync(dataDir)) {
@@ -84,7 +92,99 @@ function writeJsonFile(relPath, data) {
 const app = express()
 const PORT = process.env.PORT || 5000
 
+function hasAuthTokenSecret() {
+  return Buffer.byteLength(process.env.AUTH_TOKEN_SECRET || '') >= 32
+}
+
+function authTokenSecret() {
+  if (hasAuthTokenSecret()) return process.env.AUTH_TOKEN_SECRET
+  if (process.env.VERCEL) return null
+  return 'local-development-only-school-management-auth-secret'
+}
+
+function signAuthPayload(payload) {
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  const signature = createHmac('sha256', authTokenSecret()).update(encoded).digest('base64url')
+  return `${encoded}.${signature}`
+}
+
+function requireRoles(...roles) {
+  return (req, res, next) => {
+    const header = String(req.get('authorization') || '')
+    const match = header.match(/^Bearer ([A-Za-z0-9_.-]+)$/)
+    const secret = authTokenSecret()
+    if (!match || !secret) {
+      return res.status(401).json({ error: 'Sign in is required to access this data.' })
+    }
+
+    const [encoded, providedSignature] = match[1].split('.')
+    if (!encoded || !providedSignature) {
+      return res.status(401).json({ error: 'Your sign-in session is invalid. Sign in again.' })
+    }
+
+    const expectedSignature = createHmac('sha256', secret).update(encoded).digest()
+    let actualSignature
+    try {
+      actualSignature = Buffer.from(providedSignature, 'base64url')
+    } catch {
+      return res.status(401).json({ error: 'Your sign-in session is invalid. Sign in again.' })
+    }
+    if (
+      actualSignature.length !== expectedSignature.length ||
+      !timingSafeEqual(actualSignature, expectedSignature)
+    ) {
+      return res.status(401).json({ error: 'Your sign-in session is invalid. Sign in again.' })
+    }
+
+    let user
+    try {
+      user = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
+    } catch {
+      return res.status(401).json({ error: 'Your sign-in session is invalid. Sign in again.' })
+    }
+    if (!user.id || !user.email || !user.role || user.expiresAt <= Date.now()) {
+      return res.status(401).json({ error: 'Your sign-in session expired. Sign in again.' })
+    }
+    if (roles.length && !roles.includes(user.role)) {
+      return res.status(403).json({ error: 'Your account does not have access to this data.' })
+    }
+    req.authUser = user
+    next()
+  }
+}
+
 app.get('/api/health', (_req, res) => {
+  if (process.env.VERCEL && !hasVercelBlobCredentials()) {
+    return res.status(503).json({
+      status: 'error',
+      error: 'Connect a private Vercel Blob store to enable persistent API storage.',
+    })
+  }
+  if (process.env.VERCEL && !hasAuthTokenSecret()) {
+    return res.status(503).json({
+      status: 'error',
+      error: 'Set AUTH_TOKEN_SECRET to a random secret of at least 32 characters.',
+    })
+  }
+  if (
+    process.env.VERCEL &&
+    (
+      !process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL ||
+      !process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD ||
+      process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD.length < 12
+    )
+  ) {
+    return res.status(503).json({
+      status: 'error',
+      error: 'Set BOOTSTRAP_SUPER_ADMIN_EMAIL and a BOOTSTRAP_SUPER_ADMIN_PASSWORD of at least 12 characters.',
+    })
+  }
+  if (process.env.VERCEL && !isSmtpConfigured()) {
+    return res.status(503).json({
+      status: 'error',
+      error: 'Configure SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM to deliver login codes.',
+    })
+  }
   res.json({ status: 'ok' })
 })
 
@@ -98,15 +198,22 @@ app.use(
 app.use(
   express.json({
     limit: '10mb',
-    verify: (req, _res, buf) => {
-      try {
-        req.rawBody = buf && buf.toString()
-      } catch {}
-    },
   })
 )
 
 app.use(express.urlencoded({ extended: true }))
+app.use(vercelBlobDataMiddleware)
+
+app.use('/api/records', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/students', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/teachers', requireRoles('admin', 'super_admin'))
+app.use('/api/attendance', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/fees', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/exams', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/school-requests', requireRoles('super_admin'))
+app.use('/api/payment-config', requireRoles('admin', 'super_admin', 'teacher', 'parent'))
+app.use('/api/payments', requireRoles('admin', 'super_admin', 'parent'))
+app.use('/api/ai/chat', requireRoles('admin', 'super_admin', 'teacher', 'parent'))
 
 app.get('/api/pincode/:code', async (req, res) => {
   const code = String(req.params.code).replace(/\D/g, '')
@@ -229,13 +336,58 @@ app.put('/api/students', (req, res) => {
 
 // Simple file-based users store and auth endpoints
 const USERS_FILE = join('data', 'users.json')
-const SCHOOL_REQUESTS_FILE = join('data', 'school_requests.json')
-
 function issueAuthToken(user) {
+  const secret = authTokenSecret()
+  if (!secret) throw new Error('AUTH_TOKEN_SECRET is not configured for this deployment.')
+  const expiresAt = Date.now() + 12 * 60 * 60 * 1000
   return {
-    token: `demo-token-${Date.now()}`,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role || 'admin' },
+    token: signAuthPayload({
+      id: user.id,
+      email: user.email,
+      role: user.role || 'admin',
+      expiresAt,
+    }),
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role || 'admin',
+      ...(user.linkedId ? { linkedId: user.linkedId } : {}),
+      ...(user.accountStatus ? { accountStatus: user.accountStatus } : {}),
+      ...(user.subscriptionStatus ? { subscriptionStatus: user.subscriptionStatus } : {}),
+      ...(user.subscriptionPlan ? { subscriptionPlan: user.subscriptionPlan } : {}),
+    },
   }
+}
+
+function ensureBootstrapSuperAdmin(users) {
+  if (
+    !process.env.VERCEL ||
+    users.some((user) => user.role === 'super_admin') ||
+    !process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL ||
+    !process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD ||
+    process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD.length < 12
+  ) {
+    return users
+  }
+
+  const email = process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL.trim().toLowerCase()
+  if (users.some((user) => String(user.email).toLowerCase() === email)) return users
+
+  const user = {
+    id: `super-admin-${Date.now()}`,
+    email,
+    name: process.env.BOOTSTRAP_SUPER_ADMIN_NAME || 'Super Admin',
+    role: 'super_admin',
+    passwordHash: bcrypt.hashSync(process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD, 12),
+    emailVerified: true,
+    accountStatus: 'Active',
+    subscriptionStatus: 'Active',
+    twoFactor: { enabled: true, method: 'email-otp' },
+  }
+  const next = [...users, user]
+  writeJsonFile(join('data', 'users.json'), next)
+  return next
 }
 
 /** Step 1 — Create account: validate + email OTP (account created only after OTP verify) */
@@ -248,6 +400,11 @@ app.post('/api/auth/register', async (req, res) => {
     const normalizedRole = String(role || 'admin').trim().toLowerCase()
     if (!ALLOWED_REGISTER_ROLES.has(normalizedRole)) {
       return res.status(400).json({ error: 'Invalid role. Choose Super Admin, Admin, Teacher or Parent.' })
+    }
+    if (process.env.VERCEL && normalizedRole === 'super_admin') {
+      return res.status(403).json({
+        error: 'Super Admin accounts must be initialized by the Vercel project owner.',
+      })
     }
 
     let invite = null
@@ -422,7 +579,7 @@ app.post('/api/auth/register/verify', async (req, res) => {
 })
 
 /** Create / lookup special keys for teacher & parent account claim */
-app.get('/api/invite-keys', (_req, res) => {
+app.get('/api/invite-keys', requireRoles('admin', 'super_admin'), (_req, res) => {
   res.json(readInvites())
 })
 
@@ -461,7 +618,7 @@ app.get('/api/invite-keys/:key', (req, res) => {
   })
 })
 
-app.post('/api/invite-keys', (req, res) => {
+app.post('/api/invite-keys', requireRoles('admin', 'super_admin'), (req, res) => {
   try {
     const { role, key, name, email, phone, linkedId, meta } = req.body || {}
     if (!['teacher', 'parent'].includes(role)) {
@@ -481,7 +638,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
 
-    const users = readJsonFile(join('data', 'users.json'), [])
+    const users = ensureBootstrapSuperAdmin(readJsonFile(join('data', 'users.json'), []))
     const normalizedEmail = String(email).trim().toLowerCase()
     const user = users.find((u) => String(u.email).toLowerCase() === normalizedEmail)
     if (!user) return res.status(401).json({ error: 'Wrong username or email address.' })
@@ -885,21 +1042,44 @@ app.get('/api/payment-config', (_req, res) => {
   })
 })
 
-app.get('/api/payments', (_req, res) => {
-  res.json(readJsonFile(join('data', 'payments.json'), []))
+app.get('/api/payments', (req, res) => {
+  const payments = readJsonFile(join('data', 'payments.json'), [])
+  if (req.authUser.role === 'parent') {
+    const user = readJsonFile(USERS_FILE, []).find((item) => item.id === req.authUser.id)
+    const linkedId = user?.linkedId
+    return res.json(linkedId
+      ? payments.filter((payment) => String(payment.studentId) === String(linkedId))
+      : [])
+  }
+  res.json(payments)
 })
 
 app.post('/api/payments', (req, res) => {
   const payment = req.body && typeof req.body === 'object' ? { ...req.body, id: req.body.id || `PAY-${Date.now()}` } : null
-  if (!payment?.studentId || !payment.reference || !Number(payment.amount)) {
+  const amount = Number(payment?.amount)
+  if (
+    !payment?.studentId ||
+    !String(payment.reference || '').trim() ||
+    !Number.isFinite(amount) ||
+    amount <= 0
+  ) {
     return res.status(400).json({ error: 'Student, amount and payment reference are required.' })
+  }
+  if (req.authUser.role === 'parent') {
+    const user = readJsonFile(USERS_FILE, []).find((item) => item.id === req.authUser.id)
+    if (!user?.linkedId || String(payment.studentId) !== String(user.linkedId)) {
+      return res.status(403).json({ error: 'You can submit payments only for your linked student.' })
+    }
+    payment.parentName = user.name
+    payment.status = 'Verification pending'
+    payment.reviewedAt = null
   }
   const payments = readJsonFile(join('data', 'payments.json'), [])
   writeJsonFile(join('data', 'payments.json'), [payment, ...payments].slice(0, 500))
   res.status(201).json(payment)
 })
 
-app.patch('/api/payments/:id', (req, res) => {
+app.patch('/api/payments/:id', requireRoles('admin', 'super_admin'), (req, res) => {
   const payments = readJsonFile(join('data', 'payments.json'), [])
   const index = payments.findIndex((payment) => payment.id === req.params.id)
   if (index < 0) return res.status(404).json({ error: 'Payment not found.' })

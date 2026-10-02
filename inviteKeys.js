@@ -1,10 +1,8 @@
-import { dirname, join, resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'node:path'
 import fs from 'fs'
+import { getDataDirectory } from './vercelBlobStore.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const dataDir = resolve(process.env.DATA_DIR || join(__dirname, 'data'))
+const dataDir = getDataDirectory()
 const INVITES_FILE = join(dataDir, 'inviteKeys.json')
 
 const ROLE_PREFIX = {
@@ -47,7 +45,7 @@ export function generateInviteKey(role = 'teacher') {
 }
 
 /** 7-char admin login key, e.g. lok@010 — changes every login */
-export function generateAdminLoginKey(_role = 'admin') {
+export function generateAdminLoginKey() {
   const letters = 'abcdefghijklmnopqrstuvwxyz'
   let prefix = ''
   for (let i = 0; i < 3; i += 1) {

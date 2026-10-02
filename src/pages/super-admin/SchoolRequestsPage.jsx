@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import './SchoolRequestsPage.css'
 
 const plans = ['Starter', 'Growth', 'Enterprise']
@@ -6,12 +7,12 @@ const plans = ['Starter', 'Growth', 'Enterprise']
 export default function SchoolRequestsPage() {
   const [requests, setRequests] = useState([])
   const [message, setMessage] = useState('Loading approval requests...')
-  const load = () => fetch('/api/school-requests').then((response) => response.json()).then((data) => { setRequests(Array.isArray(data) ? data : []); setMessage('') }).catch(() => setMessage('Could not load approval requests.'))
+  const load = () => fetch('/api/school-requests', { headers: getApiAuthHeaders() }).then((response) => response.json()).then((data) => { setRequests(Array.isArray(data) ? data : []); setMessage('') }).catch(() => setMessage('Could not load approval requests.'))
   useEffect(load, [])
 
   const review = async (request, status) => {
     const plan = document.getElementById(`plan-${request.id}`)?.value || ''
-    const response = await fetch(`/api/school-requests/${request.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, plan }) })
+    const response = await fetch(`/api/school-requests/${request.id}`, { method: 'PATCH', headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ status, plan }) })
     const body = await response.json()
     if (!response.ok) return setMessage(body.error || 'Could not update request.')
     setRequests((current) => current.map((item) => (item.id === body.id ? body : item)))

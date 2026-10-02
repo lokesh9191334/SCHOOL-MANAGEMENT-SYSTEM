@@ -1,12 +1,11 @@
 import bcrypt from 'bcryptjs'
 import fs from 'fs'
 import nodemailer from 'nodemailer'
-import { dirname, join, resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'node:path'
+import process from 'node:process'
+import { getDataDirectory } from './vercelBlobStore.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const dataDir = resolve(process.env.DATA_DIR || join(__dirname, 'data'))
+const dataDir = getDataDirectory()
 const OUTBOX_FILE = join(dataDir, 'email_outbox.json')
 const PENDING_FILE = join(dataDir, 'auth_pending.json')
 
@@ -158,7 +157,7 @@ async function deliverMail({ to, subject, html, text, demoCode, purpose, logLabe
       })
     }
 
-    throw new Error(`Could not send email: ${detail}. Check SMTP settings in .env.`)
+    throw new Error(`Could not send email: ${detail}. Check SMTP settings in .env.`, { cause: err })
   }
 }
 

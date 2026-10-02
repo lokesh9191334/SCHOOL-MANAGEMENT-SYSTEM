@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import './PaymentReviewPage.css'
 
 export default function PaymentReviewPage() {
   const [payments, setPayments] = useState([])
   const [message, setMessage] = useState('Loading payment submissions...')
 
-  const load = () => fetch('/api/payments').then((response) => response.json()).then((data) => { setPayments(Array.isArray(data) ? data : []); setMessage('') }).catch(() => setMessage('Could not load payment submissions.'))
+  const load = () => fetch('/api/payments', { headers: getApiAuthHeaders() }).then((response) => response.json()).then((data) => { setPayments(Array.isArray(data) ? data : []); setMessage('') }).catch(() => setMessage('Could not load payment submissions.'))
   useEffect(load, [])
 
   const review = async (payment, status) => {
-    const response = await fetch(`/api/payments/${payment.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
+    const response = await fetch(`/api/payments/${payment.id}`, { method: 'PATCH', headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ status }) })
     const updated = await response.json()
     if (!response.ok) return setMessage(updated.error || 'Could not update payment.')
     setPayments((current) => current.map((item) => (item.id === updated.id ? updated : item)))

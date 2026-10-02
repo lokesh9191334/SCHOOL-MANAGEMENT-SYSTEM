@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppShell from './layouts/AppShell'
 import RequireAuth from './components/RequireAuth'
 import InstallApp from './components/InstallApp'
+import PersistenceNotice from './components/PersistenceNotice'
 import './App-premium.css'
 import './styles/global.css'
 import './styles/modules-premium.css'
@@ -65,6 +66,7 @@ function App() {
   return (
     <BrowserRouter>
       <InstallApp />
+      <PersistenceNotice />
       <Routes>
         <Route path="/auth">
           <Route path="login" element={<LoginPage />} />

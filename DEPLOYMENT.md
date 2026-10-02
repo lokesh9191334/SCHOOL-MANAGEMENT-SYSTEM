@@ -1,27 +1,39 @@
-# Public deployment
+# Deploy the website, API, and data on Vercel
 
-The website is hosted by Vercel. The Express API and its JSON files need a
-separate Node.js host with persistent disk storage; Vercel's static website
-deployment does not run `server.js` or preserve local files.
+Vercel detects the Express server in `server.js` and runs it as a Vercel
+Function. The same Vercel deployment serves the built website and `/api/*`.
+Production JSON data is stored in a **private Vercel Blob store**, not in the
+function's temporary filesystem.
 
-## Deploy the API to Render
+## Connect Vercel Blob
 
-1. Push the project changes to the GitHub branch used for deployment.
-2. In Render, create a new Blueprint and select this repository. Render will
-   read `render.yaml` and create the API service with a persistent disk.
-   The Starter service and persistent disk are paid Render resources.
-3. In the Render service's environment settings, enter the real SMTP values
-   from your private `.env` file for `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and
-   `SMTP_FROM`. Never commit `.env` or paste its credentials into source code.
-4. Wait for `https://schoolmanagementsystem-api-20261002.onrender.com/api/health` to
-   return `{"status":"ok"}`. If Render assigns a different service URL, update
-   the destination in `vercel.json` to that exact URL.
-5. Deploy the same branch to Vercel. Its `/api/*` rewrite forwards browser API
-   requests to Render, keeping the frontend API paths same-origin.
-6. Verify `https://www.schoolmanagementsystem.me/api/health`, then test account
-   registration/login and student registration. New server-side JSON data is
-   stored on Render's persistent disk at `/var/data`.
+1. Push the app changes to the GitHub branch connected to the Vercel project.
+2. In the Vercel project, open **Storage** and create a **private Blob** store.
+3. Connect that store to this project and enable it for **Production** and
+   **Preview**. Vercel provides the storage credentials to the server function.
+4. Add these environment variables in the Vercel project (Production and
+   Preview), then redeploy:
+   - `AUTH_TOKEN_SECRET`: a newly generated random secret with at least 32
+     characters.
+   - `BOOTSTRAP_SUPER_ADMIN_EMAIL` and `BOOTSTRAP_SUPER_ADMIN_PASSWORD` (at
+     least 12 characters): the initial owner login. On its first login request,
+     the app creates this account in the private Blob store. Optionally set
+     `BOOTSTRAP_SUPER_ADMIN_NAME`.
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, optionally `SMTP_FROM`
+     and `SMTP_SECURE`: a real email provider is required because admin login
+     sends an OTP and a rotating special key. Keep SMTP credentials in Vercel
+     Environment Variables, never in client-prefixed variables.
+5. Check `https://www.schoolmanagementsystem.me/api/health` returns
+   `{"status":"ok"}`, then sign in with the bootstrap owner account and confirm
+   a test student record appears after saving and reloading.
 
-The local `data/` files are not deployed automatically. The deployed API starts
-with its own data directory; create or register the needed accounts on the
-deployed site after SMTP is configured.
+The Blob token is used only by the server and must never use a `VITE_` prefix
+or be committed to Git. Vercel Blob has usage limits and may incur charges
+according to the Vercel plan and current storage pricing.
+
+The private Blob store starts empty. Existing local `data/*.json` files and
+browser-only student records are not automatically copied into it.
+
+The app detects a concurrent change to the same JSON file and returns an error
+instead of silently overwriting newer data. This file-based store is intended
+for light usage; it is not a transactional database.

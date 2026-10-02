@@ -1,8 +1,9 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://schoolmanagementsystem-api-20261002.onrender.com/api/$1"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "functions": {
+    "server.js": {
+      "includeFiles": "dist/**"
     }
-  ]
+  }
 }

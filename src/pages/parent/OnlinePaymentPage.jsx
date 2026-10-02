@@ -5,10 +5,10 @@ import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { SEED_FEE_PAYMENTS, SEED_STUDENTS } from '../../data/seed'
 import { getAuthUser } from '../../utils/session'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import './OnlinePaymentPage.css'
 
 const PAYMENT_SETTINGS_KEY = 'sms_payment_settings'
-const PAYMENT_RECORDS_KEY = 'sms_parent_payment_records'
 const defaultSettings = { holderName: '', upiId: '', mobile: '' }
 
 function receiptNumber() {
@@ -19,7 +19,7 @@ export default function ParentOnlinePaymentPage() {
   const user = getAuthUser()
   const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
   const [fees] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
-  const [payments, setPayments] = usePersistentState(PAYMENT_RECORDS_KEY, [])
+  const [payments, setPayments] = useState([])
   const child = user?.linkedId ? students.find((student) => student.id === user.linkedId || student.applicationId === user.linkedId) : null
   const childFees = child ? fees.filter((fee) => fee.studentId === child.id || fee.student === child.title) : []
   const due = childFees.filter((fee) => fee.status !== 'Paid').reduce((sum, fee) => sum + Number(fee.amount || 0), 0)
@@ -38,20 +38,22 @@ export default function ParentOnlinePaymentPage() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    fetch('/api/payment-config')
+    fetch('/api/payment-config', { headers: getApiAuthHeaders() })
       .then((response) => response.json())
       .then((config) => setSettings((current) => ({ ...current, ...config })))
       .catch(() => setMessage('Payment receiver details could not be loaded.'))
   }, [])
 
   useEffect(() => {
-    fetch('/api/payments')
-      .then((response) => response.json())
-      .then((remotePayments) => {
-        if (Array.isArray(remotePayments) && remotePayments.length) setPayments(remotePayments)
+    fetch('/api/payments', { headers: getApiAuthHeaders() })
+      .then(async (response) => {
+        const remotePayments = await response.json()
+        if (!response.ok) throw new Error(remotePayments?.error || 'Payment history could not be loaded.')
+        if (!Array.isArray(remotePayments)) throw new Error('The server returned an invalid payment history.')
+        setPayments(remotePayments)
       })
-      .catch(() => undefined)
-  }, [setPayments])
+      .catch((error) => setMessage(error.message || 'Payment history could not be loaded.'))
+  }, [])
 
   const upiLink = useMemo(() => `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName)}&am=${encodeURIComponent(amount || 0)}&cu=INR`, [settings, amount])
 
@@ -70,12 +72,23 @@ export default function ParentOnlinePaymentPage() {
     setMessage('Scan the QR and submit the UTR/reference after payment.')
   }
 
-  const submitPayment = (event) => {
+  const submitPayment = async (event) => {
     event.preventDefault()
     if (!child || !reference.trim() || secondsLeft === 0) return setMessage('Enter the payment reference while the QR session is active.')
     const record = { id: `PAY-${Date.now()}`, receiptNo: receiptNumber(), studentId: child.id, studentName: child.title, className: child.subtitle, rollNo: child.rollNo || '—', parentName: user.name, amount: Number(amount), reference: reference.trim(), method: 'UPI', status: 'Verification pending', createdAt: new Date().toISOString() }
-    setPayments((current) => [record, ...current])
-    fetch('/api/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => undefined)
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(record),
+      })
+      const saved = await response.json()
+      if (!response.ok) throw new Error(saved?.error || 'Payment submission could not be saved.')
+      setPayments((current) => [saved, ...current])
+    } catch (error) {
+      setMessage(error.message || 'Payment submission could not be saved. Please try again.')
+      return
+    }
     setReference('')
     setQr('')
     setExpiresAt(0)

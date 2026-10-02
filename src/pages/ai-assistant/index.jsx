@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAuthUser, roleLabel } from '../../utils/session'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import './styles.css'
 
 const rolePrompts = {
@@ -57,7 +58,7 @@ const AIAssistantPage = () => {
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ prompt, role, history: messages }),
       })
       const body = await response.json().catch(() => ({}))

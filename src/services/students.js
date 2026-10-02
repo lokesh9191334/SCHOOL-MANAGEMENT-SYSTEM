@@ -1,11 +1,15 @@
 import { STORAGE_KEYS } from '../utils/constants'
+import { getApiAuthHeaders } from './apiAuth'
 
 const API = `/api/records/${encodeURIComponent(STORAGE_KEYS.students)}`
 
 async function requestStudents(url, options) {
   let response
   try {
-    response = await fetch(url, options)
+    response = await fetch(url, {
+      ...options,
+      headers: getApiAuthHeaders(options?.headers),
+    })
   } catch {
     throw new Error('Cannot reach the API server. Start the website with “npm run dev:all”.')
   }
@@ -17,14 +21,6 @@ async function requestStudents(url, options) {
   return body
 }
 
-function readLocalStudents() {
-  const raw = localStorage.getItem(STORAGE_KEYS.students)
-  if (!raw) return []
-  const students = JSON.parse(raw)
-  if (!Array.isArray(students)) throw new Error('Saved student data is invalid. Please reset the student list.')
-  return students
-}
-
 function writeLocalStudents(students) {
   localStorage.setItem(STORAGE_KEYS.students, JSON.stringify(students))
 }
@@ -32,19 +28,8 @@ function writeLocalStudents(students) {
 export const fetchStudents = async () => {
   const saved = await requestStudents(API)
   if (!Array.isArray(saved)) throw new Error('The API returned an invalid student list.')
-
-  const savedIds = new Set(saved.map((student) => String(student.id)))
-  const localOnly = readLocalStudents().filter((student) => !savedIds.has(String(student.id)))
-  const students = [...saved, ...localOnly]
-  if (localOnly.length) {
-    await requestStudents(API, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(students),
-    })
-  }
-  writeLocalStudents(students)
-  return students
+  writeLocalStudents(saved)
+  return saved
 }
 
 export const saveStudent = async (student) => {

@@ -28,7 +28,8 @@ npm run server
 ```
 Runs on: `http://localhost:5000`
 
-For the public Vercel + Render setup, follow [DEPLOYMENT.md](./DEPLOYMENT.md).
+For the public Vercel deployment and private Vercel Blob storage setup, follow
+[DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Project Structure
 

@@ -1,3 +1,5 @@
+import { getApiAuthHeaders } from './apiAuth'
+
 const API = '/api/invite-keys'
 
 async function parseResponse(res) {
@@ -25,7 +27,7 @@ export function generateLocalInviteKey(role = 'teacher') {
 export const createInviteKey = async (payload) => {
   const res = await fetch(API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   })
   const body = await parseResponse(res)
