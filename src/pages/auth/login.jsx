@@ -131,6 +131,7 @@ const LoginPage = () => {
   return (
     <AuthShell
       mode="login"
+      stageClassName={otpStep ? 'auth-stage--login-verify' : ''}
       kicker="Secure sign in"
       title={
         otpStep

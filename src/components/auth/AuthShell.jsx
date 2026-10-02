@@ -7,9 +7,10 @@ export default function AuthShell({
   children,
   footer,
   mode = 'login',
+  stageClassName = '',
 }) {
   return (
-    <div className={`auth-stage auth-stage--${mode}`}>
+    <div className={`auth-stage auth-stage--${mode} ${stageClassName}`.trim()}>
       <section className={`auth-form-pane auth-form-pane--solo auth-form-pane--${mode}`}>
         <div className="auth-form-card">
           <header className="auth-form-head">
