@@ -9,7 +9,7 @@ export default function AuthShell({
   mode = 'login',
 }) {
   return (
-    <div className="auth-stage">
+    <div className={`auth-stage auth-stage--${mode}`}>
       <section className={`auth-form-pane auth-form-pane--solo auth-form-pane--${mode}`}>
         <div className="auth-form-card">
           <header className="auth-form-head">

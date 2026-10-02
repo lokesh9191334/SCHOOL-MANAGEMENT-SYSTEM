@@ -51,13 +51,6 @@ const RegisterPage = () => {
     return () => window.clearTimeout(timer)
   }, [resendIn])
 
-  useEffect(() => {
-    if (!needsInvite) {
-      setInviteHint('')
-      setInviteError('')
-    }
-  }, [needsInvite])
-
   const applyInvite = async (rawKey) => {
     const key = String(rawKey || '').trim()
     if (!needsInvite || !key) {
@@ -190,7 +183,7 @@ const RegisterPage = () => {
       subtitle={
         otpStep
           ? `We emailed a 6-digit code to ${maskedEmail}. Account is created only after successful OTP verification.`
-          : 'Choose your role. Teachers and parents must enter the special key issued by school admin.'
+          : 'Create your school account. Teachers and parents need an admin-issued key.'
       }
       footer={
         <>
@@ -232,8 +225,7 @@ const RegisterPage = () => {
                 required
               />
               <p className="auth-helper">
-                Admin generates this key when adding a teacher or completing student admission. Enter it to claim your
-                linked account.
+                Get this one-time key from your school admin.
               </p>
               {inviteHint ? <div className="auth-success">{inviteHint}</div> : null}
               {inviteError ? <div className="auth-error">{inviteError}</div> : null}
@@ -319,7 +311,7 @@ const RegisterPage = () => {
           </label>
 
           <p className="auth-helper">
-            No account is created until the email OTP is verified. Teacher/Parent keys can be used only once.
+            Your account is created after email verification.
           </p>
 
           {error ? <div className="auth-error">{error}</div> : null}
