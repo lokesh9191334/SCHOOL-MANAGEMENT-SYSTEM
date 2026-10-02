@@ -823,6 +823,10 @@
   background: #242629;
 }
 
+.auth-stage--register {
+  justify-items: center;
+}
+
 .auth-stage--login::before,
 .auth-stage--login::after {
   position: fixed;
