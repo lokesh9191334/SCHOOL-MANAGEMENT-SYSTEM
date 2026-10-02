@@ -800,3 +800,45 @@
     align-items: center;
   }
 }
+
+.auth-stage--login,
+.auth-stage--register,
+.auth-stage--forgot {
+  align-items: center;
+  justify-items: end;
+  padding: clamp(20px, 4vh, 44px) clamp(24px, 7vw, 112px);
+  background-color: #101a2d;
+  background-image:
+    linear-gradient(90deg, rgba(8, 19, 40, 0.12) 0%, rgba(8, 19, 40, 0.02) 54%, rgba(8, 19, 40, 0.2) 100%),
+    url('/images/auth-school-background.jpg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.auth-stage--login .auth-form-pane,
+.auth-stage--register .auth-form-pane,
+.auth-stage--forgot .auth-form-pane {
+  margin: 0;
+}
+
+.auth-stage--login .auth-form-card,
+.auth-stage--register .auth-form-card,
+.auth-stage--forgot .auth-form-card {
+  border-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@media (max-width: 760px) {
+  .auth-stage--login,
+  .auth-stage--register,
+  .auth-stage--forgot {
+    justify-items: center;
+    padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
+    background-image:
+      linear-gradient(rgba(8, 19, 40, 0.2), rgba(8, 19, 40, 0.32)),
+      url('/images/auth-school-background.jpg');
+    background-position: 68% center;
+  }
+}
