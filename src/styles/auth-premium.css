@@ -817,12 +817,34 @@
 }
 
 .auth-stage--login {
-  background-color: #0b172a;
-  background-image:
-    linear-gradient(90deg, rgba(7, 19, 38, 0.03) 0%, rgba(7, 19, 38, 0.12) 52%, rgba(7, 19, 38, 0.28) 100%),
-    url('/images/login-campus-background.svg');
-  background-position: center;
-  background-size: cover;
+  position: relative;
+  isolation: isolate;
+  background: #242629;
+}
+
+.auth-stage--login::before,
+.auth-stage--login::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+}
+
+.auth-stage--login::before {
+  background: url('/images/login-campus-photo.jpg') center / cover no-repeat;
+  filter: grayscale(1) contrast(0.96);
+  opacity: 0.86;
+}
+
+.auth-stage--login::after {
+  background:
+    linear-gradient(105deg, rgba(248, 249, 250, 0.08) 0%, rgba(220, 222, 224, 0.12) 48%, rgba(25, 27, 30, 0.34) 100%);
+}
+
+.auth-stage--login > * {
+  position: relative;
+  z-index: 1;
 }
 
 .auth-stage--login .auth-form-pane,
@@ -853,10 +875,16 @@
   }
 
   .auth-stage--login {
-    background-image:
-      linear-gradient(rgba(7, 19, 38, 0.22), rgba(7, 19, 38, 0.48)),
-      url('/images/login-campus-background.svg');
-    background-position: 35% center;
-    background-size: cover;
+    background: #343638;
+  }
+
+  .auth-stage--login::before {
+    background-position: 42% center;
+    opacity: 0.8;
+  }
+
+  .auth-stage--login::after {
+    background:
+      linear-gradient(180deg, rgba(248, 249, 250, 0.1) 0%, rgba(205, 208, 211, 0.08) 46%, rgba(24, 26, 29, 0.36) 100%);
   }
 }
