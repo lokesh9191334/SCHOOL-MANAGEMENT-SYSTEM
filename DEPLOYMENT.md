@@ -1,7 +1,7 @@
 # Deploy the website, API, and data on Vercel
 
-Vercel detects the Express server in `server.js` and runs it as a Vercel
-Function. The same Vercel deployment serves the built website and `/api/*`.
+Vercel serves the Vite build from `dist/` and routes `/api/*` to the catch-all
+function in `api/[...path].js`, which imports the Express app from `server.js`.
 Production JSON data is stored in a **private Vercel Blob store**, not in the
 function's temporary filesystem.
 

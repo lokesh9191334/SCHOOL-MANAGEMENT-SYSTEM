@@ -1189,9 +1189,13 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: status < 500 ? err.message : 'Internal server error' })
 })
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`School Management System server running on http://localhost:${PORT}`)
-  console.log(`Phone / LAN: open http://<your-pc-ip>:${PORT} (same Wi-Fi)`)
-  console.log(`API: http://localhost:${PORT}/api/`)
-  console.log(`Email OTP: ${isSmtpConfigured() ? 'SMTP configured' : 'SMTP not configured'}`)
-})
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`School Management System server running on http://localhost:${PORT}`)
+    console.log(`Phone / LAN: open http://<your-pc-ip>:${PORT} (same Wi-Fi)`)
+    console.log(`API: http://localhost:${PORT}/api/`)
+    console.log(`Email OTP: ${isSmtpConfigured() ? 'SMTP configured' : 'SMTP not configured'}`)
+  })
+}
+
+export default app
