@@ -132,13 +132,17 @@ const LoginPage = () => {
     <AuthShell
       mode="login"
       kicker="Secure sign in"
-      title={otpStep ? (isAdminDual ? 'OTP + special key' : 'Email OTP verification') : null}
+      title={
+        otpStep
+          ? (isAdminDual ? 'Verify your sign-in' : 'Confirm your email')
+          : 'Welcome back'
+      }
       subtitle={
         otpStep
           ? isAdminDual
             ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
             : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
-          : null
+          : 'Sign in to continue to your school workspace.'
       }
       footer={
         <>
@@ -254,16 +258,20 @@ const LoginPage = () => {
             </button>
             <button
               type="button"
-              className="auth-link"
+              className="auth-text-button auth-account-switch"
               onClick={() => {
                 setOtpStep(false)
                 setOtp('')
                 setSpecialKey('')
                 setDemoOtp('')
                 setInfo('')
+                setError('')
+                setEmail('')
+                setPassword('')
                 setLoginMethod('email-otp')
               }}
             >
+              <span aria-hidden="true">←</span>
               Use a different account
             </button>
           </div>

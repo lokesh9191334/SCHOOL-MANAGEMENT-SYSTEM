@@ -578,6 +578,109 @@ app.post('/api/auth/register/verify', async (req, res) => {
   }
 })
 
+app.post('/api/auth/password-reset', async (req, res) => {
+  try {
+    const normalizedEmail = String(req.body?.email || '').trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Enter a valid registered email address.' })
+    }
+
+    const users = readJsonFile(USERS_FILE, [])
+    const user = users.find((item) => String(item.email).toLowerCase() === normalizedEmail)
+    const message = 'If an account exists for this email, a password reset code has been sent.'
+    let demoOtp = null
+
+    if (user) {
+      const code = generateOtp()
+      const key = pendingKey('password-reset', normalizedEmail)
+      savePending(key, {
+        purpose: 'password-reset',
+        userId: user.id,
+        otpHash: hashOtp(code),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+      })
+
+      try {
+        const mail = await sendOtpEmail({
+          to: normalizedEmail,
+          otp: code,
+          purpose: 'reset your School Management System password',
+          subject: 'Your SMS password reset code',
+        })
+        demoOtp = mail.demoOtp || null
+      } catch (err) {
+        clearPending(key)
+        throw err
+      }
+    }
+
+    res.json({
+      ok: true,
+      maskedEmail: maskEmail(normalizedEmail),
+      message,
+      demoOtp,
+      expiresInSec: 600,
+    })
+  } catch (err) {
+    console.error('Error in /api/auth/password-reset:', err)
+    res.status(503).json({ error: 'Could not send a password reset code. Please try again later.' })
+  }
+})
+
+app.post('/api/auth/password-reset/verify', (req, res) => {
+  try {
+    const normalizedEmail = String(req.body?.email || '').trim().toLowerCase()
+    const code = String(req.body?.code || '').replace(/\D/g, '')
+    const password = String(req.body?.password || '')
+    if (!normalizedEmail || code.length !== 6) {
+      return res.status(400).json({ error: 'Enter the six-digit email code to continue.' })
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Your new password must contain at least 8 characters.' })
+    }
+
+    const key = pendingKey('password-reset', normalizedEmail)
+    const pending = readPending(key)
+    if (!pending) {
+      return res.status(401).json({ error: 'Invalid or expired reset code. Request a new code.' })
+    }
+    if (pending.expiresAt < Date.now()) {
+      clearPending(key)
+      return res.status(401).json({ error: 'This reset code expired. Request a new one.' })
+    }
+    if ((pending.attempts || 0) >= 5) {
+      clearPending(key)
+      return res.status(429).json({ error: 'Too many incorrect codes. Request a new reset code.' })
+    }
+    if (!verifyOtpHash(code, pending.otpHash)) {
+      savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+      return res.status(401).json({ error: 'Invalid or expired reset code. Request a new code.' })
+    }
+
+    const users = readJsonFile(USERS_FILE, [])
+    const userIndex = users.findIndex(
+      (user) => user.id === pending.userId && String(user.email).toLowerCase() === normalizedEmail,
+    )
+    if (userIndex < 0) {
+      clearPending(key)
+      return res.status(401).json({ error: 'Invalid or expired reset code. Request a new code.' })
+    }
+
+    users[userIndex] = {
+      ...users[userIndex],
+      passwordHash: bcrypt.hashSync(password, 12),
+      passwordChangedAt: new Date().toISOString(),
+    }
+    writeJsonFile(USERS_FILE, users)
+    clearPending(key)
+    res.json({ ok: true, message: 'Password updated. You can now sign in with your new password.' })
+  } catch (err) {
+    console.error('Error in /api/auth/password-reset/verify:', err)
+    res.status(500).json({ error: 'Could not update your password. Please request a new reset code.' })
+  }
+})
+
 /** Create / lookup special keys for teacher & parent account claim */
 app.get('/api/invite-keys', requireRoles('admin', 'super_admin'), (_req, res) => {
   res.json(readInvites())

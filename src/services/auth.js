@@ -78,6 +78,28 @@ export const loginVerify = async ({ email, code, loginToken, specialKey }) => {
   return body
 }
 
+export const requestPasswordReset = async ({ email }) => {
+  const res = await safeFetch(`${API}/password-reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res) || 'Could not start password reset')
+  return body
+}
+
+export const completePasswordReset = async ({ email, code, password }) => {
+  const res = await safeFetch(`${API}/password-reset/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, password }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res) || 'Could not reset password')
+  return body
+}
+
 export const resendOtp = async ({ email, purpose, pendingToken }) => {
   const res = await safeFetch(`${API}/otp/resend`, {
     method: 'POST',
