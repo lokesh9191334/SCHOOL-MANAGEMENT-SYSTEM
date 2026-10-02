@@ -811,7 +811,7 @@
   background-image:
     linear-gradient(90deg, rgba(8, 19, 40, 0.08) 0%, rgba(8, 19, 40, 0.02) 48%, rgba(8, 19, 40, 0.14) 100%),
     url('/images/auth-school-background.jpg');
-  background-position: center;
+  background-position: center top;
   background-repeat: no-repeat;
   background-size: 100% auto;
 }
