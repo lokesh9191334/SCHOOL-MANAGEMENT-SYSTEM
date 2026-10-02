@@ -702,8 +702,8 @@
 }
 
 .auth-stage--register .auth-form-card {
-  gap: 13px;
-  padding: 22px 24px;
+  gap: 10px;
+  padding: 18px 24px;
   border-color: rgba(255, 255, 255, 0.92);
   background:
     radial-gradient(ellipse at 100% 0%, rgba(220, 229, 255, 0.48), transparent 42%),
@@ -728,11 +728,11 @@
 }
 
 .auth-stage--register .auth-form-stack {
-  gap: 9px;
+  gap: 8px;
 }
 
 .auth-stage--register .auth-field {
-  gap: 4px;
+  gap: 3px;
 }
 
 .auth-stage--register .auth-field > span {
@@ -786,12 +786,12 @@
   }
 
   .auth-stage--register .auth-form-card {
-    gap: 11px;
-    padding: 18px 16px;
+    gap: 9px;
+    padding: 16px;
   }
 
   .auth-stage--register .auth-form-stack {
-    gap: 8px;
+    gap: 7px;
   }
 }
 
