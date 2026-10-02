@@ -1,10 +1,11 @@
 import 'dotenv/config'
 import express from 'express'
+import cors from 'cors'
 import bcrypt from 'bcryptjs'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
 import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'path'
 import fs from 'fs'
 import {
   clearPending,
@@ -36,7 +37,7 @@ const INVITE_ROLES = new Set(['teacher', 'parent'])
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const dataDir = join(__dirname, 'data')
+const dataDir = resolve(process.env.DATA_DIR || join(__dirname, 'data'))
 
 function ensureDataDir() {
   if (!fs.existsSync(dataDir)) {
@@ -44,9 +45,23 @@ function ensureDataDir() {
   }
 }
 
+function dataFilePath(relPath) {
+  const projectDataDir = join(__dirname, 'data')
+  const pathFromDataDir = relative(projectDataDir, resolve(__dirname, relPath))
+  if (
+    !pathFromDataDir ||
+    pathFromDataDir === '..' ||
+    pathFromDataDir.startsWith(`..${sep}`) ||
+    isAbsolute(pathFromDataDir)
+  ) {
+    throw new Error('Invalid data file path')
+  }
+  return resolve(dataDir, pathFromDataDir)
+}
+
 function readJsonFile(relPath, fallback) {
   ensureDataDir()
-  const full = join(__dirname, relPath)
+  const full = dataFilePath(relPath)
   try {
     if (!fs.existsSync(full)) {
       fs.writeFileSync(full, JSON.stringify(fallback, null, 2), 'utf8')
@@ -61,7 +76,7 @@ function readJsonFile(relPath, fallback) {
 
 function writeJsonFile(relPath, data) {
   ensureDataDir()
-  const full = join(__dirname, relPath)
+  const full = dataFilePath(relPath)
   fs.mkdirSync(dirname(full), { recursive: true })
   fs.writeFileSync(full, JSON.stringify(data, null, 2), 'utf8')
 }
@@ -69,9 +84,20 @@ function writeJsonFile(relPath, data) {
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Capture raw request body for debugging (use express.json verify to avoid consuming the stream)
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' })
+})
+
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    credentials: true,
+  })
+)
+
 app.use(
   express.json({
+    limit: '10mb',
     verify: (req, _res, buf) => {
       try {
         req.rawBody = buf && buf.toString()
@@ -79,6 +105,7 @@ app.use(
     },
   })
 )
+
 app.use(express.urlencoded({ extended: true }))
 
 app.get('/api/pincode/:code', async (req, res) => {
@@ -182,11 +209,22 @@ app.get('/api/students', (_req, res) => {
 })
 
 app.post('/api/students', (req, res) => {
+  if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+    return res.status(400).json({ error: 'Student record must be an object' })
+  }
   const list = readJsonFile(join('data', 'students.json'), emptyStudents)
-  const student = { ...req.body, id: Date.now().toString() }
+  const student = { ...req.body, id: String(req.body.id || Date.now()) }
   const next = Array.isArray(list) ? [...list, student] : [student]
   writeJsonFile(join('data', 'students.json'), next)
-  res.json(student)
+  res.status(201).json(student)
+})
+
+app.put('/api/students', (req, res) => {
+  if (!Array.isArray(req.body) || req.body.some((student) => !student || typeof student !== 'object' || Array.isArray(student))) {
+    return res.status(400).json({ error: 'Students must be an array of student records' })
+  }
+  writeJsonFile(join('data', 'students.json'), req.body)
+  res.json(req.body)
 })
 
 // Simple file-based users store and auth endpoints
@@ -964,25 +1002,16 @@ if (fs.existsSync(distPath)) {
   })
 }
 
+app.use((err, req, res, next) => {
+  console.error('Unhandled request error:', err)
+  if (res.headersSent) return next(err)
+  const status = Number.isInteger(err.status) ? err.status : 500
+  res.status(status).json({ error: status < 500 ? err.message : 'Internal server error' })
+})
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`School Management System server running on http://localhost:${PORT}`)
   console.log(`Phone / LAN: open http://<your-pc-ip>:${PORT} (same Wi-Fi)`)
   console.log(`API: http://localhost:${PORT}/api/`)
-  if (isSmtpConfigured()) {
-    console.log('Email OTP: REAL SMTP configured (inbox delivery)')
-  } else {
-    console.log('Email OTP: SMTP NOT configured — add .env from .env.example (Gmail App Password)')
-  }
-})
-
-// Global error handler - return JSON for unexpected errors
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err)
-  if (req && req.rawBody) {
-    // Log a truncated preview of the raw body (avoid full password leaks)
-    const preview = req.rawBody.length > 500 ? req.rawBody.slice(0, 500) + '...[truncated]' : req.rawBody
-    console.error('Raw request body preview:', preview)
-  }
-  if (res.headersSent) return next(err)
-  res.status(500).json({ error: 'Internal server error' })
+  console.log(`Email OTP: ${isSmtpConfigured() ? 'SMTP configured' : 'SMTP not configured'}`)
 })

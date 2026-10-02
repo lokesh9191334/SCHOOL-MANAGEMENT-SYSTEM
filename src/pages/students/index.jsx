@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { SEED_STUDENTS } from '../../data/seed'
+import { fetchStudents, replaceStudents } from '../../services/students'
 import './StudentList.css'
 
 const STATUS_OPTIONS = ['All', 'Active', 'On Hold', 'Alumni']
@@ -44,6 +45,20 @@ const StudentsPage = () => {
   const [sortBy, setSortBy] = useState('name')
   const [selectedId, setSelectedId] = useState(null)
   const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    let active = true
+    fetchStudents()
+      .then((saved) => {
+        if (active) setStudents(saved)
+      })
+      .catch((error) => {
+        if (active) setToast(`Could not sync student records: ${error.message}`)
+      })
+    return () => {
+      active = false
+    }
+  }, [setStudents])
 
   useEffect(() => {
     if (!toast) return
@@ -93,31 +108,44 @@ const StudentsPage = () => {
     }
   }, [filteredStudents, selectedId])
 
-  const updateStatus = (id, status) => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status, tone: toneForStatus(status) } : s)),
+  const updateStatus = async (id, status) => {
+    const next = students.map((student) =>
+      student.id === id ? { ...student, status, tone: toneForStatus(status) } : student,
     )
-    setToast(`Status updated to ${status}`)
+    try {
+      setStudents(await replaceStudents(next))
+      setToast(`Status updated to ${status}`)
+    } catch (error) {
+      setToast(`Could not save status: ${error.message}`)
+    }
   }
 
-  const removeStudent = (id) => {
+  const removeStudent = async (id) => {
     const target = students.find((s) => s.id === id)
     if (!target) return
     const confirmed = window.confirm(`Remove ${target.title} from the registry?`)
     if (!confirmed) return
-    setStudents((prev) => prev.filter((s) => s.id !== id))
-    setSelectedId(null)
-    setToast(`${target.title} removed from registry`)
+    try {
+      setStudents(await replaceStudents(students.filter((student) => student.id !== id)))
+      setSelectedId(null)
+      setToast(`${target.title} removed from registry`)
+    } catch (error) {
+      setToast(`Could not remove student: ${error.message}`)
+    }
   }
 
-  const resetDemo = () => {
-    setStudents(SEED_STUDENTS)
-    setSearchQuery('')
-    setClassFilter('All')
-    setStatusFilter('All')
-    setSortBy('name')
-    setSelectedId(SEED_STUDENTS[0]?.id ?? null)
-    setToast('Demo student list restored')
+  const resetDemo = async () => {
+    try {
+      setStudents(await replaceStudents(SEED_STUDENTS))
+      setSearchQuery('')
+      setClassFilter('All')
+      setStatusFilter('All')
+      setSortBy('name')
+      setSelectedId(SEED_STUDENTS[0]?.id ?? null)
+      setToast('Demo student list restored')
+    } catch (error) {
+      setToast(`Could not restore the student list: ${error.message}`)
+    }
   }
 
   return (

@@ -1,50 +1,40 @@
-import { spawn } from 'child_process'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import { spawn } from 'node:child_process'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = dirname(fileURLToPath(import.meta.url))
-const projectRoot = join(root, '..')
+const root = dirname(dirname(fileURLToPath(import.meta.url)))
+const viteCli = join(root, 'node_modules', 'vite', 'bin', 'vite.js')
+const children = [
+  { name: 'API server', args: [join(root, 'server.js')] },
+  { name: 'Vite frontend', args: [viteCli, '--host'] },
+].map(({ name, args }) => ({
+  name,
+  process: spawn(process.execPath, args, { cwd: root, stdio: 'inherit' }),
+}))
 
-function run(command, args, name, color) {
-  const child = spawn(command, args, {
-    cwd: projectRoot,
-    shell: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: process.env,
-  })
+let stopping = false
 
-  const prefix = (line) => `[${name}] ${line}`
-
-  child.stdout.on('data', (buf) => {
-    String(buf)
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .forEach((line) => console.log(prefix(line)))
-  })
-  child.stderr.on('data', (buf) => {
-    String(buf)
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .forEach((line) => console.error(prefix(line)))
-  })
-
-  child.on('exit', (code) => {
-    console.log(`[${name}] exited with code ${code}`)
-    process.exit(code ?? 1)
-  })
-
-  return child
+function stop(exitCode) {
+  if (stopping) return
+  stopping = true
+  for (const child of children) {
+    if (child.process.exitCode === null) child.process.kill()
+  }
+  process.exitCode = exitCode
 }
 
-console.log('Starting SMS API (:5000) + Vite (:5173)...')
-const api = run('node', ['server.js'], 'api', 'cyan')
-const web = run('npm', ['run', 'dev', '--', '--host'], 'web', 'green')
-
-function shutdown() {
-  api.kill()
-  web.kill()
-  process.exit(0)
+for (const child of children) {
+  child.process.once('error', (error) => {
+    console.error(`${child.name} could not start:`, error.message)
+    stop(1)
+  })
+  child.process.once('exit', (code, signal) => {
+    if (!stopping) {
+      console.error(`${child.name} stopped (${signal || `exit code ${code}`}).`)
+      stop(code || 1)
+    }
+  })
 }
 
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
+process.once('SIGINT', () => stop(0))
+process.once('SIGTERM', () => stop(0))

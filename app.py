@@ -3,7 +3,7 @@
 School Management System - launcher (this repo is Node.js + React, not a Python web app).
 
 Usage (project root):
-  python app.py          -> installs deps if needed, runs Vite dev server (http://localhost:5173)
+  python app.py          -> installs deps if needed, runs website + API server
   python app.py build    -> npm run build
   python app.py start    -> production: build + node server.js (http://localhost:5000)
 
@@ -43,8 +43,8 @@ def main() -> None:
             sys.exit(1)
 
     if mode in ("dev", "development", "serve"):
-        print("[info] Starting Vite dev server at http://localhost:5173\n")
-        sys.exit(run("npm run dev"))
+        print("[info] Starting website at http://localhost:5173 and API at http://localhost:5000\n")
+        sys.exit(run("npm run dev:all"))
     if mode == "build":
         sys.exit(run("npm run build"))
     if mode in ("start", "prod", "production"):

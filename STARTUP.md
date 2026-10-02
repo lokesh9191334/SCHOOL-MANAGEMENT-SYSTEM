@@ -2,11 +2,13 @@
 
 ## Development Mode
 
-**Start Frontend Dev Server (with hot reload):**
+**Start Frontend and API (with hot reload):**
 ```bash
-npm run dev
+npm run dev:all
 ```
-Runs on: `http://localhost:5173`
+Website: `http://localhost:5173`
+
+API: `http://localhost:5000`
 
 ## Production Mode
 
@@ -25,6 +27,8 @@ or
 npm run server
 ```
 Runs on: `http://localhost:5000`
+
+For the public Vercel + Render setup, follow [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Project Structure
 
@@ -68,6 +72,7 @@ Runs on: `http://localhost:5000`
 
 ```bash
 npm run dev       # Start Vite dev server
+npm run dev:all   # Start Vite and Express together
 npm run build     # Build for production
 npm run preview   # Preview production build locally
 npm run lint      # Run ESLint

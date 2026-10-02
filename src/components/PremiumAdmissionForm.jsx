@@ -137,6 +137,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
   })
 
   const [errors, setErrors] = useState({})
+  const [registrationError, setRegistrationError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pincodeStatus, setPincodeStatus] = useState('idle')
   const [pincodeMessage, setPincodeMessage] = useState('')
@@ -578,6 +579,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     e.preventDefault()
     if (!validateForm()) return
 
+    setRegistrationError('')
     setIsSubmitting(true)
     try {
       const studentName = `${formData.firstName} ${formData.lastName}`.trim()
@@ -613,6 +615,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
       })
     } catch (error) {
       console.error('Registration error:', error)
+      setRegistrationError(error.message || 'Student registration could not be saved. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -710,6 +713,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
       </div>
 
       <form onSubmit={handleRegister} className="admission-form">
+        {registrationError ? <div className="error-message" role="alert">{registrationError}</div> : null}
         
         {/* Personal Information Section */}
         <div className="form-section">

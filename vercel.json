@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://schoolmanagementsystem-api-20261002.onrender.com/api/$1"
+    }
+  ]
+}

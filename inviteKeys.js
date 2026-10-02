@@ -1,10 +1,11 @@
-import { dirname, join } from 'path'
+import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const INVITES_FILE = join(__dirname, 'data', 'inviteKeys.json')
+const dataDir = resolve(process.env.DATA_DIR || join(__dirname, 'data'))
+const INVITES_FILE = join(dataDir, 'inviteKeys.json')
 
 const ROLE_PREFIX = {
   teacher: 'TCH',
@@ -14,7 +15,6 @@ const ROLE_PREFIX = {
 }
 
 function ensureFile() {
-  const dataDir = join(__dirname, 'data')
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
   if (!fs.existsSync(INVITES_FILE)) {
     fs.writeFileSync(INVITES_FILE, '[]', 'utf8')
