@@ -825,7 +825,7 @@
 .auth-stage--login::before,
 .auth-stage--login::after {
   position: fixed;
-  z-index: -1;
+  z-index: 0;
   inset: 0;
   content: '';
   pointer-events: none;
@@ -844,7 +844,11 @@
 
 .auth-stage--login > * {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+.auth-stage--login .auth-form-pane {
+  z-index: 3;
 }
 
 .auth-stage--login .auth-form-pane,
@@ -859,6 +863,13 @@
   border-color: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+.auth-stage--login .auth-form-card {
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.34),
+    0 10px 28px rgba(15, 18, 23, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 @media (max-width: 760px) {
