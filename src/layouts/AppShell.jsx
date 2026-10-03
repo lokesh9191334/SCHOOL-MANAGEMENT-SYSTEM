@@ -188,15 +188,6 @@ const AppShell = () => {
             </nav>
           </div>
 
-          <div className="sms-sidebar-card">
-            <p className="sms-sidebar-card-label">Signed in</p>
-            <p className="sms-sidebar-card-value">{user?.name || user?.email || 'Guest'}</p>
-            <div className="sms-sidebar-account-links" aria-label="Account navigation">
-              <NavLink to={homePath} className="sms-sidebar-link">Role home</NavLink>
-              <NavLink to="/settings/profile" className="sms-sidebar-link">Profile</NavLink>
-              <NavLink to="/settings/logout" className="sms-sidebar-link">Logout</NavLink>
-            </div>
-          </div>
         </aside>
 
         <div className="sms-main">
