@@ -21,7 +21,8 @@ async function reverseGeocode(lat, lon) {
     const res = await fetch(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
     )
-    if (!res.ok) return null
+    // The geocode API may answer 3xx with a valid JSON body — parse it
+    // regardless of res.ok; the try/catch covers non-JSON responses.
     const data = await res.json()
     const city = data.city || data.locality || ''
     const region = data.principalSubdivision || ''

@@ -19,12 +19,11 @@ const FLAG_WEIGHTS = {
   'unusual-hour': 10,
   'rapid-failures': 30,
   'impossible-travel': 45,
-  'location-mismatch': 30,
   'flagged-device': 25,
   'watchlisted-ip': 30,
 }
 
-/** Device GPS farther than this from the server-verified IP location is treated as a mismatch. */
+/** GPS↔IP distance above this (km) is recorded as extra info only — GPS always stays primary. */
 const GEO_MATCH_KM = 300
 
 function ensureFile() {
@@ -127,14 +126,6 @@ export function assessRisk(event, history = [], stores = {}) {
   const latestGeo = successes.find((e) => hasGeo(e.geo))
   const deviceSig = `${event.device?.browser}|${event.device?.os}`
   const deviceEntry = stores.devices ? stores.devices[deviceKey(event.email, deviceFingerprint(event.device))] : null
-
-  if (event.deviceGeo && event.deviceGeo.verified === false) {
-    flags.push({
-      key: 'location-mismatch',
-      label: 'Location mismatch',
-      detail: `Device GPS is ~${event.deviceGeo.mismatchKm} km away from the server-verified IP location — possible mock location or VPN`,
-    })
-  }
 
   if (event.ip && stores.watchlist && stores.watchlist[event.ip]) {
     const entry = stores.watchlist[event.ip]
@@ -339,8 +330,10 @@ export async function reverseGeocode(lat, lon) {
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&localityLanguage=en`,
       { signal: AbortSignal.timeout(4500), headers: { 'user-agent': 'sms-login-tracks' } },
     )
-    if (res.ok) {
-      const d = await res.json()
+    // The geocode API sometimes answers with a 3xx status while still carrying
+    // the JSON body — parse the body and validate fields instead of res.ok.
+    const d = await res.json()
+    if (d && (d.city || d.locality || d.principalSubdivision || d.countryName)) {
       result = {
         city: d.city || d.locality || '',
         region: d.principalSubdivision || '',
@@ -356,39 +349,20 @@ export async function reverseGeocode(lat, lon) {
 }
 
 /**
- * Builds the location record for an event. The server-verified IP geolocation
- * is the anchor: when the browser-reported GPS matches it (within
- * GEO_MATCH_KM) the exact GPS position becomes the primary location; a
- * mismatch keeps the IP location primary and is flagged in assessRisk;
- * without a public IP only the (unverifiable) device GPS is available.
+ * Builds the location record for an event. The device's real GPS fix is the
+ * actual position of the user, so it is ALWAYS the primary location when the
+ * browser provides one — mobile carrier IPs often geolocate to a distant
+ * city, so the IP fix never overrides or rejects the GPS. The server-verified
+ * IP location is only a fallback (used when no GPS was captured) and the
+ * GPS↔IP distance is kept purely as extra information on the event.
  */
 async function resolveGeo({ ip, geo }) {
   const deviceGeo = normalizeDeviceGeo(geo)
   const ipGeo = ip ? await lookupIpLocation(ip) : null
 
-  if (ipGeo) {
-    const ipPrimary = {
-      lat: ipGeo.lat,
-      lon: ipGeo.lon,
-      city: ipGeo.city,
-      region: ipGeo.region,
-      country: ipGeo.country,
-      source: 'ip',
-      verified: true,
-    }
-    if (!deviceGeo) return { primary: ipPrimary, deviceInfo: null }
-
-    const km = haversineKm(ipGeo, deviceGeo)
-    const deviceInfo = {
-      lat: deviceGeo.lat,
-      lon: deviceGeo.lon,
-      accuracy: deviceGeo.accuracy,
-      verified: km <= GEO_MATCH_KM,
-      mismatchKm: Math.round(km),
-    }
-    if (km > GEO_MATCH_KM) return { primary: ipPrimary, deviceInfo }
-
+  if (deviceGeo) {
     const place = await reverseGeocode(deviceGeo.lat, deviceGeo.lon)
+    const km = ipGeo ? haversineKm(ipGeo, deviceGeo) : null
     return {
       primary: {
         lat: deviceGeo.lat,
@@ -399,29 +373,28 @@ async function resolveGeo({ ip, geo }) {
         source: 'gps',
         verified: true,
       },
-      deviceInfo,
-    }
-  }
-
-  if (deviceGeo) {
-    const place = await reverseGeocode(deviceGeo.lat, deviceGeo.lon)
-    return {
-      primary: {
-        lat: deviceGeo.lat,
-        lon: deviceGeo.lon,
-        city: place?.city || '',
-        region: place?.region || '',
-        country: place?.country || '',
-        source: 'gps',
-        verified: false,
-      },
       deviceInfo: {
         lat: deviceGeo.lat,
         lon: deviceGeo.lon,
         accuracy: deviceGeo.accuracy,
-        verified: null,
-        mismatchKm: null,
+        verified: km == null ? null : km <= GEO_MATCH_KM,
+        mismatchKm: km == null ? null : Math.round(km),
       },
+    }
+  }
+
+  if (ipGeo) {
+    return {
+      primary: {
+        lat: ipGeo.lat,
+        lon: ipGeo.lon,
+        city: ipGeo.city,
+        region: ipGeo.region,
+        country: ipGeo.country,
+        source: 'ip',
+        verified: true,
+      },
+      deviceInfo: null,
     }
   }
 

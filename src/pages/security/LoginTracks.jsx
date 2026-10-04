@@ -118,28 +118,26 @@ function mapLink(geo) {
 }
 
 function geoTag(event) {
-  if (event?.deviceGeo?.verified === true) return ' · GPS ✓'
-  if (event?.deviceGeo?.verified === false) return ' · GPS ⚠'
-  if (event?.geo?.source === 'gps') return ' · GPS unverified'
-  if (event?.geo) return ' · IP ✓'
+  if (event?.geo?.source === 'gps' || event?.deviceGeo) return ' · GPS ✓'
+  if (event?.geo) return ' · IP'
   return ''
 }
 
 function geoTagTitle(event) {
-  if (event?.deviceGeo?.verified === true) return 'Device GPS matches the server-verified IP location'
+  if (event?.deviceGeo?.verified === true) return 'Exact device GPS — the IP location matches too'
   if (event?.deviceGeo?.verified === false) {
-    return `Device GPS is ~${event.deviceGeo.mismatchKm} km away from the server-verified IP location`
+    return `Exact device GPS — the IP city is ~${event.deviceGeo.mismatchKm} km away (mobile networks often geolocate far away)`
   }
-  if (event?.geo?.source === 'gps') return 'Device-reported location — could not be verified against a public IP'
-  if (event?.geo?.source === 'ip') return 'Server-verified from the connection IP — cannot be faked by the browser'
+  if (event?.geo?.source === 'gps') return 'Exact device GPS location'
+  if (event?.geo?.source === 'ip') return 'Approximate location from the connection IP — no device GPS was available'
   return ''
 }
 
 function verificationLabel(event) {
-  if (event?.deviceGeo?.verified === true) return 'Device GPS verified against IP — exact GPS shown'
-  if (event?.deviceGeo?.verified === false) return `MISMATCH — device vs IP (~${event.deviceGeo.mismatchKm} km)`
-  if (event?.geo?.source === 'gps') return 'Device-reported (unverified)'
-  if (event?.geo) return 'Server-verified (IP)'
+  if (event?.deviceGeo?.verified === true) return 'Exact GPS (IP cross-check ✓)'
+  if (event?.deviceGeo?.verified === false) return `Exact GPS (IP city ~${event.deviceGeo.mismatchKm} km away)`
+  if (event?.geo?.source === 'gps') return 'Exact GPS'
+  if (event?.geo) return 'Approximate (IP)'
   return ''
 }
 
@@ -147,15 +145,14 @@ function deviceGeoLabel(event) {
   const info = event?.deviceGeo
   if (!info) return '—'
   const coords = `${Number(info.lat).toFixed(4)}, ${Number(info.lon).toFixed(4)}`
-  if (info.verified === true) return `${coords} — matches IP location ✓`
-  if (info.verified === false) return `${coords} — ~${info.mismatchKm} km from IP location ⚠`
-  return `${coords} — unverifiable (no public IP)`
+  if (info.verified === true) return `${coords} — matches IP ✓`
+  if (info.verified === false) return `${coords} — IP city ~${info.mismatchKm} km away`
+  return `${coords} — no IP cross-check available`
 }
 
 function mapTitle(event) {
-  if (event?.deviceGeo?.verified === true) return 'Device GPS location — exact position, verified against the IP'
-  if (event?.geo?.source === 'gps') return 'Device-reported location'
-  return 'Server-verified location (IP-based)'
+  if (event?.geo?.source === 'gps' || event?.deviceGeo) return 'Exact device GPS location'
+  return 'Approximate location (IP-based)'
 }
 
 function escapeHtml(text) {
@@ -793,10 +790,10 @@ export default function LoginTracksPage() {
             <p className="ltrack-kicker">Security · Sign-in intelligence</p>
             <h2>Login Tracks</h2>
             <p className="ltrack-hero-sub">
-              Every sign-in attempt across the school — who, from where, on which device. Locations
-              are server-verified from the connection IP — when the device GPS matches, the exact
-              position is shown; unusual logins are flagged automatically and high-risk sign-ins
-              trigger an instant email alert.
+              Every sign-in attempt across the school — who, from where, on which device. The exact
+              device GPS (±meters) is the primary location — the connection IP is only a fallback
+              when GPS is unavailable; unusual logins are flagged automatically and high-risk
+              sign-ins trigger an instant email alert.
             </p>
           </div>
           <div className="ltrack-hero-actions">
@@ -1235,13 +1232,11 @@ export default function LoginTracksPage() {
 
             <div className="ltrack-drawer-body">
               {selected.deviceGeo?.verified === false ? (
-                <div className="ltrack-alert" role="alert">
-                  <strong>Possible location spoofing</strong>
-                  <span>
-                    The device reported GPS ~{selected.deviceGeo.mismatchKm} km away from the
-                    server-verified IP location. Verify this sign-in with the account owner.
-                  </span>
-                </div>
+                <p className="ltrack-note">
+                  <strong>Note:</strong> the IP city is ~{selected.deviceGeo.mismatchKm} km from this
+                  exact GPS position — mobile networks (Jio, Airtel, …) often geolocate far away, so
+                  the GPS fix above is the true location.
+                </p>
               ) : null}
 
               <div className="ltrack-kv">
