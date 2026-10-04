@@ -9,6 +9,29 @@ import '../../styles/auth-premium.css'
 const isAdminDualMethod = (method) =>
   method === 'admin-dual' || method === 'admin-special-key'
 
+function accuracyTier(accuracy) {
+  if (accuracy <= 20) return { label: 'Excellent', cls: 'excellent' }
+  if (accuracy <= 60) return { label: 'Good', cls: 'good' }
+  if (accuracy <= 200) return { label: 'Fair', cls: 'fair' }
+  return { label: 'Low', cls: 'low' }
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const city = data.city || data.locality || ''
+    const region = data.principalSubdivision || ''
+    const country = data.countryName || ''
+    return { label: [city, region, country].filter(Boolean).join(', '), city, region, country }
+  } catch {
+    return null
+  }
+}
+
 const LoginPage = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -31,7 +54,16 @@ const LoginPage = () => {
   const geoRef = useRef(null)
   const [geoState, setGeoState] = useState('locating')
   const [geoPlace, setGeoPlace] = useState('')
+  const [geoAccuracy, setGeoAccuracy] = useState(null)
+  const [geoCoords, setGeoCoords] = useState('')
+  const [geoTesting, setGeoTesting] = useState(false)
+  const [geoRefining, setGeoRefining] = useState(false)
   const [showDeniedHelp, setShowDeniedHelp] = useState(false)
+  const attemptRef = useRef(0)
+  const watchRef = useRef(null)
+  const watchTimerRef = useRef(null)
+  const retryTimerRef = useRef(null)
+  const permissionRef = useRef('unknown')
   const isAdminDual = isAdminDualMethod(loginMethod)
 
   useEffect(() => {
@@ -40,50 +72,95 @@ const LoginPage = () => {
     return () => window.clearTimeout(timer)
   }, [resendIn])
 
+  const stopWatch = useCallback(() => {
+    if (watchRef.current != null && navigator.geolocation?.clearWatch) {
+      navigator.geolocation.clearWatch(watchRef.current)
+    }
+    watchRef.current = null
+    if (watchTimerRef.current) {
+      window.clearTimeout(watchTimerRef.current)
+      watchTimerRef.current = null
+    }
+    setGeoRefining(false)
+  }, [])
+
   const captureGeo = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return
+    attemptRef.current += 1
+    const attempt = attemptRef.current
+    setGeoTesting(true)
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        if (attempt !== attemptRef.current) return
+        attemptRef.current = 0
+        setGeoTesting(false)
+        const c = position.coords
         const base = {
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-          accuracy: Math.round(position.coords.accuracy || 0),
+          lat: c.latitude,
+          lon: c.longitude,
+          accuracy: Math.round(c.accuracy || 0),
           source: 'gps',
         }
         geoRef.current = base
+        setGeoAccuracy(base.accuracy)
+        setGeoCoords(`${base.lat.toFixed(5)}, ${base.lon.toFixed(5)}`)
         setGeoState('granted')
-        try {
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${base.lat}&longitude=${base.lon}&localityLanguage=en`,
+        reverseGeocode(base.lat, base.lon).then((geo) => {
+          if (!geo) return
+          geoRef.current = { ...base, city: geo.city, region: geo.region, country: geo.country }
+          setGeoPlace(geo.label)
+        })
+        // First fix is often ~50m; keep watching briefly so accuracy sharpens to ~10m.
+        if (navigator.geolocation.watchPosition) {
+          stopWatch()
+          setGeoRefining(true)
+          watchRef.current = navigator.geolocation.watchPosition(
+            (pos) => {
+              const p = pos.coords
+              const cur = geoRef.current
+              if (!cur || (p.accuracy || Infinity) >= (cur.accuracy || 0) + 1) return
+              const better = {
+                lat: p.latitude,
+                lon: p.longitude,
+                accuracy: Math.round(p.accuracy || 0),
+                source: 'gps',
+                city: cur.city,
+                region: cur.region,
+                country: cur.country,
+              }
+              geoRef.current = better
+              setGeoAccuracy(better.accuracy)
+              setGeoCoords(`${better.lat.toFixed(5)}, ${better.lon.toFixed(5)}`)
+            },
+            () => {},
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 2000 },
           )
-          if (!res.ok) return
-          const data = await res.json()
-          geoRef.current = {
-            ...base,
-            city: data.city || data.locality || '',
-            region: data.principalSubdivision || '',
-            country: data.countryName || '',
-          }
-          setGeoPlace(
-            [data.city || data.locality || '', data.principalSubdivision || '', data.countryName || '']
-              .filter(Boolean)
-              .join(', '),
-          )
-        } catch {
-          /* coordinates alone are enough for tracking */
+          watchTimerRef.current = window.setTimeout(stopWatch, 12000)
         }
       },
       (err) => {
-        if (err && err.code === err.PERMISSION_DENIED) setGeoState('denied')
-        else setGeoState('error')
+        if (attempt !== attemptRef.current) return
+        setGeoTesting(false)
+        if (err && err.code === err.PERMISSION_DENIED) {
+          attemptRef.current = 0
+          setGeoState('denied')
+          return
+        }
+        // Timeout / position unavailable — auto-retry while the permission is granted
+        if (permissionRef.current === 'granted' && attempt <= 2) {
+          retryTimerRef.current = window.setTimeout(() => captureGeo(), 2500)
+          return
+        }
+        attemptRef.current = 0
+        setGeoState('error')
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 },
     )
-  }, [])
+  }, [stopWatch])
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoState('unsupported')
+      setGeoState(window.isSecureContext === false ? 'insecure' : 'unsupported')
       return undefined
     }
     let permission = null
@@ -97,6 +174,7 @@ const LoginPage = () => {
           permission = status
           const sync = () => {
             if (cancelled) return
+            permissionRef.current = status.state
             if (status.state === 'granted') {
               setGeoState('locating')
               captureGeo()
@@ -113,10 +191,12 @@ const LoginPage = () => {
           status.onchange = sync
         })
         .catch(() => {
+          permissionRef.current = 'prompt'
           setGeoState('prompt')
           captureGeo()
         })
     } else {
+      permissionRef.current = 'prompt'
       setGeoState('prompt')
       captureGeo()
     }
@@ -126,6 +206,14 @@ const LoginPage = () => {
       if (permission) permission.onchange = null
     }
   }, [captureGeo])
+
+  useEffect(
+    () => () => {
+      stopWatch()
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
+    },
+    [stopWatch],
+  )
 
   const canVerify = useMemo(() => {
     const otpOk = otp.replace(/\D/g, '').length === 6
@@ -380,18 +468,35 @@ const LoginPage = () => {
 
       <div className={`geo-chip geo-chip--${geoState}`} role="status">
         <span className="geo-chip-dot" aria-hidden />
-        {geoState === 'locating' ? <span>Locking your exact GPS location…</span> : null}
+        {geoState === 'locating' ? (
+          <span>{geoTesting ? 'Locking your exact GPS location…' : 'Preparing location service…'}</span>
+        ) : null}
         {geoState === 'granted' ? (
-          <span>
-            <strong>Exact GPS active</strong>
-            {geoPlace ? ` — ${geoPlace}` : ' — this sign-in carries precise coordinates'}
-          </span>
+          <>
+            <span>
+              <strong>Exact GPS active</strong>
+              {geoRefining
+                ? ' — sharpening accuracy…'
+                : geoPlace
+                  ? ` — ${geoPlace}`
+                  : ' — precise coordinates ride with this sign-in'}
+            </span>
+            {geoAccuracy != null ? (
+              <span className={`geo-accuracy geo-accuracy--${accuracyTier(geoAccuracy).cls}`}>
+                ±{geoAccuracy} m · {accuracyTier(geoAccuracy).label}
+              </span>
+            ) : null}
+            {geoCoords ? <code className="geo-coords">{geoCoords}</code> : null}
+            <button type="button" className="geo-chip-btn" onClick={captureGeo} disabled={geoTesting}>
+              {geoTesting ? 'Testing…' : 'Test again'}
+            </button>
+          </>
         ) : null}
         {geoState === 'prompt' ? (
           <>
-            <span>Allow location for exact login tracking</span>
-            <button type="button" className="geo-chip-btn" onClick={captureGeo}>
-              Enable location
+            <span>Allow location for exact login tracking — no popup? Tap Enable.</span>
+            <button type="button" className="geo-chip-btn" onClick={captureGeo} disabled={geoTesting}>
+              {geoTesting ? 'Waiting for permission…' : 'Enable location'}
             </button>
           </>
         ) : null}
@@ -406,8 +511,18 @@ const LoginPage = () => {
         {geoState === 'error' ? (
           <>
             <span>GPS signal not received — IP location will be used</span>
-            <button type="button" className="geo-chip-btn" onClick={captureGeo}>
-              Retry
+            <button type="button" className="geo-chip-btn" onClick={captureGeo} disabled={geoTesting}>
+              {geoTesting ? 'Retrying…' : 'Retry'}
+            </button>
+          </>
+        ) : null}
+        {geoState === 'insecure' ? (
+          <>
+            <span>
+              GPS needs a secure connection — open this site via its <strong>https://</strong> address
+            </span>
+            <button type="button" className="geo-chip-btn" onClick={() => setShowDeniedHelp((v) => !v)}>
+              {showDeniedHelp ? 'Hide help' : 'Why?'}
             </button>
           </>
         ) : null}
@@ -429,6 +544,23 @@ const LoginPage = () => {
               settings → Location → Allow.
             </li>
             <li>Reload this page — the chip turns green once GPS is active.</li>
+          </ol>
+        </div>
+      ) : null}
+
+      {geoState === 'insecure' && showDeniedHelp ? (
+        <div className="geo-help-card geo-help-card--info">
+          <strong>Why is GPS off here?</strong>
+          <ol>
+            <li>
+              Browsers share exact GPS only on secure origins — <strong>https://</strong> addresses
+              or localhost.
+            </li>
+            <li>
+              If the app was opened via an IP address like http://192.168.x.x, location stays off
+              by browser design.
+            </li>
+            <li>Open the official https:// link of this app and reload — the chip turns green.</li>
           </ol>
         </div>
       ) : null}
