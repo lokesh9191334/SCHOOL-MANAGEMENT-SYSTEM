@@ -9,11 +9,18 @@ import '../../styles/auth-premium.css'
 const isAdminDualMethod = (method) =>
   method === 'admin-dual' || method === 'admin-special-key'
 
-function accuracyTier(accuracy) {
-  if (accuracy <= 20) return { label: 'Excellent', cls: 'excellent' }
-  if (accuracy <= 60) return { label: 'Good', cls: 'good' }
-  if (accuracy <= 200) return { label: 'Fair', cls: 'fair' }
-  return { label: 'Low', cls: 'low' }
+function geoDotTitle(state, place, accuracy) {
+  if (state === 'granted') {
+    const acc = accuracy != null ? ` ±${accuracy} m` : ''
+    return `Exact GPS active${acc}${place ? ` — ${place}` : ''} — tap to re-test`
+  }
+  if (state === 'locating') return 'Locking your exact GPS location…'
+  if (state === 'prompt') return 'Allow location in the browser prompt — exact GPS rides with this sign-in'
+  if (state === 'denied') return 'Location blocked — allow it in browser site settings for exact GPS'
+  if (state === 'error') return 'GPS signal not received — IP location will be used — tap to retry'
+  if (state === 'insecure') return 'GPS needs an https:// connection'
+  if (state === 'unsupported') return 'Browser GPS unavailable — IP location will be used'
+  return ''
 }
 
 async function reverseGeocode(lat, lon) {
@@ -56,10 +63,6 @@ const LoginPage = () => {
   const [geoState, setGeoState] = useState('locating')
   const [geoPlace, setGeoPlace] = useState('')
   const [geoAccuracy, setGeoAccuracy] = useState(null)
-  const [geoCoords, setGeoCoords] = useState('')
-  const [geoTesting, setGeoTesting] = useState(false)
-  const [geoRefining, setGeoRefining] = useState(false)
-  const [showDeniedHelp, setShowDeniedHelp] = useState(false)
   const attemptRef = useRef(0)
   const watchRef = useRef(null)
   const watchTimerRef = useRef(null)
@@ -82,19 +85,16 @@ const LoginPage = () => {
       window.clearTimeout(watchTimerRef.current)
       watchTimerRef.current = null
     }
-    setGeoRefining(false)
   }, [])
 
   const captureGeo = useCallback(() => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return
     attemptRef.current += 1
     const attempt = attemptRef.current
-    setGeoTesting(true)
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         if (attempt !== attemptRef.current) return
         attemptRef.current = 0
-        setGeoTesting(false)
         const c = position.coords
         const base = {
           lat: c.latitude,
@@ -104,7 +104,6 @@ const LoginPage = () => {
         }
         geoRef.current = base
         setGeoAccuracy(base.accuracy)
-        setGeoCoords(`${base.lat.toFixed(5)}, ${base.lon.toFixed(5)}`)
         setGeoState('granted')
         reverseGeocode(base.lat, base.lon).then((geo) => {
           if (!geo) return
@@ -114,7 +113,6 @@ const LoginPage = () => {
         // First fix is often ~50m; keep watching briefly so accuracy sharpens to ~10m.
         if (navigator.geolocation.watchPosition) {
           stopWatch()
-          setGeoRefining(true)
           watchRef.current = navigator.geolocation.watchPosition(
             (pos) => {
               const p = pos.coords
@@ -131,7 +129,6 @@ const LoginPage = () => {
               }
               geoRef.current = better
               setGeoAccuracy(better.accuracy)
-              setGeoCoords(`${better.lat.toFixed(5)}, ${better.lon.toFixed(5)}`)
             },
             () => {},
             { enableHighAccuracy: true, timeout: 12000, maximumAge: 2000 },
@@ -141,7 +138,6 @@ const LoginPage = () => {
       },
       (err) => {
         if (attempt !== attemptRef.current) return
-        setGeoTesting(false)
         if (err && err.code === err.PERMISSION_DENIED) {
           attemptRef.current = 0
           setGeoState('denied')
@@ -467,104 +463,12 @@ const LoginPage = () => {
         </form>
       )}
 
-      <div className={`geo-chip geo-chip--${geoState}`} role="status">
-        <span className="geo-chip-dot" aria-hidden />
-        {geoState === 'locating' ? (
-          <span>{geoTesting ? 'Locking your exact GPS location…' : 'Preparing location service…'}</span>
-        ) : null}
-        {geoState === 'granted' ? (
-          <>
-            <span>
-              <strong>Exact GPS active</strong>
-              {geoRefining
-                ? ' — sharpening accuracy…'
-                : geoPlace
-                  ? ` — ${geoPlace}`
-                  : ' — precise coordinates ride with this sign-in'}
-            </span>
-            {geoAccuracy != null ? (
-              <span className={`geo-accuracy geo-accuracy--${accuracyTier(geoAccuracy).cls}`}>
-                ±{geoAccuracy} m · {accuracyTier(geoAccuracy).label}
-              </span>
-            ) : null}
-            {geoCoords ? <code className="geo-coords">{geoCoords}</code> : null}
-            <button type="button" className="geo-chip-btn" onClick={captureGeo} disabled={geoTesting}>
-              {geoTesting ? 'Testing…' : 'Test again'}
-            </button>
-          </>
-        ) : null}
-        {geoState === 'prompt' ? (
-          <>
-            <span>Allow location for exact login tracking — no popup? Tap Enable.</span>
-            <button type="button" className="geo-chip-btn" onClick={captureGeo} disabled={geoTesting}>
-              {geoTesting ? 'Waiting for permission…' : 'Enable location'}
-            </button>
-          </>
-        ) : null}
-        {geoState === 'denied' ? (
-          <>
-            <span>Location blocked — exact tracking is off</span>
-            <button type="button" className="geo-chip-btn" onClick={() => setShowDeniedHelp((v) => !v)}>
-              {showDeniedHelp ? 'Hide help' : 'How to enable'}
-            </button>
-          </>
-        ) : null}
-        {geoState === 'error' ? (
-          <>
-            <span>GPS signal not received — IP location will be used</span>
-            <button type="button" className="geo-chip-btn" onClick={captureGeo} disabled={geoTesting}>
-              {geoTesting ? 'Retrying…' : 'Retry'}
-            </button>
-          </>
-        ) : null}
-        {geoState === 'insecure' ? (
-          <>
-            <span>
-              GPS needs a secure connection — open this site via its <strong>https://</strong> address
-            </span>
-            <button type="button" className="geo-chip-btn" onClick={() => setShowDeniedHelp((v) => !v)}>
-              {showDeniedHelp ? 'Hide help' : 'Why?'}
-            </button>
-          </>
-        ) : null}
-        {geoState === 'unsupported' ? (
-          <span>Browser GPS unavailable — IP-based location will be used</span>
-        ) : null}
-      </div>
-
-      {geoState === 'denied' && showDeniedHelp ? (
-        <div className="geo-help-card">
-          <strong>Enable location in 3 steps</strong>
-          <ol>
-            <li>
-              <strong>Phone app:</strong> long-press the app icon → App info → Permissions →
-              Location → Allow.
-            </li>
-            <li>
-              <strong>Browser:</strong> tap the lock / ⓘ icon beside the site address → Site
-              settings → Location → Allow.
-            </li>
-            <li>Reload this page — the chip turns green once GPS is active.</li>
-          </ol>
-        </div>
-      ) : null}
-
-      {geoState === 'insecure' && showDeniedHelp ? (
-        <div className="geo-help-card geo-help-card--info">
-          <strong>Why is GPS off here?</strong>
-          <ol>
-            <li>
-              Browsers share exact GPS only on secure origins — <strong>https://</strong> addresses
-              or localhost.
-            </li>
-            <li>
-              If the app was opened via an IP address like http://192.168.x.x, location stays off
-              by browser design.
-            </li>
-            <li>Open the official https:// link of this app and reload — the chip turns green.</li>
-          </ol>
-        </div>
-      ) : null}
+      <span
+        className={`geo-dot geo-dot--${geoState}`}
+        role="status"
+        title={geoDotTitle(geoState, geoPlace, geoAccuracy)}
+        onClick={captureGeo}
+      />
     </AuthShell>
   )
 }
