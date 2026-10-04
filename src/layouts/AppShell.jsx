@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { homePathForRole, navForRole, quickActionsForRole, titleFromRoleNav } from '../data/roleNav'
 import { getAuthUser, roleLabel } from '../utils/session'
+import { fetchTracksSummary } from '../services/loginTracks'
 import './AppShell.css'
 import SlideProvider from '../context/SlideContext'
 
@@ -13,6 +14,7 @@ const AppShell = () => {
   const [user, setUser] = useState(() => getAuthUser())
   const [routeVisible, setRouteVisible] = useState(true)
   const [navOpen, setNavOpen] = useState(false)
+  const [securityAlerts, setSecurityAlerts] = useState(0)
   const navScrollRef = useRef(null)
 
   useEffect(() => {
@@ -42,6 +44,7 @@ const AppShell = () => {
   const quickActions = useMemo(() => quickActionsForRole(role), [role])
   const subtitle = titleFromRoleNav(pathname)
   const homePath = homePathForRole(role)
+  const canSeeSecurity = role === 'admin' || role === 'super_admin'
 
   const mobileDock = useMemo(() => {
     const flat = navSections.flatMap((section) => section.items)
@@ -117,6 +120,27 @@ const AppShell = () => {
     }
   }, [pathname])
 
+  useEffect(() => {
+    if (!canSeeSecurity) return undefined
+    let disposed = false
+    const load = async () => {
+      try {
+        const summary = await fetchTracksSummary()
+        if (!disposed) setSecurityAlerts(Number(summary?.suspiciousUnreviewed) || 0)
+      } catch {
+        /* badge is best-effort — never block the shell */
+      }
+    }
+    load()
+    const timer = window.setInterval(() => {
+      if (!document.hidden) load()
+    }, 60000)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [canSeeSecurity, pathname])
+
   const userInitial = String(user?.name || user?.email || 'U')
     .trim()
     .charAt(0)
@@ -181,6 +205,9 @@ const AppShell = () => {
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
+                      {item.to === '/security/login-tracks' && securityAlerts > 0 ? (
+                        <span className="sms-nav-badge">{securityAlerts}</span>
+                      ) : null}
                     </NavLink>
                   ))}
                 </div>
@@ -238,9 +265,19 @@ const AppShell = () => {
                   </Link>
                 ))}
               </div>
-              <div className="sms-notify" title="Notifications">
+              <div
+                className={`sms-notify ${canSeeSecurity && securityAlerts > 0 ? 'has-count' : ''}`}
+                title={
+                  canSeeSecurity && securityAlerts > 0
+                    ? `${securityAlerts} unreviewed login alerts`
+                    : 'Notifications'
+                }
+              >
                 <span className="sms-notify-dot" />
                 <span className="sms-notify-label">Alerts</span>
+                {canSeeSecurity && securityAlerts > 0 ? (
+                  <span className="sms-notify-count">{securityAlerts}</span>
+                ) : null}
               </div>
               <Link to="/settings/profile" className="sms-user" aria-label="Open profile">
                 <div className="sms-user-avatar" aria-hidden>

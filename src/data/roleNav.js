@@ -21,6 +21,9 @@ export const SUPER_ADMIN_NAV = [
   section('Intelligence', '📊', [
     item('/super-admin/analytics', 'View Analytics', '▣'),
   ]),
+  section('Security', '🛡', [
+    item('/security/login-tracks', 'Login Tracks', '⌖'),
+  ]),
   section('Support', '🎧', [
     item('/super-admin/tickets', 'Support Tickets', '✉'),
   ]),
@@ -93,6 +96,9 @@ export const ADMIN_NAV = [
     item('/reports/campus', 'Reports', '▣'),
   ]),
   section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
+  section('Security', '🛡', [
+    item('/security/login-tracks', 'Login Tracks', '⌖'),
+  ]),
   section('Settings', '⚙️', [
     item('/settings/profile', 'Profile', '◫'),
     item('/settings/logout', 'Logout', '↦'),

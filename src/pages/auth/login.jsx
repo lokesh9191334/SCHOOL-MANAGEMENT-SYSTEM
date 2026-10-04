@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthShell from '../../components/auth/AuthShell'
 import OtpInput from '../../components/auth/OtpInput'
@@ -28,6 +28,7 @@ const LoginPage = () => {
   const [demoOtp, setDemoOtp] = useState('')
   const [resendIn, setResendIn] = useState(0)
 
+  const geoRef = useRef(null)
   const isAdminDual = isAdminDualMethod(loginMethod)
 
   useEffect(() => {
@@ -35,6 +36,48 @@ const LoginPage = () => {
     const timer = window.setTimeout(() => setResendIn((v) => v - 1), 1000)
     return () => window.clearTimeout(timer)
   }, [resendIn])
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return undefined
+    let cancelled = false
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        if (cancelled) return
+        const base = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          accuracy: Math.round(position.coords.accuracy || 0),
+          source: 'gps',
+        }
+        geoRef.current = base
+        try {
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${base.lat}&longitude=${base.lon}&localityLanguage=en`,
+          )
+          if (!res.ok) return
+          const data = await res.json()
+          if (cancelled) return
+          geoRef.current = {
+            ...base,
+            city: data.city || data.locality || '',
+            region: data.principalSubdivision || '',
+            country: data.countryName || '',
+          }
+        } catch {
+          /* coordinates alone are enough for tracking */
+        }
+      },
+      () => {
+        /* denied / unavailable — server falls back to IP location */
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 },
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const canVerify = useMemo(() => {
     const otpOk = otp.replace(/\D/g, '').length === 6
@@ -51,7 +94,7 @@ const LoginPage = () => {
     setInfo('')
     setLoading(true)
     try {
-      const res = await auth.login({ email, password })
+      const res = await auth.login({ email, password, geo: geoRef.current })
       if (res.otpRequired || res.twoFactor || res.specialKeyRequired) {
         setOtpStep(true)
         setLoginToken(res.loginToken)
@@ -91,6 +134,7 @@ const LoginPage = () => {
         code: otp,
         specialKey: isAdminDual ? specialKey : undefined,
         loginToken,
+        geo: geoRef.current,
       })
       auth.saveSession(res)
       navigate(homePathForRole(res?.user?.role))

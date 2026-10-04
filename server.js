@@ -38,6 +38,13 @@ import {
   readInvites,
 } from './inviteKeys.js'
 import { searchPreviousSchools } from './src/data/previousSchools.js'
+import {
+  getClientIp,
+  listTracks,
+  markReviewed,
+  recordLoginEvent,
+  summarizeTracks,
+} from './loginTracks.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -87,6 +94,29 @@ function writeJsonFile(relPath, data) {
   const full = dataFilePath(relPath)
   fs.mkdirSync(dirname(full), { recursive: true })
   fs.writeFileSync(full, JSON.stringify(data, null, 2), 'utf8')
+}
+
+/**
+ * Login tracking. Fire-and-forget locally; on Vercel the promise is awaited
+ * (capped) because data writes only persist when they finish before the
+ * response is sent.
+ */
+const TRACK_LOGIN_TIMEOUT_MS = 3000
+
+function trackLogin(req, payload) {
+  const task = recordLoginEvent({
+    ip: getClientIp(req),
+    userAgent: req.headers?.['user-agent'] || '',
+    geo: req.body?.geo || null,
+    ...payload,
+  }).catch((err) => {
+    console.error('trackLogin failed:', err?.message || err)
+    return null
+  })
+  if (process.env.VERCEL) {
+    return Promise.race([task, new Promise((done) => setTimeout(done, TRACK_LOGIN_TIMEOUT_MS))])
+  }
+  return task
 }
 
 const app = express()
@@ -744,13 +774,42 @@ app.post('/api/auth/login', async (req, res) => {
     const users = ensureBootstrapSuperAdmin(readJsonFile(join('data', 'users.json'), []))
     const normalizedEmail = String(email).trim().toLowerCase()
     const user = users.find((u) => String(u.email).toLowerCase() === normalizedEmail)
-    if (!user) return res.status(401).json({ error: 'Wrong username or email address.' })
-    if (!bcrypt.compareSync(password, user.passwordHash)) return res.status(401).json({ error: 'Wrong password.' })
+    if (!user) {
+      await trackLogin(req, {
+        stage: 'login-failed',
+        email: normalizedEmail,
+        method: 'password',
+        note: 'Unknown email — no such account',
+      })
+      return res.status(401).json({ error: 'Wrong username or email address.' })
+    }
+    if (!bcrypt.compareSync(password, user.passwordHash)) {
+      await trackLogin(req, {
+        stage: 'login-failed',
+        email: normalizedEmail,
+        userId: user.id,
+        name: user.name,
+        role: user.role,
+        method: 'password',
+        note: 'Wrong password',
+      })
+      return res.status(401).json({ error: 'Wrong password.' })
+    }
     if (user.accountStatus === 'Pending approval') return res.status(403).json({ error: 'Your school account is awaiting Super Admin approval and subscription assignment.' })
 
     const role = String(user.role || 'admin').toLowerCase()
     const isAdminLogin = role === 'admin' || role === 'super_admin'
     const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
+    await trackLogin(req, {
+      stage: 'login-attempt',
+      email: normalizedEmail,
+      userId: user.id,
+      name: user.name,
+      role,
+      method: isAdminLogin ? 'admin-dual' : 'email-otp',
+      note: 'Password accepted — OTP required',
+    })
 
     if (isAdminLogin) {
       // Both email OTP + 7-char special key (e.g. lok@010). Key changes every login.
@@ -859,7 +918,7 @@ app.post('/api/auth/login', async (req, res) => {
 })
 
 /** Step 2 — Verify login email OTP (and admin special key when required) */
-app.post('/api/auth/login/verify', (req, res) => {
+app.post('/api/auth/login/verify', async (req, res) => {
   try {
     const { email, code, loginToken, specialKey } = req.body
     const otpCode = String(code || '').replace(/\D/g, '')
@@ -874,14 +933,43 @@ app.post('/api/auth/login/verify', (req, res) => {
     const user = users.find((u) => String(u.email).toLowerCase() === normalizedEmail)
 
     if (!user || !pending || pending.pendingToken !== loginToken) {
+      if (user) {
+        await trackLogin(req, {
+          stage: 'otp-failed',
+          email: normalizedEmail,
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          method: pending?.method || 'email-otp',
+          note: 'Invalid or expired login session',
+        })
+      }
       return res.status(401).json({ error: 'Invalid or expired login session' })
     }
     if ((pending.expiresAt || 0) < Date.now() || (user.loginTokenExpiry || 0) < Date.now()) {
       clearPending(key)
+      await trackLogin(req, {
+        stage: 'otp-failed',
+        email: normalizedEmail,
+        userId: user.id,
+        name: user.name,
+        role: user.role,
+        method: pending.method || 'email-otp',
+        note: 'Login codes expired before verification',
+      })
       return res.status(401).json({ error: 'Login codes expired. Please sign in again.' })
     }
     if ((pending.attempts || 0) >= 5) {
       clearPending(key)
+      await trackLogin(req, {
+        stage: 'otp-failed',
+        email: normalizedEmail,
+        userId: user.id,
+        name: user.name,
+        role: user.role,
+        method: pending.method || 'email-otp',
+        note: 'Blocked — too many invalid attempts',
+      })
       return res.status(429).json({ error: 'Too many invalid attempts. Sign in again.' })
     }
 
@@ -897,6 +985,15 @@ app.post('/api/auth/login/verify', (req, res) => {
       const keyOk = verifyOtpHash(normalizedKey, pending.specialKeyHash)
       if (!otpOk || !keyOk) {
         savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+        await trackLogin(req, {
+          stage: 'otp-failed',
+          email: normalizedEmail,
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          method: 'admin-dual',
+          note: !otpOk && !keyOk ? 'Wrong OTP and special key' : !otpOk ? 'Wrong email OTP' : 'Wrong special key',
+        })
         return res.status(401).json({ error: 'Invalid OTP or special key. Check your email and try again.' })
       }
     } else if (pending.method === 'admin-special-key') {
@@ -906,6 +1003,15 @@ app.post('/api/auth/login/verify', (req, res) => {
       }
       if (!verifyOtpHash(normalizedKey, pending.specialKeyHash || pending.otpHash)) {
         savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+        await trackLogin(req, {
+          stage: 'otp-failed',
+          email: normalizedEmail,
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          method: 'admin-special-key',
+          note: 'Wrong special key',
+        })
         return res.status(401).json({ error: 'Invalid special key. Check your email and try again.' })
       }
     } else {
@@ -914,6 +1020,15 @@ app.post('/api/auth/login/verify', (req, res) => {
       }
       if (!verifyOtpHash(otpCode, pending.otpHash)) {
         savePending(key, { ...pending, attempts: (pending.attempts || 0) + 1 })
+        await trackLogin(req, {
+          stage: 'otp-failed',
+          email: normalizedEmail,
+          userId: user.id,
+          name: user.name,
+          role: user.role,
+          method: 'email-otp',
+          note: 'Wrong email OTP',
+        })
         return res.status(401).json({ error: 'Invalid OTP. Check your email and try again.' })
       }
     }
@@ -932,6 +1047,16 @@ app.post('/api/auth/login/verify', (req, res) => {
         : u,
     )
     writeJsonFile(join('data', 'users.json'), cleared)
+
+    await trackLogin(req, {
+      stage: 'login-success',
+      email: normalizedEmail,
+      userId: user.id,
+      name: user.name,
+      role: user.role,
+      method: pending.method || 'email-otp',
+      note: 'Login verified',
+    })
 
     res.json(issueAuthToken({ ...user, emailVerified: true }))
   } catch (err) {
@@ -1096,6 +1221,38 @@ app.post('/api/auth/2fa/disable', (req, res) => {
   const updated = users.map((u) => (u.email === email ? { ...u, twoFactor: { enabled: false } } : u))
   writeJsonFile(join('data', 'users.json'), updated)
   res.json({ success: true })
+})
+
+/** Guard: x-auth-email header must belong to an admin or super admin */
+function requireAdmin(req, res, next) {
+  const email = String(req.headers['x-auth-email'] || '').trim().toLowerCase()
+  if (!email) return res.status(401).json({ error: 'Missing x-auth-email header' })
+  const users = readJsonFile(join('data', 'users.json'), [])
+  const user = users.find((u) => String(u.email).toLowerCase() === email)
+  if (!user || !['admin', 'super_admin'].includes(String(user.role || '').toLowerCase())) {
+    return res.status(403).json({ error: 'Admin access required' })
+  }
+  req.adminUser = user
+  next()
+}
+
+// Login Tracks — security audit of every login attempt (admin & super admin only)
+app.get('/api/login-tracks', requireAdmin, (req, res) => {
+  const { range = 'all', risk = '', stage = '', role = '', q = '', limit } = req.query
+  res.json({
+    events: listTracks({ range, risk, stage, role, q, limit }),
+    summary: summarizeTracks(),
+  })
+})
+
+app.get('/api/login-tracks/summary', requireAdmin, (_req, res) => {
+  res.json(summarizeTracks())
+})
+
+app.post('/api/login-tracks/:id/review', requireAdmin, (req, res) => {
+  const updated = markReviewed(req.params.id, req.body?.reviewer || req.adminUser.email)
+  if (!updated) return res.status(404).json({ error: 'Track event not found' })
+  res.json(updated)
 })
 
 // API Routes - Teachers

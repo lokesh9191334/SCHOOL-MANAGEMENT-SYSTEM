@@ -224,6 +224,108 @@ export async function sendAdminLoginKeyEmail({
   })
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function formatLocation(geo) {
+  if (!geo || !Number.isFinite(Number(geo.lat)) || !Number.isFinite(Number(geo.lon))) {
+    return 'Location unavailable'
+  }
+  const label = [geo.city, geo.region, geo.country].map((part) => String(part || '').trim()).filter(Boolean).join(', ')
+  const coords = `${Number(geo.lat).toFixed(4)}, ${Number(geo.lon).toFixed(4)}`
+  let source = 'IP-based, server-verified'
+  if (geo.source === 'gps') {
+    source = geo.verified ? 'device GPS, verified against IP' : 'device-reported, unverified'
+  }
+  return `${label ? `${label} · ` : ''}${coords} (${source})`
+}
+
+/**
+ * Security alert for a high-risk successful login. Never throws —
+ * a failed alert must not break the login flow.
+ */
+export async function sendSecurityAlertEmail({ to, event }) {
+  const flags = Array.isArray(event?.flags) ? event.flags : []
+  const when = event?.at ? new Date(event.at).toLocaleString() : new Date().toLocaleString()
+  const location = formatLocation(event?.geo)
+  const mapLink =
+    event?.geo && Number.isFinite(Number(event.geo.lat))
+      ? `https://www.google.com/maps?q=${Number(event.geo.lat)},${Number(event.geo.lon)}`
+      : ''
+
+  const row = (label, value) => `
+    <tr>
+      <td style="padding:10px 14px;color:#8b97b3;font-size:13px;border-bottom:1px solid #f0f3fa;white-space:nowrap">${escapeHtml(label)}</td>
+      <td style="padding:10px 14px;color:#111b33;font-size:13px;font-weight:600;border-bottom:1px solid #f0f3fa">${value}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#fdf4f4;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:0;border:1px solid #f3d6d6;overflow:hidden">
+    <div style="background:#7f1d1d;padding:22px 28px">
+      <p style="margin:0;color:#fecaca;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">SMS · Security Alert</p>
+      <h2 style="margin:6px 0 0;color:#fff;font-size:20px">High-risk login detected</h2>
+    </div>
+    <div style="padding:22px 28px">
+      <p style="color:#5c6b8c;line-height:1.5;margin:0 0 16px">
+        A successful sign-in on your account matched our high-risk rules. If this was you, no action is needed.
+        If not, change your password immediately and review Login Tracks in the dashboard.
+      </p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #f0f3fa;border-radius:12px;overflow:hidden">
+        ${row('When', escapeHtml(when))}
+        ${row('Account', escapeHtml(event?.email || '—'))}
+        ${row('Role', escapeHtml(event?.role || '—'))}
+        ${row('IP address', escapeHtml(event?.ip || '—'))}
+        ${row('Device', escapeHtml(`${event?.device?.browser || 'Unknown'} on ${event?.device?.os || 'Unknown'} (${event?.device?.type || 'unknown'})`))}
+        ${row('Location', escapeHtml(location))}
+        ${mapLink ? row('Map', `<a href="${escapeHtml(mapLink)}" style="color:#1b2a55">Open in Google Maps</a>`) : ''}
+      </table>
+      <p style="margin:18px 0 6px;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Why it was flagged</p>
+      <ul style="margin:0;padding:0 0 0 18px;color:#7f1d1d;font-size:13px;line-height:1.7">
+        ${flags.map((f) => `<li><strong>${escapeHtml(f.label)}</strong> — ${escapeHtml(f.detail)}</li>`).join('') || '<li>Unusual activity pattern</li>'}
+      </ul>
+      <p style="color:#8b97b3;font-size:12px;margin:18px 0 0">Risk score ${escapeHtml(event?.score ?? '—')} / 100 · This alert is sent at most once every 30 minutes per account.</p>
+      <p style="color:#1b2a55;font-weight:700;margin-top:16px">School Management System · Security Desk</p>
+    </div>
+  </div>
+</body></html>`
+
+  const text = [
+    'SMS SECURITY ALERT — High-risk login detected',
+    `When: ${when}`,
+    `Account: ${event?.email || '—'} (${event?.role || '—'})`,
+    `IP: ${event?.ip || '—'}`,
+    `Device: ${event?.device?.browser || 'Unknown'} on ${event?.device?.os || 'Unknown'}`,
+    `Location: ${location}`,
+    mapLink ? `Map: ${mapLink}` : '',
+    `Flags: ${flags.map((f) => f.label).join(', ') || 'Unusual activity pattern'}`,
+    'If this was not you, change your password immediately.',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: 'SMS Security Alert · High-risk login detected',
+      html,
+      text,
+      demoCode: null,
+      purpose: 'security-alert',
+      logLabel: 'Security alert',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] security alert failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [
