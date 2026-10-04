@@ -39,10 +39,15 @@ import {
 } from './inviteKeys.js'
 import { searchPreviousSchools } from './src/data/previousSchools.js'
 import {
+  computeAnalytics,
   getClientIp,
+  listKnownDevices,
   listTracks,
+  listWatchlist,
   markReviewed,
   recordLoginEvent,
+  setDeviceTrust,
+  setWatchlistEntry,
   summarizeTracks,
 } from './loginTracks.js'
 
@@ -1253,6 +1258,44 @@ app.post('/api/login-tracks/:id/review', requireAdmin, (req, res) => {
   const updated = markReviewed(req.params.id, req.body?.reviewer || req.adminUser.email)
   if (!updated) return res.status(404).json({ error: 'Track event not found' })
   res.json(updated)
+})
+
+app.get('/api/login-tracks/analytics', requireAdmin, (_req, res) => {
+  res.json(computeAnalytics())
+})
+
+app.get('/api/login-tracks/devices', requireAdmin, (_req, res) => {
+  res.json({ devices: listKnownDevices() })
+})
+
+app.post('/api/login-tracks/devices/trust', requireAdmin, (req, res) => {
+  const { email, fingerprint, trust } = req.body || {}
+  if (!email || !fingerprint) return res.status(400).json({ error: 'email and fingerprint are required' })
+  if (!['trusted', 'suspicious', ''].includes(String(trust || ''))) {
+    return res.status(400).json({ error: 'trust must be "trusted", "suspicious" or empty' })
+  }
+  const updated = setDeviceTrust({ email, fingerprint, trust, by: req.adminUser.email })
+  if (!updated) return res.status(404).json({ error: 'Device not found for this account' })
+  res.json(updated)
+})
+
+app.get('/api/login-tracks/watchlist', requireAdmin, (_req, res) => {
+  res.json({ watchlist: listWatchlist() })
+})
+
+app.post('/api/login-tracks/watchlist', requireAdmin, (req, res) => {
+  try {
+    const entry = setWatchlistEntry({
+      ip: req.body?.ip,
+      action: req.body?.action || 'add',
+      note: req.body?.note,
+      by: req.adminUser.email,
+    })
+    if (!entry) return res.status(404).json({ error: 'IP is not on the watchlist' })
+    res.json(entry)
+  } catch (err) {
+    res.status(400).json({ error: err?.message || 'Invalid request' })
+  }
 })
 
 // API Routes - Teachers

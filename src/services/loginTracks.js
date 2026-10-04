@@ -64,3 +64,46 @@ export async function reviewTrack(id, reviewer) {
   if (!res.ok) throw new Error(buildErrorMessage(body, res))
   return body
 }
+
+export async function fetchAnalytics() {
+  const res = await safeFetch(`${API}/analytics`, { headers: authHeaders() })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body
+}
+
+export async function fetchDevices() {
+  const res = await safeFetch(`${API}/devices`, { headers: authHeaders() })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body?.devices || []
+}
+
+export async function setDeviceTrust({ email, fingerprint, trust }) {
+  const res = await safeFetch(`${API}/devices/trust`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ email, fingerprint, trust }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body
+}
+
+export async function fetchWatchlist() {
+  const res = await safeFetch(`${API}/watchlist`, { headers: authHeaders() })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body?.watchlist || []
+}
+
+export async function updateWatchlist({ ip, action, note }) {
+  const res = await safeFetch(`${API}/watchlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ ip, action, note }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body
+}

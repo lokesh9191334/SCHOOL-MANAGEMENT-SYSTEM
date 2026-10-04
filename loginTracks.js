@@ -6,6 +6,8 @@ import { getDataDirectory } from './vercelBlobStore.js'
 
 const DATA_DIR = getDataDirectory()
 const TRACKS_FILE = join(DATA_DIR, 'login_tracks.json')
+const DEVICES_FILE = join(DATA_DIR, 'login_devices.json')
+const WATCHLIST_FILE = join(DATA_DIR, 'ip_watchlist.json')
 const MAX_EVENTS = 2000
 const ALERT_THROTTLE_MS = 30 * 60 * 1000
 const IP_CACHE_TTL_MS = 30 * 60 * 1000
@@ -18,6 +20,8 @@ const FLAG_WEIGHTS = {
   'rapid-failures': 30,
   'impossible-travel': 45,
   'location-mismatch': 30,
+  'flagged-device': 25,
+  'watchlisted-ip': 30,
 }
 
 /** Device GPS farther than this from the server-verified IP location is treated as a mismatch. */
@@ -41,6 +45,28 @@ export function readTracks() {
 function writeTracks(list) {
   ensureFile()
   fs.writeFileSync(TRACKS_FILE, JSON.stringify(list, null, 2), 'utf8')
+}
+
+function readStore(file, fallback) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8') || 'null')
+    return parsed ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function writeStore(file, value) {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+  fs.writeFileSync(file, JSON.stringify(value, null, 2), 'utf8')
+}
+
+export function deviceFingerprint(device) {
+  return `${device?.browser || 'Unknown'}|${device?.os || 'Unknown'}|${device?.type || 'desktop'}`
+}
+
+function deviceKey(email, fingerprint) {
+  return `${String(email || '').trim().toLowerCase()}::${fingerprint}`
 }
 
 export function parseDevice(userAgent) {
@@ -91,14 +117,16 @@ function sameEmail(a, b) {
 
 /**
  * Pure risk engine. `history` is the newest-first list of previous events
- * (the current event is excluded by id).
+ * (the current event is excluded by id). `stores` carries the admin-managed
+ * IP watchlist and per-account device trust entries.
  */
-export function assessRisk(event, history = []) {
+export function assessRisk(event, history = [], stores = {}) {
   const flags = []
   const previous = history.filter((e) => sameEmail(e.email, event.email) && e.id !== event.id)
   const successes = previous.filter((e) => e.stage === 'login-success')
   const latestGeo = successes.find((e) => hasGeo(e.geo))
   const deviceSig = `${event.device?.browser}|${event.device?.os}`
+  const deviceEntry = stores.devices ? stores.devices[deviceKey(event.email, deviceFingerprint(event.device))] : null
 
   if (event.deviceGeo && event.deviceGeo.verified === false) {
     flags.push({
@@ -108,12 +136,30 @@ export function assessRisk(event, history = []) {
     })
   }
 
+  if (event.ip && stores.watchlist && stores.watchlist[event.ip]) {
+    const entry = stores.watchlist[event.ip]
+    flags.push({
+      key: 'watchlisted-ip',
+      label: 'Watchlisted IP',
+      detail: `This IP was flagged by an admin${entry.note ? ` — “${entry.note}”` : ''} — every login from it is escalated`,
+    })
+  }
+
   if (successes.length) {
-    if (!successes.some((e) => `${e.device?.browser}|${e.device?.os}` === deviceSig)) {
+    const knownDevice = successes.some((e) => `${e.device?.browser}|${e.device?.os}` === deviceSig)
+    if (!knownDevice && deviceEntry?.trust !== 'trusted') {
       flags.push({
         key: 'new-device',
         label: 'New device',
         detail: `${event.device?.browser || 'Unknown browser'} on ${event.device?.os || 'unknown OS'} used for the first time`,
+      })
+    }
+
+    if (deviceEntry?.trust === 'suspicious') {
+      flags.push({
+        key: 'flagged-device',
+        label: 'Flagged device',
+        detail: 'An admin marked this device suspicious for this account — verify this sign-in with the account owner',
       })
     }
 
@@ -413,12 +459,40 @@ async function doRecord({ stage, email, userId = null, name = '', role = '', met
   }
 
   const tracks = readTracks()
-  const assessment = assessRisk(event, tracks)
+  const watchlist = readStore(WATCHLIST_FILE, {})
+  const devices = readStore(DEVICES_FILE, {})
+  const assessment = assessRisk(event, tracks, { watchlist, devices })
   event.risk = assessment.risk
   event.score = assessment.score
   event.flags = assessment.flags
 
   writeTracks([event, ...tracks].slice(0, MAX_EVENTS))
+
+  if (event.ip && watchlist[event.ip]) {
+    watchlist[event.ip].hits = (watchlist[event.ip].hits || 0) + 1
+    watchlist[event.ip].lastHitAt = event.at
+    writeStore(WATCHLIST_FILE, watchlist)
+  }
+
+  if (stage === 'login-success' && event.email) {
+    const fingerprint = deviceFingerprint(event.device)
+    const key = deviceKey(event.email, fingerprint)
+    devices[key] = {
+      email: event.email,
+      name: event.name,
+      role: event.role,
+      fingerprint,
+      browser: event.device?.browser || 'Unknown',
+      os: event.device?.os || 'Unknown',
+      type: event.device?.type || 'desktop',
+      firstSeen: devices[key]?.firstSeen || event.at,
+      lastSeen: event.at,
+      trust: devices[key]?.trust || null,
+      updatedAt: devices[key]?.updatedAt || null,
+      updatedBy: devices[key]?.updatedBy || null,
+    }
+    writeStore(DEVICES_FILE, devices)
+  }
 
   if (stage === 'login-success' && event.risk === 'high' && event.email) {
     try {
@@ -530,5 +604,171 @@ export function summarizeTracks() {
     suspiciousUnreviewed: suspicious.length,
     uniqueDevicesToday: devices.size,
     lastEventAt: tracks[0]?.at || null,
+  }
+}
+
+/** Admin view of every known account device, enriched with live track stats. */
+export function listKnownDevices() {
+  const store = readStore(DEVICES_FILE, {})
+  const tracks = readTracks()
+  const stats = new Map()
+
+  for (const e of tracks) {
+    if (!e.email) continue
+    const key = deviceKey(e.email, deviceFingerprint(e.device))
+    const stat =
+      stats.get(key) ||
+      { events: 0, successes: 0, highRisk: 0, lastSeenAt: null, lastSuccessAt: null, ips: new Set() }
+    stat.events += 1
+    if (e.stage === 'login-success') {
+      stat.successes += 1
+      stat.lastSuccessAt = stat.lastSuccessAt || e.at
+    }
+    if (e.risk === 'high') stat.highRisk += 1
+    stat.lastSeenAt = stat.lastSeenAt || e.at
+    if (e.ip) stat.ips.add(e.ip)
+    stats.set(key, stat)
+  }
+
+  const devices = Object.entries(store).map(([key, d]) => {
+    const stat = stats.get(key)
+    return {
+      key,
+      email: d.email,
+      name: d.name || '',
+      role: d.role || '',
+      fingerprint: d.fingerprint,
+      browser: d.browser,
+      os: d.os,
+      type: d.type,
+      firstSeen: d.firstSeen,
+      lastSeen: stat?.lastSeenAt || d.lastSeen,
+      logins: stat?.successes ?? 0,
+      events: stat?.events ?? 0,
+      highRisk: stat?.highRisk ?? 0,
+      ips: stat ? [...stat.ips].slice(0, 5) : [],
+      trust: d.trust || null,
+      updatedBy: d.updatedBy || null,
+      updatedAt: d.updatedAt || null,
+    }
+  })
+  devices.sort((a, b) => String(b.lastSeen || '').localeCompare(String(a.lastSeen || '')))
+  return devices
+}
+
+export function setDeviceTrust({ email, fingerprint, trust, by }) {
+  const store = readStore(DEVICES_FILE, {})
+  const key = deviceKey(email, fingerprint)
+  if (!store[key]) return null
+  store[key] = {
+    ...store[key],
+    trust: trust || null,
+    updatedAt: new Date().toISOString(),
+    updatedBy: String(by || '').slice(0, 80),
+  }
+  writeStore(DEVICES_FILE, store)
+  return { key, ...store[key] }
+}
+
+const IP_PATTERN = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f]{0,4}(?::[0-9a-f]{0,4}){1,7})$/i
+
+export function listWatchlist() {
+  const store = readStore(WATCHLIST_FILE, {})
+  return Object.entries(store)
+    .map(([ip, w]) => ({ ip, ...w }))
+    .sort((a, b) => (b.lastHitAt || b.at || '').localeCompare(a.lastHitAt || a.at || ''))
+}
+
+export function setWatchlistEntry({ ip, action = 'add', note = '', by = '' }) {
+  const value = String(ip || '').trim()
+  if (!IP_PATTERN.test(value) || value.length > 45) throw new Error('Enter a valid IP address')
+  const store = readStore(WATCHLIST_FILE, {})
+
+  if (action === 'remove') {
+    if (!store[value]) return null
+    delete store[value]
+    writeStore(WATCHLIST_FILE, store)
+    return { ip: value, removed: true }
+  }
+
+  const prev = store[value]
+  store[value] = {
+    note: String(note ?? prev?.note ?? '').slice(0, 140),
+    by: String(by || prev?.by || '').slice(0, 80),
+    at: prev?.at || new Date().toISOString(),
+    hits: prev?.hits || 0,
+    lastHitAt: prev?.lastHitAt || null,
+  }
+  writeStore(WATCHLIST_FILE, store)
+  return { ip: value, ...store[value] }
+}
+
+/** Aggregates for the analytics tab — computed over the whole store, ignoring list filters. */
+export function computeAnalytics() {
+  const tracks = readTracks()
+
+  const daily = []
+  for (let i = 13; i >= 0; i -= 1) {
+    const d = new Date()
+    d.setHours(12, 0, 0, 0)
+    d.setDate(d.getDate() - i)
+    daily.push({ date: d.toISOString().slice(0, 10), success: 0, failed: 0 })
+  }
+  const dailyIndex = new Map(daily.map((d) => [d.date, d]))
+  const risk = { safe: 0, watch: 0, high: 0 }
+  const stages = {}
+  const browsers = new Map()
+  const types = new Map()
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }))
+  const cities = new Map()
+
+  for (const e of tracks) {
+    const day = dailyIndex.get(String(e.at || '').slice(0, 10))
+    if (day) {
+      if (e.stage === 'login-success') day.success += 1
+      else if (e.stage === 'login-failed' || e.stage === 'otp-failed') day.failed += 1
+    }
+    if (risk[e.risk] !== undefined) risk[e.risk] += 1
+    if (e.stage) stages[e.stage] = (stages[e.stage] || 0) + 1
+    if (e.device?.browser && e.device.browser !== 'Unknown') {
+      browsers.set(e.device.browser, (browsers.get(e.device.browser) || 0) + 1)
+    }
+    if (e.device?.type) types.set(e.device.type, (types.get(e.device.type) || 0) + 1)
+    const hour = new Date(e.at).getHours()
+    if (Number.isFinite(hour)) hours[hour].count += 1
+
+    if (hasGeo(e.geo) && String(e.geo?.city || '').trim()) {
+      const key = `${e.geo.city}, ${e.geo.country || ''}`.replace(/, $/, '')
+      const c = cities.get(key) || { label: e.geo.city, country: e.geo.country || '', lat: 0, lon: 0, count: 0 }
+      c.count += 1
+      c.lat += Number(e.geo.lat)
+      c.lon += Number(e.geo.lon)
+      cities.set(key, c)
+    }
+  }
+
+  const top = (map, n) =>
+    [...map.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, n)
+
+  return {
+    daily,
+    risk,
+    stages,
+    hours,
+    browsers: top(browsers, 6),
+    types: top(types, 4),
+    topCities: [...cities.values()]
+      .map((c) => ({
+        label: c.label,
+        country: c.country,
+        count: c.count,
+        lat: Number((c.lat / c.count).toFixed(5)),
+        lon: Number((c.lon / c.count).toFixed(5)),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6),
   }
 }

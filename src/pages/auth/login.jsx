@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthShell from '../../components/auth/AuthShell'
 import OtpInput from '../../components/auth/OtpInput'
@@ -29,6 +29,9 @@ const LoginPage = () => {
   const [resendIn, setResendIn] = useState(0)
 
   const geoRef = useRef(null)
+  const [geoState, setGeoState] = useState('locating')
+  const [geoPlace, setGeoPlace] = useState('')
+  const [showDeniedHelp, setShowDeniedHelp] = useState(false)
   const isAdminDual = isAdminDualMethod(loginMethod)
 
   useEffect(() => {
@@ -37,13 +40,10 @@ const LoginPage = () => {
     return () => window.clearTimeout(timer)
   }, [resendIn])
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return undefined
-    let cancelled = false
-
+  const captureGeo = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        if (cancelled) return
         const base = {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
@@ -51,33 +51,81 @@ const LoginPage = () => {
           source: 'gps',
         }
         geoRef.current = base
+        setGeoState('granted')
         try {
           const res = await fetch(
             `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${base.lat}&longitude=${base.lon}&localityLanguage=en`,
           )
           if (!res.ok) return
           const data = await res.json()
-          if (cancelled) return
           geoRef.current = {
             ...base,
             city: data.city || data.locality || '',
             region: data.principalSubdivision || '',
             country: data.countryName || '',
           }
+          setGeoPlace(
+            [data.city || data.locality || '', data.principalSubdivision || '', data.countryName || '']
+              .filter(Boolean)
+              .join(', '),
+          )
         } catch {
           /* coordinates alone are enough for tracking */
         }
       },
-      () => {
-        /* denied / unavailable — server falls back to IP location */
+      (err) => {
+        if (err && err.code === err.PERMISSION_DENIED) setGeoState('denied')
+        else setGeoState('error')
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 },
     )
+  }, [])
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoState('unsupported')
+      return undefined
+    }
+    let permission = null
+    let cancelled = false
+
+    if (navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: 'geolocation' })
+        .then((status) => {
+          if (cancelled) return
+          permission = status
+          const sync = () => {
+            if (cancelled) return
+            if (status.state === 'granted') {
+              setGeoState('locating')
+              captureGeo()
+            } else if (status.state === 'denied') {
+              setGeoState('denied')
+            } else {
+              // Not decided yet — request right away so the browser shows the
+              // prompt; the chip also keeps an Enable button as a fallback.
+              setGeoState('prompt')
+              captureGeo()
+            }
+          }
+          sync()
+          status.onchange = sync
+        })
+        .catch(() => {
+          setGeoState('prompt')
+          captureGeo()
+        })
+    } else {
+      setGeoState('prompt')
+      captureGeo()
+    }
 
     return () => {
       cancelled = true
+      if (permission) permission.onchange = null
     }
-  }, [])
+  }, [captureGeo])
 
   const canVerify = useMemo(() => {
     const otpOk = otp.replace(/\D/g, '').length === 6
@@ -329,6 +377,61 @@ const LoginPage = () => {
           </button>
         </form>
       )}
+
+      <div className={`geo-chip geo-chip--${geoState}`} role="status">
+        <span className="geo-chip-dot" aria-hidden />
+        {geoState === 'locating' ? <span>Locking your exact GPS location…</span> : null}
+        {geoState === 'granted' ? (
+          <span>
+            <strong>Exact GPS active</strong>
+            {geoPlace ? ` — ${geoPlace}` : ' — this sign-in carries precise coordinates'}
+          </span>
+        ) : null}
+        {geoState === 'prompt' ? (
+          <>
+            <span>Allow location for exact login tracking</span>
+            <button type="button" className="geo-chip-btn" onClick={captureGeo}>
+              Enable location
+            </button>
+          </>
+        ) : null}
+        {geoState === 'denied' ? (
+          <>
+            <span>Location blocked — exact tracking is off</span>
+            <button type="button" className="geo-chip-btn" onClick={() => setShowDeniedHelp((v) => !v)}>
+              {showDeniedHelp ? 'Hide help' : 'How to enable'}
+            </button>
+          </>
+        ) : null}
+        {geoState === 'error' ? (
+          <>
+            <span>GPS signal not received — IP location will be used</span>
+            <button type="button" className="geo-chip-btn" onClick={captureGeo}>
+              Retry
+            </button>
+          </>
+        ) : null}
+        {geoState === 'unsupported' ? (
+          <span>Browser GPS unavailable — IP-based location will be used</span>
+        ) : null}
+      </div>
+
+      {geoState === 'denied' && showDeniedHelp ? (
+        <div className="geo-help-card">
+          <strong>Enable location in 3 steps</strong>
+          <ol>
+            <li>
+              <strong>Phone app:</strong> long-press the app icon → App info → Permissions →
+              Location → Allow.
+            </li>
+            <li>
+              <strong>Browser:</strong> tap the lock / ⓘ icon beside the site address → Site
+              settings → Location → Allow.
+            </li>
+            <li>Reload this page — the chip turns green once GPS is active.</li>
+          </ol>
+        </div>
+      ) : null}
     </AuthShell>
   )
 }

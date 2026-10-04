@@ -1016,3 +1016,119 @@
     font-size: 0.8rem;
   }
 }
+
+/* GPS permission chip on the login card */
+
+.geo-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.geo-chip strong {
+  color: #fff;
+}
+
+.geo-chip-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #9aa3b2;
+}
+
+.geo-chip--locating .geo-chip-dot {
+  background: #38bdf8;
+  animation: geo-chip-pulse 1.2s ease-in-out infinite;
+}
+
+.geo-chip--granted {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.geo-chip--granted .geo-chip-dot {
+  background: #34d399;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+}
+
+.geo-chip--prompt {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.geo-chip--prompt .geo-chip-dot,
+.geo-chip--error .geo-chip-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.7);
+}
+
+.geo-chip--denied {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.geo-chip--denied .geo-chip-dot {
+  background: #f87171;
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
+}
+
+.geo-chip-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.geo-chip-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.geo-chip-btn:active {
+  transform: scale(0.97);
+}
+
+.geo-help-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+}
+
+.geo-help-card strong {
+  color: #fecaca;
+}
+
+.geo-help-card ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@keyframes geo-chip-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
+  }
+}
