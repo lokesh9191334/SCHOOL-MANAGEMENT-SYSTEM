@@ -4,6 +4,7 @@ import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { SEED_STUDENTS } from '../../data/seed'
 import { fetchStudents, replaceStudents } from '../../services/students'
+import StudentProfileOverlay from './StudentProfileOverlay'
 import './StudentList.css'
 
 const STATUS_OPTIONS = ['All', 'Active', 'On Hold', 'Alumni']
@@ -44,6 +45,7 @@ const StudentsPage = () => {
   const [statusFilter, setStatusFilter] = useState('All')
   const [sortBy, setSortBy] = useState('name')
   const [selectedId, setSelectedId] = useState(null)
+  const [profileId, setProfileId] = useState(null)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
@@ -101,6 +103,7 @@ const StudentsPage = () => {
   }, [students, searchQuery, classFilter, statusFilter, sortBy])
 
   const selected = students.find((s) => s.id === selectedId) ?? filteredStudents[0] ?? null
+  const profileStudent = students.find((s) => s.id === profileId) ?? null
 
   useEffect(() => {
     if (!selectedId && filteredStudents[0]) {
@@ -335,9 +338,9 @@ const StudentsPage = () => {
                           <button
                             type="button"
                             className="sl-btn sl-btn-secondary sl-btn-sm"
-                            onClick={() => setSelectedId(student.id)}
+                            onClick={() => setProfileId(student.id)}
                           >
-                            Open
+                            See Profile
                           </button>
                           <Link
                             className="sl-btn sl-btn-ghost sl-btn-sm"
@@ -478,6 +481,10 @@ const StudentsPage = () => {
         <div className="sl-toast" role="status">
           {toast}
         </div>
+      ) : null}
+
+      {profileStudent ? (
+        <StudentProfileOverlay student={profileStudent} onClose={() => setProfileId(null)} />
       ) : null}
     </div>
   )

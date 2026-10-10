@@ -7,6 +7,9 @@ export function buildStudentRecord(formValues, index) {
   const first = formValues.firstName || 'New'
   const last = formValues.lastName || 'Student'
   return {
+    // Keep every admission field (photo, contacts, addresses, parents, medical,
+    // documents, fees) so the premium profile can show the complete record.
+    ...formValues,
     id: `STU-${1001 + index}`,
     applicationId: formValues.applicationId || null,
     parentInviteKey: formValues.parentInviteKey || null,
