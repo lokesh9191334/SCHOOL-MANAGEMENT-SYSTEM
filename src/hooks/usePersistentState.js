@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getApiAuthHeaders } from '../services/apiAuth'
 
+const LOAD_ATTEMPTS = 3
+const LOAD_RETRY_DELAY = 1000
+
 function readStored(key) {
   if (typeof window === 'undefined') return { found: false, value: undefined }
   try {
@@ -19,6 +22,10 @@ function isParentSession() {
   } catch {
     return false
   }
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -43,26 +50,47 @@ export function usePersistentState(key, fallback) {
   }, [key, state])
 
   useEffect(() => {
-    let cancelled = false
+    if (typeof window === 'undefined') return
     if (isParentSession()) return undefined
-    fetch(`/api/records/${encodeURIComponent(key)}`, {
-      headers: getApiAuthHeaders(),
-    })
-      .then(async (response) => {
-        const body = await response.json().catch(() => null)
-        if (!response.ok) throw new Error(body?.error || `Could not load saved data (${response.status}).`)
-        if (!Array.isArray(body)) throw new Error('The server returned invalid saved data.')
-        if (cancelled) return
-        setState(body)
-        setServerReady(true)
-      })
-      .catch((error) => {
-        if (cancelled) return
-        console.error(`Could not load saved data for ${key}:`, error)
-        window.dispatchEvent(new CustomEvent('sms:persistence-error', {
-          detail: { key, message: error.message || 'Could not load saved data.' },
-        }))
-      })
+    let cancelled = false
+
+    const load = async () => {
+      for (let attempt = 1; attempt <= LOAD_ATTEMPTS; attempt += 1) {
+        try {
+          const response = await fetch(`/api/records/${encodeURIComponent(key)}`, {
+            headers: getApiAuthHeaders(),
+          })
+          const body = await response.json().catch(() => null)
+          if (!response.ok) throw new Error(body?.error || `Could not load saved data (${response.status}).`)
+          if (!Array.isArray(body)) throw new Error('The server returned invalid saved data.')
+          if (cancelled) return
+          if (body.length > 0) {
+            setState(body)
+          }
+          // When the server has nothing, keep locally saved records: wiping
+          // them here would destroy rows whose save never reached the server
+          // (e.g. after a failed first load). Marking the server ready makes
+          // the save effect below push the local rows back up.
+          setServerReady(true)
+          return
+        } catch (error) {
+          if (cancelled) return
+          if (attempt >= LOAD_ATTEMPTS) {
+            console.error(`Could not load saved data for ${key}:`, error)
+            window.dispatchEvent(new CustomEvent('sms:persistence-error', {
+              detail: { key, message: error.message || 'Could not load saved data.' },
+            }))
+            // A failed first load must never disable saving for the whole
+            // session — otherwise every change is silently kept local only.
+            setServerReady(true)
+            return
+          }
+          await wait(LOAD_RETRY_DELAY)
+        }
+      }
+    }
+
+    load()
     return () => {
       cancelled = true
     }
