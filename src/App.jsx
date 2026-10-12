@@ -54,6 +54,9 @@ const SPECIAL_PATHS = new Set([
   '/teacher/exams/report-cards',
   '/ai-assistant',
   '/parent/fees/online',
+  '/parent/fees/pending',
+  '/parent/fees/receipts',
+  '/parent/fees/installments',
   '/fees/online-payments',
   '/super-admin/school-requests',
 ])
@@ -93,6 +96,9 @@ function App() {
             <Route path="/teacher/exams/report-cards" element={<PremiumReportCard />} />
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
             <Route path="/parent/fees/online" element={<ParentOnlinePaymentPage />} />
+            <Route path="/parent/fees/pending" element={<Navigate replace to="/parent/fees/online" />} />
+            <Route path="/parent/fees/receipts" element={<Navigate replace to="/parent/fees/online" />} />
+            <Route path="/parent/fees/installments" element={<Navigate replace to="/parent/fees/online" />} />
             <Route path="/fees/online-payments" element={<PaymentReviewPage />} />
             <Route path="/super-admin/school-requests" element={<SchoolRequestsPage />} />
 

@@ -418,6 +418,21 @@ app.put('/api/students', (req, res) => {
   res.json(req.body)
 })
 
+app.patch('/api/students/:id/fee', requireRoles('admin', 'super_admin'), (req, res) => {
+  const list = readJsonFile(join('data', 'students.json'), emptyStudents)
+  const index = list.findIndex((student) => String(student.id) === String(req.params.id))
+  if (index < 0) return res.status(404).json({ error: 'Student not found.' })
+  const raw = req.body?.totalFee
+  const totalFee = raw === null || raw === undefined || raw === '' ? null : Number(raw)
+  if (totalFee !== null && (!Number.isFinite(totalFee) || totalFee < 0)) {
+    return res.status(400).json({ error: 'Enter a valid total fee amount.' })
+  }
+  const updated = { ...list[index], totalFee }
+  list[index] = updated
+  writeJsonFile(join('data', 'students.json'), list)
+  res.json(updated)
+})
+
 // Simple file-based users store and auth endpoints
 const USERS_FILE = join('data', 'users.json')
 function issueAuthToken(user) {
@@ -1989,6 +2004,9 @@ app.get('/api/payment-config', (_req, res) => {
     holderName: process.env.PAYMENT_HOLDER_NAME || '',
     upiId: process.env.PAYMENT_UPI_ID || '',
     mobile: process.env.PAYMENT_MOBILE || '',
+    bankName: process.env.PAYMENT_BANK_NAME || '',
+    bankAccount: process.env.PAYMENT_BANK_ACCOUNT || '',
+    bankIfsc: process.env.PAYMENT_BANK_IFSC || '',
   })
 })
 
@@ -2002,6 +2020,44 @@ app.get('/api/payments', (req, res) => {
       : [])
   }
   res.json(payments)
+})
+
+// Per-student fee ledger: total fee (set by admin) against verified payments.
+// Parents see only their linked child; staff can filter with ?studentId or
+// receive every student.
+app.get('/api/payments/summary', (req, res) => {
+  const students = readJsonFile(join('data', 'students.json'), emptyStudents)
+  const payments = readJsonFile(join('data', 'payments.json'), [])
+  const build = (student, linkedId) => {
+    const keys = [student?.id, linkedId].filter((value) => value !== undefined && value !== null).map(String)
+    const history = payments
+      .filter((payment) => keys.includes(String(payment.studentId)))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    const paid = history.filter((payment) => payment.status === 'Verified').reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    const pending = history.filter((payment) => payment.status === 'Verification pending').reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+    const rawTotal = student?.totalFee
+    const totalFee = rawTotal === null || rawTotal === undefined || rawTotal === '' || !Number.isFinite(Number(rawTotal)) ? null : Number(rawTotal)
+    return {
+      student: student
+        ? { id: student.id, name: student.title || student.name || '', className: student.subtitle || student.className || '', rollNo: student.rollNo || '' }
+        : null,
+      totalFee,
+      paid,
+      pending,
+      balance: totalFee === null ? null : Math.max(0, totalFee - paid),
+      history,
+    }
+  }
+  if (req.authUser.role === 'parent') {
+    const user = readJsonFile(USERS_FILE, []).find((item) => item.id === req.authUser.id)
+    const linkedId = user?.linkedId
+    if (!linkedId) return res.json({ students: [] })
+    const child = students.find((item) => String(item.id) === String(linkedId) || String(item.applicationId) === String(linkedId)) || null
+    return res.json({ students: [build(child, linkedId)] })
+  }
+  const wanted = String(req.query.studentId || '')
+  const list = wanted ? students.filter((item) => String(item.id) === wanted || String(item.applicationId) === wanted) : students
+  res.json({ students: list.map((item) => build(item, item.applicationId)) })
 })
 
 app.post('/api/payments', (req, res) => {

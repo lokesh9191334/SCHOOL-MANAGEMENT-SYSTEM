@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
-import { SEED_ATTENDANCE, SEED_FEE_PAYMENTS, SEED_STUDENTS } from '../../data/seed'
+import { SEED_ATTENDANCE, SEED_STUDENTS } from '../../data/seed'
 import { getAuthUser } from '../../utils/session'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import './RoleHome.css'
 
 const cards = [
@@ -20,11 +21,32 @@ const cards = [
 export default function ParentHome() {
   const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
   const [attendance] = usePersistentState(STORAGE_KEYS.attendance, SEED_ATTENDANCE)
-  const [fees] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
+  const [feeEntry, setFeeEntry] = useState(undefined)
   const linkedId = getAuthUser()?.linkedId
-  const child = linkedId ? students.find((student) => student.applicationId === linkedId || student.id === linkedId) || null : null
+  const localChild = linkedId ? students.find((student) => student.applicationId === linkedId || student.id === linkedId) || null : null
+  const serverChild = feeEntry?.student || null
+  const child = serverChild || localChild
   const childAttendance = useMemo(() => attendance.filter((row) => row.title === child?.title), [attendance, child?.title])
-  const pendingFees = fees.filter((row) => row.status !== 'Paid').reduce((sum, row) => sum + Number(row.amount || 0), 0)
+
+  useEffect(() => {
+    fetch('/api/payments/summary', { headers: getApiAuthHeaders() })
+      .then(async (response) => {
+        const body = await response.json().catch(() => null)
+        if (!response.ok) throw new Error(body?.error || 'Could not load fee details.')
+        if (!Array.isArray(body?.students)) throw new Error('The server returned an invalid fee summary.')
+        setFeeEntry(body.students[0] || null)
+      })
+      .catch((error) => {
+        console.error('Could not load fee summary:', error)
+        setFeeEntry(null)
+      })
+  }, [])
+
+  const feeDueText = feeEntry === undefined
+    ? '…'
+    : feeEntry && feeEntry.balance !== null
+      ? `₹${Math.round(feeEntry.balance).toLocaleString('en-IN')}`
+      : '—'
 
   return (
     <div className="role-home">
@@ -35,10 +57,10 @@ export default function ParentHome() {
           <p>Attendance, homework, fees, results, transport and leave — linked by special admission key.</p>
         </div>
         <div className="role-home__metrics">
-          <article><strong>{child?.title || 'Not linked'}</strong><span>Student</span></article>
-          <article><strong>{child?.subtitle || 'Unassigned'}</strong><span>Class</span></article>
+          <article><strong>{child?.title || child?.name || 'Not linked'}</strong><span>Student</span></article>
+          <article><strong>{child?.subtitle || child?.className || 'Unassigned'}</strong><span>Class</span></article>
           <article><strong>{childAttendance.length}</strong><span>Attendance updates</span></article>
-          <article><strong>₹{Math.round(pendingFees).toLocaleString('en-IN')}</strong><span>Fee due</span></article>
+          <article><strong>{feeDueText}</strong><span>Fee due</span></article>
         </div>
       </header>
       <section className="role-home__grid">

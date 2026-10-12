@@ -1,61 +1,80 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { Link } from 'react-router-dom'
-import { usePersistentState } from '../../hooks/usePersistentState'
-import { STORAGE_KEYS } from '../../utils/constants'
-import { SEED_FEE_PAYMENTS, SEED_STUDENTS } from '../../data/seed'
 import { getAuthUser } from '../../utils/session'
 import { getApiAuthHeaders } from '../../services/apiAuth'
+import { downloadPaymentReceipt } from '../../services/receiptPdf'
 import './OnlinePaymentPage.css'
 
-const PAYMENT_SETTINGS_KEY = 'sms_payment_settings'
-const defaultSettings = { holderName: '', upiId: '', mobile: '' }
+const defaultSettings = { holderName: '', upiId: '', mobile: '', bankName: '', bankAccount: '', bankIfsc: '' }
 
-function receiptNumber() {
-  return `RCP-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`
+const STATUS_CLASS = {
+  Verified: 'is-verified',
+  Rejected: 'is-rejected',
+  'Verification pending': 'is-pending',
+}
+
+function formatRupees(value) {
+  if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—'
+  return `₹${Number(value).toLocaleString('en-IN')}`
+}
+
+function formatDateTime(value) {
+  const date = new Date(value)
+  if (!value || Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
 export default function ParentOnlinePaymentPage() {
   const user = getAuthUser()
-  const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
-  const [fees] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
-  const [payments, setPayments] = useState([])
-  const child = user?.linkedId ? students.find((student) => student.id === user.linkedId || student.applicationId === user.linkedId) : null
-  const childFees = child ? fees.filter((fee) => fee.studentId === child.id || fee.student === child.title) : []
-  const due = childFees.filter((fee) => fee.status !== 'Paid').reduce((sum, fee) => sum + Number(fee.amount || 0), 0)
-  const [settings, setSettings] = useState(() => {
-    try {
-      return { ...defaultSettings, ...JSON.parse(localStorage.getItem(PAYMENT_SETTINGS_KEY) || '{}') }
-    } catch {
-      return defaultSettings
-    }
-  })
-  const [amount, setAmount] = useState(String(due || ''))
+  const [settings, setSettings] = useState(defaultSettings)
+  const [summary, setSummary] = useState(null)
+  const [loadError, setLoadError] = useState('')
+  const [amount, setAmount] = useState('')
+  const [amountTouched, setAmountTouched] = useState(false)
   const [reference, setReference] = useState('')
   const [qr, setQr] = useState('')
   const [expiresAt, setExpiresAt] = useState(0)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [message, setMessage] = useState('')
+  const [messageTone, setMessageTone] = useState('is-info')
+  const [submitting, setSubmitting] = useState(false)
+  const [busyReceiptId, setBusyReceiptId] = useState('')
+
+  const entry = summary?.students?.[0] || null
+  const child = entry?.student || null
+  const history = entry?.history || []
+  const linkedStudentId = user?.linkedId || null
+  const autoAmount = entry && entry.balance !== null && entry.balance > 0 ? String(entry.balance) : ''
+  const amountValue = amountTouched ? amount : autoAmount
+
+  const loadSummary = useCallback(() => fetch('/api/payments/summary', { headers: getApiAuthHeaders() })
+    .then((response) => response.json().catch(() => null).then((body) => {
+      if (!response.ok) throw new Error(body?.error || `Could not load fee details (${response.status}).`)
+      if (!Array.isArray(body?.students)) throw new Error('The server returned an invalid fee summary.')
+      setSummary(body)
+      setLoadError('')
+      return body
+    }))
+    .catch((error) => {
+      setLoadError(error.message || 'Could not load fee details.')
+      setSummary({ students: [] })
+      return null
+    }), [])
 
   useEffect(() => {
     fetch('/api/payment-config', { headers: getApiAuthHeaders() })
-      .then((response) => response.json())
-      .then((config) => setSettings((current) => ({ ...current, ...config })))
-      .catch(() => setMessage('Payment receiver details could not be loaded.'))
-  }, [])
-
-  useEffect(() => {
-    fetch('/api/payments', { headers: getApiAuthHeaders() })
       .then(async (response) => {
-        const remotePayments = await response.json()
-        if (!response.ok) throw new Error(remotePayments?.error || 'Payment history could not be loaded.')
-        if (!Array.isArray(remotePayments)) throw new Error('The server returned an invalid payment history.')
-        setPayments(remotePayments)
+        const config = await response.json().catch(() => null)
+        if (!response.ok) throw new Error(config?.error || 'Payment receiver details could not be loaded.')
+        setSettings({ ...defaultSettings, ...config })
       })
-      .catch((error) => setMessage(error.message || 'Payment history could not be loaded.'))
-  }, [])
-
-  const upiLink = useMemo(() => `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName)}&am=${encodeURIComponent(amount || 0)}&cu=INR`, [settings, amount])
+      .catch((error) => {
+        setMessage(error.message || 'Payment receiver details could not be loaded.')
+        setMessageTone('is-error')
+      })
+    loadSummary()
+  }, [loadSummary])
 
   useEffect(() => {
     if (!expiresAt) return undefined
@@ -63,53 +82,194 @@ export default function ParentOnlinePaymentPage() {
     return () => window.clearInterval(timer)
   }, [expiresAt])
 
+  const upiLink = useMemo(
+    () => `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName || 'School')}&am=${encodeURIComponent(amountValue || 0)}&cu=INR`,
+    [settings, amountValue],
+  )
+
   const startQr = async () => {
-    if (!child) return setMessage('This parent account is not linked to a student yet.')
-    if (!Number(amount) || Number(amount) <= 0) return setMessage('Enter a valid payment amount.')
-    if (!settings.upiId.trim()) return setMessage('School payment UPI ID is not configured. Ask the admin to add it first.')
+    if (!entry) return
+    const value = Number(amountValue)
+    if (!Number.isFinite(value) || value <= 0) {
+      setMessage('Enter a valid payment amount.')
+      setMessageTone('is-error')
+      return
+    }
+    if (!settings.upiId.trim()) {
+      setMessage('School payment UPI ID is not configured. Ask the admin to add it first.')
+      setMessageTone('is-error')
+      return
+    }
     setQr(await QRCode.toDataURL(upiLink, { width: 260, margin: 2 }))
     setExpiresAt(Date.now() + 120000)
-    setMessage('Scan the QR and submit the UTR/reference after payment.')
+    setSecondsLeft(120)
+    setMessage('Scan the QR, pay the amount, then submit the UTR reference below.')
+    setMessageTone('is-info')
   }
 
   const submitPayment = async (event) => {
     event.preventDefault()
-    if (!child || !reference.trim() || secondsLeft === 0) return setMessage('Enter the payment reference while the QR session is active.')
-    const record = { id: `PAY-${Date.now()}`, receiptNo: receiptNumber(), studentId: child.id, studentName: child.title, className: child.subtitle, rollNo: child.rollNo || '—', parentName: user.name, amount: Number(amount), reference: reference.trim(), method: 'UPI', status: 'Verification pending', createdAt: new Date().toISOString() }
+    if (!entry) return
+    const value = Number(amountValue)
+    if (!Number.isFinite(value) || value <= 0) {
+      setMessage('Enter a valid payment amount.')
+      setMessageTone('is-error')
+      return
+    }
+    if (!reference.trim()) {
+      setMessage('Enter the UPI / bank UTR reference of your payment.')
+      setMessageTone('is-error')
+      return
+    }
+    if (secondsLeft === 0) {
+      setMessage('The QR session expired. Generate a fresh QR and pay again before submitting.')
+      setMessageTone('is-error')
+      return
+    }
+    const record = {
+      id: `PAY-${Date.now()}`,
+      receiptNo: `RCP-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`,
+      studentId: linkedStudentId,
+      studentName: child?.name || '',
+      className: child?.className || '',
+      rollNo: child?.rollNo || '',
+      amount: value,
+      reference: reference.trim(),
+      method: 'UPI',
+      status: 'Verification pending',
+      createdAt: new Date().toISOString(),
+    }
+    setSubmitting(true)
     try {
       const response = await fetch('/api/payments', {
         method: 'POST',
         headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(record),
       })
-      const saved = await response.json()
-      if (!response.ok) throw new Error(saved?.error || 'Payment submission could not be saved.')
-      setPayments((current) => [saved, ...current])
+      const saved = await response.json().catch(() => null)
+      if (!response.ok || !saved) throw new Error(saved?.error || `Could not save your payment (${response.status}).`)
+      setAmountTouched(false)
+      setAmount('')
+      setReference('')
+      setQr('')
+      setExpiresAt(0)
+      setSecondsLeft(0)
+      try {
+        await downloadPaymentReceipt(saved, settings)
+        setMessage(`Payment submitted. Receipt ${saved.receiptNo || saved.id} downloaded — status: Verification pending. The balance updates after the school verifies the payment.`)
+        setMessageTone('is-success')
+      } catch {
+        setMessage(`Payment submitted, but the receipt PDF could not be generated on this device. Use the "Receipt PDF" button in the history table below.`)
+        setMessageTone('is-info')
+      }
+      await loadSummary()
     } catch (error) {
-      setMessage(error.message || 'Payment submission could not be saved. Please try again.')
-      return
+      setMessage(error.message || 'Your payment could not be saved. Please try again.')
+      setMessageTone('is-error')
+    } finally {
+      setSubmitting(false)
     }
-    setReference('')
-    setQr('')
-    setExpiresAt(0)
-    setMessage(`Payment submitted. Receipt ${record.receiptNo} is ready after admin verification.`)
   }
 
-  const latest = payments.find((payment) => payment.studentId === child?.id)
-  const printReceipt = () => {
-    if (!latest) return
-    const popup = window.open('', '_blank')
-    if (!popup) return
-    popup.document.write(`<html><body style="font-family:Arial;padding:32px"><h1>Fee Payment Receipt</h1><p><b>Receipt:</b> ${latest.receiptNo}</p><p><b>Payment holder:</b> ${latest.parentName}</p><p><b>Student:</b> ${latest.studentName}</p><p><b>Class / Roll no:</b> ${latest.className} / ${latest.rollNo}</p><p><b>Amount:</b> ₹${latest.amount.toLocaleString('en-IN')}</p><p><b>Method:</b> ${latest.method}</p><p><b>Reference:</b> ${latest.reference}</p><p><b>Status:</b> ${latest.status}</p><p><b>Date:</b> ${new Date(latest.createdAt).toLocaleString()}</p></body></html>`)
-    popup.document.close()
-    popup.print()
+  const downloadReceipt = async (payment) => {
+    setBusyReceiptId(payment.id)
+    try {
+      await downloadPaymentReceipt(payment, settings)
+      setMessage(`Receipt ${payment.receiptNo || payment.id} downloaded.`)
+      setMessageTone('is-info')
+    } catch (error) {
+      setMessage(error.message || 'The receipt PDF could not be generated.')
+      setMessageTone('is-error')
+    } finally {
+      setBusyReceiptId('')
+    }
   }
 
   return <section className="parent-payment-page">
-    <header className="parent-payment-hero"><div><p className="admin-kicker">Parent portal · Fees</p><h2>Secure online payment</h2><p>Pay the school UPI, mobile number or QR shown below. The QR session expires in two minutes.</p></div><Link className="link-pill" to="/parent/fees/pending">View pending fees</Link></header>
-    {!child ? <div className="parent-payment-warning">Your account is not linked to a student. Ask the school admin to issue a fresh parent special key.</div> : <div className="parent-payment-grid">
-      <article className="panel-card parent-payment-card"><p className="panel-kicker">Payment details</p><h3>{child.title}</h3><p>{child.subtitle} · Roll {child.rollNo || '—'}</p><div className="payment-amount">₹{Number(due).toLocaleString('en-IN')} <small>outstanding</small></div><div className="payment-recipient"><strong>{settings.holderName}</strong><span>UPI: {settings.upiId}</span><span>Mobile: {settings.mobile}</span></div><label className="form-field"><span>Amount (₹)</span><input type="number" min="1" value={amount} onChange={(event) => setAmount(event.target.value)} /></label><button type="button" className="header-action primary" onClick={startQr}>Show QR for 2 minutes</button>{qr ? <div className="payment-qr"><img src={secondsLeft ? qr : ''} alt="UPI payment QR" />{secondsLeft ? <strong>Expires in {secondsLeft}s</strong> : <strong>QR expired. Generate a new QR.</strong>}</div> : null}</article>
-      <article className="panel-card parent-payment-card"><p className="panel-kicker">Confirm transfer</p><h3>Submit payment reference</h3><form onSubmit={submitPayment}><label className="form-field"><span>UPI / bank UTR reference</span><input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Enter 12-digit UTR" required /></label><button type="submit" className="header-action primary">Submit for verification</button></form>{message ? <p className="payment-message">{message}</p> : null}{latest ? <div className="receipt-preview"><strong>{latest.receiptNo}</strong><span>₹{latest.amount.toLocaleString('en-IN')} · {latest.status}</span><button type="button" className="small-action" onClick={printReceipt}>Print receipt</button></div> : null}</article>
-    </div>}
+    <header className="parent-payment-hero">
+      <div>
+        <p className="admin-kicker">Parent portal · Fees</p>
+        <h2>Pay school fees online</h2>
+        <p>Scan the school UPI QR, transfer the amount and submit the UTR reference. The receipt PDF downloads instantly and your child's balance updates after the school verifies the payment.</p>
+      </div>
+      <Link className="link-pill" to="/parent">Parent portal home</Link>
+    </header>
+    {loadError ? <div className="parent-payment-warning">{loadError}</div> : null}
+    {summary === null ? <div className="parent-payment-loading">Loading fee details…</div> : !entry ? <div className="parent-payment-warning">Your account is not linked to a student. Ask the school admin to issue a fresh parent special key.</div> : <>
+      <div className="parent-fee-summary">
+        <article className="panel-card parent-fee-card">
+          <p className="panel-kicker">Student</p>
+          <h3>{child?.name || 'Linked student'}</h3>
+          <p className="fee-subline">{child?.className || '—'} · Roll {child?.rollNo || '—'}</p>
+        </article>
+        <article className="panel-card parent-fee-card">
+          <p className="panel-kicker">Total fee</p>
+          <strong>{formatRupees(entry.totalFee)}</strong>
+          {entry.totalFee === null ? <small>Not set by the school yet.</small> : null}
+        </article>
+        <article className="panel-card parent-fee-card">
+          <p className="panel-kicker">Paid</p>
+          <strong className="fee-value-ok">{formatRupees(entry.paid)}</strong>
+          {entry.pending > 0 ? <small>{formatRupees(entry.pending)} awaiting verification</small> : null}
+        </article>
+        <article className="panel-card parent-fee-card is-balance">
+          <p className="panel-kicker">Balance due</p>
+          <strong>{formatRupees(entry.balance)}</strong>
+          {entry.totalFee === null
+            ? <small>Ask the school admin to set the total fee.</small>
+            : entry.balance === 0
+              ? <small>All dues cleared. Thank you!</small>
+              : <small>Pay this amount to clear the balance.</small>}
+        </article>
+      </div>
+      <div className="parent-payment-grid">
+        <article className="panel-card parent-payment-card">
+          <p className="panel-kicker">Payment details</p>
+          <h3>{child?.name || 'Linked student'}</h3>
+          <p className="fee-subline">{child?.className || '—'} · Roll {child?.rollNo || '—'}</p>
+          <div className="payment-recipient">
+            <strong>{settings.holderName || 'School account'}</strong>
+            {settings.upiId ? <span>UPI: {settings.upiId}</span> : null}
+            {settings.mobile ? <span>Mobile: {settings.mobile}</span> : null}
+            {settings.bankName || settings.bankAccount ? <span>Bank: {[settings.bankName, settings.bankAccount ? `A/C ${settings.bankAccount}` : '', settings.bankIfsc ? `IFSC ${settings.bankIfsc}` : ''].filter(Boolean).join(' · ')}</span> : null}
+          </div>
+          <label className="form-field"><span>Amount (₹)</span><input type="number" min="1" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
+          <button type="button" className="header-action primary" onClick={startQr}>Show QR for 2 minutes</button>
+          {qr ? <div className="payment-qr"><img src={secondsLeft ? qr : ''} alt="UPI payment QR" />{secondsLeft ? <strong>Expires in {secondsLeft}s</strong> : <strong>QR expired. Generate a new QR.</strong>}</div> : null}
+        </article>
+        <article className="panel-card parent-payment-card">
+          <p className="panel-kicker">Confirm transfer</p>
+          <h3>Submit payment reference</h3>
+          <form onSubmit={submitPayment}>
+            <label className="form-field"><span>UPI / bank UTR reference</span><input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Enter the UTR from your payment app" required /></label>
+            <button type="submit" className="header-action primary" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit & download receipt'}</button>
+          </form>
+          {message ? <p className={`payment-message ${messageTone}`}>{message}</p> : null}
+          <p className="payment-note">A receipt PDF is generated only for payments you actually submit — the amount, transaction ID, UTR, bank and UPI details are picked up from the saved payment record.</p>
+        </article>
+      </div>
+      <article className="panel-card parent-fee-history">
+        <div className="history-head">
+          <div><p className="panel-kicker">Payment history</p><h3>All fee payments</h3></div>
+          <span className="history-count">{history.length} record{history.length === 1 ? '' : 's'}</span>
+        </div>
+        {history.length === 0 ? <p className="history-empty">No fee payment has been recorded yet.</p> : <div className="history-table-wrap">
+          <table className="history-table">
+            <thead><tr><th>Receipt no</th><th>Date & time</th><th>Amount</th><th>UTR / reference</th><th>Method</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {history.map((payment) => <tr key={payment.id}>
+                <td><strong>{payment.receiptNo || payment.id}</strong></td>
+                <td>{formatDateTime(payment.createdAt)}</td>
+                <td>₹{Number(payment.amount || 0).toLocaleString('en-IN')}</td>
+                <td>{payment.reference || '—'}</td>
+                <td>{payment.method || 'UPI'}</td>
+                <td><span className={`payment-status ${STATUS_CLASS[payment.status] || ''}`}>{payment.status || '—'}</span></td>
+                <td><button type="button" className="small-action" onClick={() => downloadReceipt(payment)} disabled={busyReceiptId === payment.id}>{busyReceiptId === payment.id ? 'Preparing…' : 'Receipt PDF'}</button></td>
+              </tr>)}
+            </tbody>
+          </table>
+        </div>}
+      </article>
+    </>}
   </section>
 }
