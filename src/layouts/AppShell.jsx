@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { homePathForRole, navForRole, quickActionsForRole, titleFromRoleNav } from '../data/roleNav'
 import { getAuthUser, roleLabel } from '../utils/session'
 import { fetchTracksSummary } from '../services/loginTracks'
+import NavGlyph from './NavGlyph'
 import './AppShell.css'
 import SlideProvider from '../context/SlideContext'
 
@@ -189,7 +190,7 @@ const AppShell = () => {
                 <div key={section.title} className="sms-nav-group">
                   <p className="sms-nav-heading">
                     <span className="sms-nav-heading-icon" aria-hidden>
-                      {section.icon}
+                      <NavGlyph name={section.icon} size={13} />
                     </span>
                     {section.title}
                   </p>
@@ -202,7 +203,7 @@ const AppShell = () => {
                       onClick={persistNavScroll}
                     >
                       <span className="sms-nav-icon" aria-hidden>
-                        {item.icon}
+                        <NavGlyph name={item.icon} size={16} />
                       </span>
                       <span>{item.label}</span>
                       {item.to === '/security/login-tracks' && securityAlerts > 0 ? (
@@ -313,12 +314,16 @@ const AppShell = () => {
                 end={item.end}
                 className={({ isActive }) => `sms-mobile-dock__item ${isActive ? 'is-active' : ''}`}
               >
-                <span aria-hidden>{item.icon}</span>
+                <span aria-hidden>
+                  <NavGlyph name={item.icon} size={18} />
+                </span>
                 <em>{item.label}</em>
               </NavLink>
             ))}
             <button type="button" className="sms-mobile-dock__item" onClick={() => setNavOpen(true)}>
-              <span aria-hidden>☰</span>
+              <span aria-hidden>
+                <NavGlyph name="rows" size={18} />
+              </span>
               <em>Menu</em>
             </button>
           </nav>

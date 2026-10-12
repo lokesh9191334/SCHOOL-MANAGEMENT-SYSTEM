@@ -275,6 +275,32 @@
   word-break: break-all;
 }
 
+/* Teacher overlay: signup key row */
+
+.sprof-key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sprof-copy {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(27, 42, 85, 0.18);
+  background: #f1f4fb;
+  color: #1b2a55;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sprof-copy:hover {
+  background: #e3e9f6;
+}
+
 @media (max-width: 640px) {
   .sprof-backdrop {
     padding: 0;

@@ -389,6 +389,7 @@ export const MODULE_REGISTRY = [
       col('status', 'Status'),
     ],
     fields: [
+      field('photoUrl', 'Photo', 'photo'),
       field('title', 'Full name'),
       field('subject', 'Primary subject'),
       field('email', 'Email', 'email'),
@@ -426,6 +427,7 @@ export const MODULE_REGISTRY = [
       col('status', 'Status'),
     ],
     fields: [
+      field('photoUrl', 'Photo', 'photo'),
       field('title', 'Full name'),
       field('subject', 'Primary subject'),
       field('email', 'Email', 'email'),
@@ -463,6 +465,7 @@ export const MODULE_REGISTRY = [
       col('status', 'Status'),
     ],
     fields: [
+      field('photoUrl', 'Photo', 'photo'),
       field('title', 'Full name'),
       field('subject', 'Primary subject'),
       field('email', 'Email', 'email'),

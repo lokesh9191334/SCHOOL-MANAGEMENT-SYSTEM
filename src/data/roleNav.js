@@ -1,181 +1,182 @@
 import { ROLES } from '../utils/constants'
 
+// icon values are NavGlyph keys (see src/layouts/NavGlyph.jsx)
 const section = (title, icon, items) => ({ title, icon, items })
 const item = (to, label, icon, end = false) => ({ to, label, icon, end })
 
 /** Super Admin — platform only (no school ERP modules) */
 export const SUPER_ADMIN_NAV = [
-  section('Platform', '◈', [
-    item('/super-admin', 'Command Center', '◆', true),
+  section('Platform', 'gauge', [
+    item('/super-admin', 'Command Center', 'diamond', true),
   ]),
-  section('Schools', '🏫', [
-    item('/super-admin/schools', 'Add / Manage Schools', '＋'),
-    item('/super-admin/school-requests', 'Approval Requests', '✓'),
-    item('/super-admin/schools/suspend', 'Suspend Schools', '⊘'),
+  section('Schools', 'school', [
+    item('/super-admin/schools', 'Add / Manage Schools', 'plus'),
+    item('/super-admin/school-requests', 'Approval Requests', 'check'),
+    item('/super-admin/schools/suspend', 'Suspend Schools', 'ban'),
   ]),
-  section('Subscriptions', '💳', [
-    item('/super-admin/subscriptions', 'View Subscriptions', '▤'),
-    item('/super-admin/plans', 'Manage Plans', '◫'),
-    item('/super-admin/plans/monitor', 'Monitor Plans', '◔'),
+  section('Subscriptions', 'card', [
+    item('/super-admin/subscriptions', 'View Subscriptions', 'list'),
+    item('/super-admin/plans', 'Manage Plans', 'layers'),
+    item('/super-admin/plans/monitor', 'Monitor Plans', 'target'),
   ]),
-  section('Intelligence', '📊', [
-    item('/super-admin/analytics', 'View Analytics', '▣'),
+  section('Intelligence', 'chart', [
+    item('/super-admin/analytics', 'View Analytics', 'grid'),
   ]),
-  section('Security', '🛡', [
-    item('/security/login-tracks', 'Login Tracks', '⌖'),
+  section('Security', 'shield', [
+    item('/security/login-tracks', 'Login Tracks', 'pin'),
   ]),
-  section('Support', '🎧', [
-    item('/super-admin/tickets', 'Support Tickets', '✉'),
+  section('Support', 'headset', [
+    item('/super-admin/tickets', 'Support Tickets', 'inbox'),
   ]),
-  section('Finance', '₹', [item('/fees/online-payments', 'Payment Verification', '✓')]),
-  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
-  section('Account', '⚙️', [
-    item('/settings/profile', 'Profile', '◫'),
-    item('/settings/logout', 'Logout', '↦'),
+  section('Finance', 'rupee', [item('/fees/online-payments', 'Payment Verification', 'check')]),
+  section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
+  section('Account', 'gear', [
+    item('/settings/profile', 'Profile', 'user'),
+    item('/settings/logout', 'Logout', 'logout'),
   ]),
 ]
 
 /** School Admin — full campus ERP */
 export const ADMIN_NAV = [
-  section('Dashboard', '◈', [item('/dashboard', 'Executive Dashboard', '◆', true)]),
-  section('Students', '🎓', [
-    item('/students/add', 'New Admission', '＋'),
-    item('/students/list', 'Student List', '▤'),
-    item('/students/parent-details', 'Parents', '☏'),
-    item('/students/data-files', 'Documents', '⤴'),
-    item('/students/performance', 'Performance Report', '◔'),
-    item('/students/id-card', 'ID Cards', '▣'),
+  section('Dashboard', 'gauge', [item('/dashboard', 'Executive Dashboard', 'diamond', true)]),
+  section('Students', 'graduation', [
+    item('/students/add', 'New Admission', 'plus'),
+    item('/students/list', 'Student List', 'list'),
+    item('/students/parent-details', 'Parents', 'phone'),
+    item('/students/data-files', 'Documents', 'upload'),
+    item('/students/performance', 'Performance Report', 'chart'),
+    item('/students/id-card', 'ID Cards', 'idcard'),
   ]),
-  section('Teachers', '👨‍🏫', [
-    item('/teachers/add', 'Add Teacher', '＋'),
-    item('/teachers/list', 'Teacher List', '▥'),
-    item('/teachers/profile', 'Teacher Profile', '◫'),
-    item('/teachers/qualifications', 'Teacher Qualification', '✦'),
-    item('/teachers/subjects', 'Subjects', '◉'),
-    item('/teachers/attendance', 'Teacher Attendance', '☑'),
-    item('/teachers/salary', 'Salary Details', '₹'),
-    item('/teachers/performance', 'Teacher Performance', '★'),
-    item('/teachers/documents', 'Teacher Documents', '▤'),
+  section('Teachers', 'teacher', [
+    item('/teachers/add', 'Add Teacher', 'plus'),
+    item('/teachers/list', 'Teacher List', 'rows'),
+    item('/teachers/profile', 'Teacher Profile', 'user'),
+    item('/teachers/qualifications', 'Teacher Qualification', 'award'),
+    item('/teachers/subjects', 'Subjects', 'bookOpen'),
+    item('/teachers/attendance', 'Teacher Attendance', 'checkSquare'),
+    item('/teachers/salary', 'Salary Details', 'rupee'),
+    item('/teachers/performance', 'Teacher Performance', 'star'),
+    item('/teachers/documents', 'Teacher Documents', 'fileText'),
   ]),
-  section('Academics', '📚', [
-    item('/academics/subjects/add', 'Subjects', '✦'),
-    item('/academics/subject-assignment', 'Subject Assignment', '↔'),
-    item('/academics/timetable', 'Timetable', '▦'),
-    item('/examination/create', 'Exams', '＋'),
-    item('/examination/results', 'Results', '▣'),
-    item('/examination/report-cards', 'Report Cards', '▤'),
-    item('/examination/rank-list', 'Rank List', '★'),
+  section('Academics', 'bookOpen', [
+    item('/academics/subjects/add', 'Subjects', 'book'),
+    item('/academics/subject-assignment', 'Subject Assignment', 'swap'),
+    item('/academics/timetable', 'Timetable', 'table'),
+    item('/examination/create', 'Exams', 'plus'),
+    item('/examination/results', 'Results', 'award'),
+    item('/examination/report-cards', 'Report Cards', 'idcard'),
+    item('/examination/rank-list', 'Rank List', 'star'),
   ]),
-  section('Fees', '💰', [
-    item('/fees/structure', 'Fee Structure', '◫'),
-    item('/fees/installments', 'Installments', '≡'),
-    item('/fees/receipts', 'Receipts', '▤'),
-    item('/fees/pending', 'Pending Fees', '!'),
-    item('/fees/online-payments', 'Online Payments', '⌁'),
-    item('/fees/discounts', 'Discounts', '✦'),
-    item('/fees/fines', 'Fines', '⚠'),
+  section('Fees', 'rupee', [
+    item('/fees/structure', 'Fee Structure', 'layers'),
+    item('/fees/installments', 'Installments', 'rows'),
+    item('/fees/receipts', 'Receipts', 'receipt'),
+    item('/fees/pending', 'Pending Fees', 'clock'),
+    item('/fees/online-payments', 'Online Payments', 'bolt'),
+    item('/fees/discounts', 'Discounts', 'percent'),
+    item('/fees/fines', 'Fines', 'alert'),
   ]),
-  section('Transport', '🚌', [
-    item('/transport/vehicles', 'Bus Number', '▣'),
-    item('/transport/drivers', 'Driver Details', '◫'),
-    item('/transport/routes', 'Routes', '⇄'),
-    item('/transport/pickup-points', 'Pickup Points', '⌖'),
-    item('/transport/drop-points', 'Drop Points', '◎'),
-    item('/transport/student-allocation', 'Student Allocation', '↔'),
+  section('Transport', 'bus', [
+    item('/transport/vehicles', 'Bus Number', 'bus'),
+    item('/transport/drivers', 'Driver Details', 'user'),
+    item('/transport/routes', 'Routes', 'route'),
+    item('/transport/pickup-points', 'Pickup Points', 'pin'),
+    item('/transport/drop-points', 'Drop Points', 'map'),
+    item('/transport/student-allocation', 'Student Allocation', 'swap'),
   ]),
-  section('Attendance & Library', '📝', [
-    item('/attendance/students', 'Student Attendance', '☑'),
-    item('/attendance/monthly-report', 'Attendance Report', '▧'),
-    item('/library/books/add', 'Library', '📖'),
+  section('Attendance & Library', 'clipboardCheck', [
+    item('/attendance/students', 'Student Attendance', 'checkSquare'),
+    item('/attendance/monthly-report', 'Attendance Report', 'calendar'),
+    item('/library/books/add', 'Library', 'book'),
   ]),
-  section('Notices & Approvals', '📢', [
-    item('/notices/school', 'School Notices', '◉'),
-    item('/notices/holidays', 'Holidays', '☼'),
-    item('/notices/exams', 'Exam Notices', '▦'),
-    item('/approvals', 'Approvals', '✓'),
-    item('/reports/campus', 'Reports', '▣'),
+  section('Notices & Approvals', 'megaphone', [
+    item('/notices/school', 'School Notices', 'bell'),
+    item('/notices/holidays', 'Holidays', 'sun'),
+    item('/notices/exams', 'Exam Notices', 'fileText'),
+    item('/approvals', 'Approvals', 'check'),
+    item('/reports/campus', 'Reports', 'chart'),
   ]),
-  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
-  section('Security', '🛡', [
-    item('/security/login-tracks', 'Login Tracks', '⌖'),
+  section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
+  section('Security', 'shield', [
+    item('/security/login-tracks', 'Login Tracks', 'pin'),
   ]),
-  section('Settings', '⚙️', [
-    item('/settings/profile', 'Profile', '◫'),
-    item('/settings/logout', 'Logout', '↦'),
+  section('Settings', 'gear', [
+    item('/settings/profile', 'Profile', 'user'),
+    item('/settings/logout', 'Logout', 'logout'),
   ]),
 ]
 
 /** Teacher — classroom operations */
 export const TEACHER_NAV = [
-  section('Home', '◈', [item('/teacher', 'Teacher Desk', '◆', true)]),
-  section('Classroom', '🎓', [
-    item('/teacher/attendance', 'Student Attendance', '☑'),
-    item('/teacher/homework', 'Homework', '✎'),
-    item('/teacher/homework/upload', 'Upload Homework', '⤴'),
-    item('/teacher/assignments', 'Assignments', '▤'),
-    item('/teacher/timetable', 'Timetable', '▦'),
-    item('/teacher/remarks', 'Student Remarks', '◇'),
-    item('/teacher/parent-communication', 'Parent Communication', '☏'),
+  section('Home', 'gauge', [item('/teacher', 'Teacher Desk', 'diamond', true)]),
+  section('Classroom', 'graduation', [
+    item('/teacher/attendance', 'Student Attendance', 'checkSquare'),
+    item('/teacher/homework', 'Homework', 'pencil'),
+    item('/teacher/homework/upload', 'Upload Homework', 'upload'),
+    item('/teacher/assignments', 'Assignments', 'list'),
+    item('/teacher/timetable', 'Timetable', 'table'),
+    item('/teacher/remarks', 'Student Remarks', 'message'),
+    item('/teacher/parent-communication', 'Parent Communication', 'phone'),
   ]),
-  section('Student Records', '📁', [
-    item('/teacher/students/personal', 'Personal Details', '◫'),
-    item('/teacher/students/family', 'Family Details', '⌂'),
-    item('/teacher/students/medical', 'Medical History', '+'),
-    item('/teacher/students/documents', 'Documents', '▤'),
+  section('Student Records', 'folder', [
+    item('/teacher/students/personal', 'Personal Details', 'user'),
+    item('/teacher/students/family', 'Family Details', 'home'),
+    item('/teacher/students/medical', 'Medical History', 'heart'),
+    item('/teacher/students/documents', 'Documents', 'fileText'),
   ]),
-  section('Fees & Certificates', '💰', [
-    item('/teacher/fees', 'Fees Management', '₹'),
-    item('/teacher/results', 'Results', '▣'),
-    item('/teacher/certificates', 'Certificates', '✦'),
+  section('Fees & Certificates', 'rupee', [
+    item('/teacher/fees', 'Fees Management', 'rupee'),
+    item('/teacher/results', 'Results', 'chart'),
+    item('/teacher/certificates', 'Certificates', 'award'),
   ]),
-  section('Examinations', '📊', [
-    item('/teacher/exams/create', 'Create Exams', '＋'),
-    item('/teacher/exams/marks', 'Marks Entry + Auto Calc', '✎'),
-    item('/teacher/exams/grades', 'Grade Calculation', '◇'),
-    item('/teacher/exams/ranking', 'Ranking', '★'),
-    item('/teacher/exams/results', 'Result Generation', '▣'),
-    item('/teacher/exams/report-cards', 'Premium Report Cards', '▤'),
+  section('Examinations', 'chart', [
+    item('/teacher/exams/create', 'Create Exams', 'plus'),
+    item('/teacher/exams/marks', 'Marks Entry + Auto Calc', 'pencil'),
+    item('/teacher/exams/grades', 'Grade Calculation', 'percent'),
+    item('/teacher/exams/ranking', 'Ranking', 'star'),
+    item('/teacher/exams/results', 'Result Generation', 'fileText'),
+    item('/teacher/exams/report-cards', 'Premium Report Cards', 'idcard'),
   ]),
-  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
-  section('Account', '⚙️', [
-    item('/settings/profile', 'Profile', '◫'),
-    item('/settings/logout', 'Logout', '↦'),
+  section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
+  section('Account', 'gear', [
+    item('/settings/profile', 'Profile', 'user'),
+    item('/settings/logout', 'Logout', 'logout'),
   ]),
 ]
 
 /** Parent — child portal */
 export const PARENT_NAV = [
-  section('Home', '◈', [item('/parent', 'Parent Home', '◆', true)]),
-  section('My Child', '🎓', [
-    item('/parent/profile', 'Parent Profile', '◫'),
-    item('/parent/attendance', 'Attendance', '☑'),
-    item('/parent/homework', 'Homework', '✎'),
-    item('/parent/assignments', 'Assignments', '▤'),
-    item('/parent/results', 'Results', '▣'),
-    item('/parent/notices', 'Notices', '◉'),
-    item('/parent/events', 'Events', '✦'),
-    item('/parent/leave-request', 'Leave Request', '☘'),
+  section('Home', 'gauge', [item('/parent', 'Parent Home', 'diamond', true)]),
+  section('My Child', 'graduation', [
+    item('/parent/profile', 'Parent Profile', 'user'),
+    item('/parent/attendance', 'Attendance', 'checkSquare'),
+    item('/parent/homework', 'Homework', 'pencil'),
+    item('/parent/assignments', 'Assignments', 'list'),
+    item('/parent/results', 'Results', 'chart'),
+    item('/parent/notices', 'Notices', 'bell'),
+    item('/parent/events', 'Events', 'calendar'),
+    item('/parent/leave-request', 'Leave Request', 'message'),
   ]),
-  section('Fees', '💰', [
-    item('/parent/fees/installments', 'Installments', '≡'),
-    item('/parent/fees/receipts', 'Receipts', '▤'),
-    item('/parent/fees/pending', 'Pending Fees', '!'),
-    item('/parent/fees/online', 'Online Payments', '⌁'),
-    item('/parent/fees/discounts', 'Discounts', '✦'),
-    item('/parent/fees/fines', 'Fines', '⚠'),
+  section('Fees', 'rupee', [
+    item('/parent/fees/installments', 'Installments', 'rows'),
+    item('/parent/fees/receipts', 'Receipts', 'receipt'),
+    item('/parent/fees/pending', 'Pending Fees', 'clock'),
+    item('/parent/fees/online', 'Online Payments', 'bolt'),
+    item('/parent/fees/discounts', 'Discounts', 'percent'),
+    item('/parent/fees/fines', 'Fines', 'alert'),
   ]),
-  section('Transport', '🚌', [
-    item('/parent/transport/bus', 'Bus Number', '▣'),
-    item('/parent/transport/driver', 'Driver Details', '◫'),
-    item('/parent/transport/route', 'Route', '⇄'),
-    item('/parent/transport/pickup', 'Pickup Point', '⌖'),
-    item('/parent/transport/drop', 'Drop Point', '◎'),
-    item('/parent/transport/allocation', 'Student Allocation', '↔'),
+  section('Transport', 'bus', [
+    item('/parent/transport/bus', 'Bus Number', 'bus'),
+    item('/parent/transport/driver', 'Driver Details', 'user'),
+    item('/parent/transport/route', 'Route', 'route'),
+    item('/parent/transport/pickup', 'Pickup Point', 'pin'),
+    item('/parent/transport/drop', 'Drop Point', 'map'),
+    item('/parent/transport/allocation', 'Student Allocation', 'swap'),
   ]),
-  section('Assistant', '✦', [item('/ai-assistant', 'AI Assistant', '✦')]),
-  section('Account', '⚙️', [
-    item('/settings/profile', 'Profile', '◫'),
-    item('/settings/logout', 'Logout', '↦'),
+  section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
+  section('Account', 'gear', [
+    item('/settings/profile', 'Profile', 'user'),
+    item('/settings/logout', 'Logout', 'logout'),
   ]),
 ]
 
