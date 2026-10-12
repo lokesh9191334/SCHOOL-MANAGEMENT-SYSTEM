@@ -379,7 +379,7 @@ const LoginPage = () => {
               ? (isAdminDual ? 'Verify your sign-in' : 'Confirm your email')
               : authMode === 'face'
                 ? 'Face sign-in'
-                : 'Welcome back'
+                : ''
       }
       subtitle={
         attendance
@@ -493,10 +493,6 @@ const LoginPage = () => {
               Forgot password?
             </Link>
           </div>
-
-          <p className="auth-helper">
-            Admin login emails a 6-digit OTP and a new 7-character special key (like lok@010) every time.
-          </p>
 
           {error ? <div className="auth-error">{error}</div> : null}
           {info ? <div className="auth-success">{info}</div> : null}
