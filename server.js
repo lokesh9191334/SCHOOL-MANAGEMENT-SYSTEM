@@ -10,6 +10,13 @@ import { fileURLToPath } from 'url'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'path'
 import fs from 'fs'
+// Imported before vercelBlobStore.js on purpose: on Netlify this module
+// sets DATA_DIR to the per-invocation /tmp copy before any module below
+// resolves getDataDirectory().
+import {
+  isNetlifyRuntime,
+  netlifyBlobDataMiddleware,
+} from './netlifyBlobStore.js'
 import {
   getDataDirectory,
   hasVercelBlobCredentials,
@@ -82,8 +89,17 @@ import {
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+function moduleDirectory() {
+  try {
+    return dirname(fileURLToPath(import.meta.url))
+  } catch {
+    // When bundled to CJS (Netlify esbuild) import.meta.url is empty; any
+    // stable base directory works because data paths resolve relative to it.
+    return process.cwd()
+  }
+}
+
+const __dirname = moduleDirectory()
 
 const dataDir = getDataDirectory()
 
@@ -130,9 +146,9 @@ function writeJsonFile(relPath, data) {
 }
 
 /**
- * Login tracking. Fire-and-forget locally; on Vercel the promise is awaited
- * (capped) because data writes only persist when they finish before the
- * response is sent.
+ * Login tracking. Fire-and-forget locally; on serverless hosts (Vercel,
+ * Netlify) the promise is awaited (capped) because data writes only persist
+ * when they finish before the response is sent.
  */
 const TRACK_LOGIN_TIMEOUT_MS = 3000
 
@@ -146,7 +162,7 @@ function trackLogin(req, payload) {
     console.error('trackLogin failed:', err?.message || err)
     return null
   })
-  if (process.env.VERCEL) {
+  if (isServerlessRuntime) {
     return Promise.race([task, new Promise((done) => setTimeout(done, TRACK_LOGIN_TIMEOUT_MS))])
   }
   return task
@@ -155,13 +171,16 @@ function trackLogin(req, payload) {
 const app = express()
 const PORT = process.env.PORT || 5000
 
+/** True on hosted serverless platforms (Vercel / Netlify), false for local runs. */
+const isServerlessRuntime = Boolean(process.env.VERCEL || isNetlifyRuntime)
+
 function hasAuthTokenSecret() {
   return Buffer.byteLength(process.env.AUTH_TOKEN_SECRET || '') >= 32
 }
 
 function authTokenSecret() {
   if (hasAuthTokenSecret()) return process.env.AUTH_TOKEN_SECRET
-  if (process.env.VERCEL) return null
+  if (isServerlessRuntime) return null
   return 'local-development-only-school-management-auth-secret'
 }
 
@@ -223,14 +242,14 @@ app.get('/api/health', (_req, res) => {
       error: 'Connect a private Vercel Blob store to enable persistent API storage.',
     })
   }
-  if (process.env.VERCEL && !hasAuthTokenSecret()) {
+  if (isServerlessRuntime && !hasAuthTokenSecret()) {
     return res.status(503).json({
       status: 'error',
       error: 'Set AUTH_TOKEN_SECRET to a random secret of at least 32 characters.',
     })
   }
   if (
-    process.env.VERCEL &&
+    isServerlessRuntime &&
     (
       !process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL ||
       !process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD ||
@@ -242,7 +261,7 @@ app.get('/api/health', (_req, res) => {
       error: 'Set BOOTSTRAP_SUPER_ADMIN_EMAIL and a BOOTSTRAP_SUPER_ADMIN_PASSWORD of at least 12 characters.',
     })
   }
-  if (process.env.VERCEL && !isSmtpConfigured()) {
+  if (isServerlessRuntime && !isSmtpConfigured()) {
     return res.status(503).json({
       status: 'error',
       error: 'Configure SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM to deliver login codes.',
@@ -266,6 +285,7 @@ app.use(
 
 app.use(express.urlencoded({ extended: true }))
 app.use(vercelBlobDataMiddleware)
+app.use(netlifyBlobDataMiddleware)
 
 app.use('/api/records', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/students', requireRoles('admin', 'super_admin', 'teacher'))
@@ -426,7 +446,7 @@ function issueAuthToken(user) {
 
 function ensureBootstrapSuperAdmin(users) {
   if (
-    !process.env.VERCEL ||
+    !isServerlessRuntime ||
     users.some((user) => user.role === 'super_admin') ||
     !process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL ||
     !process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD ||
@@ -465,9 +485,9 @@ app.post('/api/auth/register', async (req, res) => {
     if (!ALLOWED_REGISTER_ROLES.has(normalizedRole)) {
       return res.status(400).json({ error: 'Invalid role. Choose Super Admin, Admin, Teacher or Parent.' })
     }
-    if (process.env.VERCEL && normalizedRole === 'super_admin') {
+    if (isServerlessRuntime && normalizedRole === 'super_admin') {
       return res.status(403).json({
-        error: 'Super Admin accounts must be initialized by the Vercel project owner.',
+        error: 'Super Admin accounts must be initialized by the project owner.',
       })
     }
 
@@ -2119,7 +2139,7 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: status < 500 ? err.message : 'Internal server error' })
 })
 
-if (!process.env.VERCEL) {
+if (!isServerlessRuntime) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`School Management System server running on http://localhost:${PORT}`)
     console.log(`Phone / LAN: open http://<your-pc-ip>:${PORT} (same Wi-Fi)`)

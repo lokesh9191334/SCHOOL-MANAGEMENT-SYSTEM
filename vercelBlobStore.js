@@ -8,7 +8,18 @@ import { fileURLToPath } from 'node:url'
 import { BlobPreconditionFailedError, get, list, put } from '@vercel/blob'
 
 const isVercelRuntime = Boolean(process.env.VERCEL)
-const projectRoot = dirname(fileURLToPath(import.meta.url))
+
+function moduleDirectory() {
+  try {
+    return dirname(fileURLToPath(import.meta.url))
+  } catch {
+    // Bundled to CJS (Netlify esbuild): import.meta.url is empty — fall back
+    // to cwd; this module stays inactive outside the Vercel runtime anyway.
+    return process.cwd()
+  }
+}
+
+const projectRoot = moduleDirectory()
 const localDataDir = resolve(process.env.DATA_DIR || join(projectRoot, 'data'))
 const dataDir = isVercelRuntime
   ? join(tmpdir(), 'school-management-system-data')
