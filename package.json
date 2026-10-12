@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "predev": "node scripts/copy-face-models.mjs",
     "dev:all": "node scripts/dev-all.mjs",
+    "prebuild": "node scripts/copy-face-models.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview --host",
@@ -17,6 +19,7 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
+    "@vladmandic/face-api": "^1.7.15",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",

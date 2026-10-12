@@ -25,6 +25,9 @@ import SettingsProfilePage from './pages/settings/profile'
 import LogoutPage from './pages/settings/logout'
 import NotFoundPage from './pages/notFound'
 import LoginTracksPage from './pages/security/LoginTracks'
+import StaffFaceAttendancePage from './pages/staff/StaffFaceAttendance'
+import LiveTransportPage from './pages/transport/LiveTransport'
+import DriverTrackPage from './pages/track/DriverTrack'
 
 import SuperAdminHome from './pages/role/SuperAdminHome'
 import TeacherHome from './pages/role/TeacherHome'
@@ -75,6 +78,8 @@ function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
+        <Route path="/track/:key" element={<DriverTrackPage />} />
+
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route path="/" element={<RoleHomeRedirect />} />
@@ -101,6 +106,8 @@ function App() {
             <Route path="/settings/logout" element={<LogoutPage />} />
 
             <Route path="/security/login-tracks" element={<LoginTracksPage />} />
+            <Route path="/attendance/staff-face" element={<StaffFaceAttendancePage />} />
+            <Route path="/transport/live" element={<LiveTransportPage />} />
 
             {modulePaths.map((path) => (
               <Route key={path} path={path} element={<ModulePage />} />

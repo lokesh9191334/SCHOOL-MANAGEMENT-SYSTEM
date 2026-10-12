@@ -1,0 +1,795 @@
+/* Live Bus Tracking — premium transport dashboard */
+
+.tlive-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ---------- Hero ---------- */
+
+.tlive-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 18px;
+  border-radius: 26px;
+  padding: 24px 26px 20px;
+  color: #eef0f4;
+  background: linear-gradient(165deg, #131313, #2c2c2c 46%, #4d4d4d);
+  box-shadow: 0 26px 60px rgba(15, 15, 17, 0.35);
+}
+
+.tlive-hero::after {
+  content: '';
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(65, 87, 255, 0.28), transparent 62%);
+  pointer-events: none;
+}
+
+.tlive-hero__lead {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.tlive-hero__badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  color: #e8eaf0;
+  background: linear-gradient(150deg, #3a3a3e, #1d1d20);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.tlive-hero__eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9fb0ff;
+}
+
+.tlive-hero__title {
+  margin: 0 0 8px;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  letter-spacing: -0.01em;
+}
+
+.tlive-hero__meta {
+  margin: 0;
+  max-width: 560px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(232, 234, 240, 0.78);
+}
+
+.tlive-hero__side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.tlive-hero__counts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tlive-count {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(232, 234, 240, 0.82);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.tlive-count--ok {
+  color: #b7f7c9;
+  background: rgba(23, 100, 61, 0.38);
+  border-color: rgba(46, 204, 113, 0.35);
+}
+
+.tlive-hero__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tlive-hero__stamp {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: rgba(232, 234, 240, 0.6);
+}
+
+/* ---------- Buttons ---------- */
+
+.tlive-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 15px;
+  border-radius: 12px;
+  border: 1px solid #dde1ea;
+  background: #ffffff;
+  color: #2a2f40;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.tlive-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(20, 24, 40, 0.12);
+}
+
+.tlive-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tlive-btn--primary {
+  border-color: transparent;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4157ff, #7c8cff);
+  box-shadow: 0 12px 26px rgba(65, 87, 255, 0.32);
+}
+
+.tlive-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef0f4;
+}
+
+.tlive-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.tlive-btn--danger {
+  border-color: rgba(239, 68, 68, 0.32);
+  color: #b42323;
+  background: #fff5f5;
+}
+
+.tlive-btn--danger:hover:not(:disabled) {
+  background: #ffe9e9;
+}
+
+.tlive-error {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #b42323;
+  background: #fff5f5;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.tlive-muted {
+  margin: 0;
+  color: #6a7186;
+  font-size: 0.88rem;
+}
+
+/* ---------- Grid: map + list ---------- */
+
+.tlive-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.tlive-map-card {
+  border-radius: 24px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 20px 44px rgba(20, 24, 40, 0.1);
+}
+
+.tlive-map {
+  height: 520px;
+  width: 100%;
+  background: #eef0f4;
+  z-index: 0;
+}
+
+.tlive-map-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4a5164;
+  border-top: 1px solid #eef0f6;
+}
+
+.tlive-map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tlive-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.tlive-legend-dot--online {
+  background: #10b981;
+}
+
+.tlive-legend-dot--stale {
+  background: #f59e0b;
+}
+
+.tlive-legend-dot--offline {
+  background: #94a3b8;
+}
+
+/* ---------- Vehicle list ---------- */
+
+.tlive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.tlive-focus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  color: #2a2f40;
+  background: rgba(65, 87, 255, 0.08);
+  border: 1px solid rgba(65, 87, 255, 0.24);
+}
+
+.tlive-focus button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #4157ff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tlive-empty {
+  border-radius: 20px;
+  padding: 22px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px dashed #d5dae4;
+}
+
+.tlive-empty h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  color: #1c2130;
+}
+
+.tlive-empty p {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  color: #6a7186;
+  line-height: 1.55;
+}
+
+.tlive-vehicle {
+  border-radius: 20px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 12px 28px rgba(20, 24, 40, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-left: 4px solid #94a3b8;
+}
+
+.tlive-vehicle--online {
+  border-left-color: #10b981;
+}
+
+.tlive-vehicle--stale {
+  border-left-color: #f59e0b;
+}
+
+.tlive-vehicle.is-selected {
+  box-shadow: 0 0 0 2px rgba(65, 87, 255, 0.4), 0 12px 28px rgba(20, 24, 40, 0.1);
+}
+
+.tlive-vehicle__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tlive-vehicle__who {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.tlive-dot {
+  flex-shrink: 0;
+  margin-top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.tlive-dot--online {
+  background: #10b981;
+  animation: tlive-pulse 1.8s ease-out infinite;
+}
+
+.tlive-dot--stale {
+  background: #f59e0b;
+}
+
+@keyframes tlive-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.tlive-vehicle__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1c2130;
+}
+
+.tlive-vehicle__sub {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #6a7186;
+}
+
+.tlive-chip {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.tlive-chip--online {
+  color: #15803d;
+  background: #ecfdf3;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.tlive-chip--stale {
+  color: #b45309;
+  background: #fff8ec;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.tlive-chip--offline,
+.tlive-chip--off {
+  color: #5b6478;
+  background: #f4f5f9;
+  border: 1px solid #e2e5ee;
+}
+
+.tlive-vehicle__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tlive-vehicle__stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6a7186;
+}
+
+.tlive-vehicle__stats b {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #1c2130;
+  font-variant-numeric: tabular-nums;
+}
+
+.tlive-vehicle__stamp {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #8a92a6;
+  font-variant-numeric: tabular-nums;
+}
+
+.tlive-vehicle__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tlive-vehicle__actions .tlive-btn {
+  padding: 7px 12px;
+  font-size: 0.78rem;
+}
+
+.tlive-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f7f8fc;
+  border: 1px solid #e6e8ee;
+}
+
+.tlive-qr img {
+  width: 160px;
+  height: 160px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.tlive-qr p {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #6a7186;
+}
+
+/* ---------- Modal ---------- */
+
+.tlive-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(12, 14, 22, 0.55);
+  backdrop-filter: blur(4px);
+  animation: tlive-fade 0.2s ease;
+}
+
+@keyframes tlive-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tlive-modal {
+  width: min(480px, 100%);
+  max-height: min(86vh, 720px);
+  overflow: auto;
+  border-radius: 24px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 34px 80px rgba(10, 12, 20, 0.45);
+}
+
+.tlive-modal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.tlive-modal__head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #1c2130;
+}
+
+.tlive-modal__close {
+  border: 0;
+  background: transparent;
+  font-size: 1rem;
+  color: #6a7186;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.tlive-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tlive-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #6a7186;
+}
+
+.tlive-form input {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid #dde1ea;
+  background: #ffffff;
+  color: #1c2130;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tlive-form input:focus {
+  outline: 2px solid rgba(65, 87, 255, 0.4);
+  outline-offset: 1px;
+}
+
+.tlive-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* ---------- Created card ---------- */
+
+.tlive-created {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.tlive-created__for {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #2a2f40;
+}
+
+.tlive-created__link {
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  word-break: break-all;
+  color: #2a2f40;
+  background: #f7f8fc;
+  border: 1px dashed #cfd5e2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.tlive-created__qr {
+  width: 190px;
+  height: 190px;
+  margin: 0 auto;
+  border-radius: 14px;
+  border: 1px solid #e6e8ee;
+}
+
+.tlive-created__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tlive-created__note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #6a7186;
+  line-height: 1.5;
+}
+
+/* ---------- Leaflet popup content ---------- */
+
+.tlive-leaflet-popup .leaflet-popup-content {
+  margin: 12px 14px;
+  min-width: 190px;
+}
+
+.tlive-popup-kicker {
+  margin: 0 0 3px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4157ff;
+}
+
+.tlive-popup-name {
+  margin: 0 0 2px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #1c2130;
+}
+
+.tlive-popup-sub {
+  margin: 0 0 4px;
+  font-size: 0.76rem;
+  color: #6a7186;
+}
+
+.tlive-popup-btn {
+  margin-top: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4157ff, #7c8cff);
+  cursor: pointer;
+}
+
+/* ---------- Toasts ---------- */
+
+.tlive-toasts {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 4300;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.tlive-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+  max-width: 360px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  color: #eef0f4;
+  background: linear-gradient(150deg, #1a1b20, #2b2c33);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 44px rgba(10, 12, 20, 0.4);
+  animation: tlive-pop 0.28s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+@keyframes tlive-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tlive-toast p {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tlive-toast__dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.tlive-toast--ok .tlive-toast__dot {
+  background: #22c55e;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+}
+
+.tlive-toast--err .tlive-toast__dot {
+  background: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1080px) {
+  .tlive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tlive-map {
+    height: 380px;
+  }
+
+  .tlive-hero__side {
+    align-items: flex-start;
+  }
+
+  .tlive-hero__counts,
+  .tlive-hero__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .tlive-hero {
+    padding: 20px 18px 16px;
+  }
+
+  .tlive-vehicle__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tlive-map {
+    height: 320px;
+  }
+
+  .tlive-toasts {
+    left: 12px;
+    right: 12px;
+    bottom: 88px;
+    align-items: stretch;
+  }
+
+  .tlive-toast {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tlive-dot--online,
+  .tlive-toast,
+  .tlive-modal-backdrop {
+    animation: none;
+  }
+
+  .tlive-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}

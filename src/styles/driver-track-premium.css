@@ -1,0 +1,355 @@
+/* Driver live-tracking page — standalone (no app shell) */
+
+.drv-page {
+  min-height: 100vh;
+  margin: 0 auto;
+  max-width: 620px;
+  padding: 18px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drv-page--center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.drv-muted {
+  margin: 0;
+  color: #6a7186;
+  font-size: 0.9rem;
+}
+
+.drv-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(65, 87, 255, 0.18);
+  border-top-color: #4157ff;
+  animation: drv-spin 0.9s linear infinite;
+}
+
+@keyframes drv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Hero ---------- */
+
+.drv-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-radius: 24px;
+  padding: 20px;
+  color: #eef0f4;
+  background: linear-gradient(165deg, #131313, #2c2c2c 46%, #4d4d4d);
+  box-shadow: 0 22px 50px rgba(15, 15, 17, 0.35);
+}
+
+.drv-hero::after {
+  content: '';
+  position: absolute;
+  inset: -45% -25% auto auto;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(65, 87, 255, 0.3), transparent 62%);
+  pointer-events: none;
+}
+
+.drv-hero__badge {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  color: #e8eaf0;
+  background: linear-gradient(150deg, #3a3a3e, #1d1d20);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 24px rgba(0, 0, 0, 0.35);
+}
+
+.drv-hero__titles {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+
+.drv-hero__eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9fb0ff;
+}
+
+.drv-hero__title {
+  margin: 0 0 3px;
+  font-size: 1.45rem;
+  letter-spacing: -0.01em;
+}
+
+.drv-hero__meta {
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgba(232, 234, 240, 0.78);
+}
+
+.drv-hero__clock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.drv-hero__time {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+}
+
+.drv-hero__zone {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(232, 234, 240, 0.6);
+}
+
+/* ---------- Body ---------- */
+
+.drv-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.drv-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 20px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 14px 32px rgba(20, 24, 40, 0.08);
+  border-left: 4px solid #94a3b8;
+}
+
+.drv-status--ok {
+  border-left-color: #22c55e;
+}
+
+.drv-status--warn {
+  border-left-color: #f59e0b;
+}
+
+.drv-status--danger {
+  border-left-color: #ef4444;
+}
+
+.drv-status__dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.drv-status--ok .drv-status__dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  animation: drv-pulse 1.8s ease-out infinite;
+}
+
+.drv-status--warn .drv-status__dot {
+  background: #f59e0b;
+}
+
+.drv-status--danger .drv-status__dot {
+  background: #ef4444;
+}
+
+@keyframes drv-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.drv-status__text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1c2130;
+}
+
+.drv-status__sub {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #6a7186;
+  line-height: 1.45;
+}
+
+.drv-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px;
+  border-radius: 18px;
+  border: 0;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, #4157ff, #7c8cff);
+  box-shadow: 0 16px 34px rgba(65, 87, 255, 0.34);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.drv-action:hover {
+  transform: translateY(-1px);
+}
+
+.drv-action--stop {
+  background: linear-gradient(135deg, #b42323, #ef4444);
+  box-shadow: 0 16px 34px rgba(239, 68, 68, 0.3);
+}
+
+.drv-error {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #b42323;
+  background: #fff5f5;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.drv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.drv-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 10px 24px rgba(20, 24, 40, 0.06);
+}
+
+.drv-stat__label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6a7186;
+}
+
+.drv-stat__value {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #1c2130;
+  font-variant-numeric: tabular-nums;
+}
+
+.drv-pos,
+.drv-notes,
+.drv-card {
+  border-radius: 20px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 14px 32px rgba(20, 24, 40, 0.08);
+}
+
+.drv-pos h2,
+.drv-notes h2,
+.drv-card h1 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: #1c2130;
+}
+
+.drv-pos__coords {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #1c2130;
+}
+
+.drv-pos__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #4157ff;
+  text-decoration: none;
+  background: rgba(65, 87, 255, 0.08);
+  border: 1px solid rgba(65, 87, 255, 0.24);
+}
+
+.drv-notes ul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #4a5164;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.drv-card--error {
+  max-width: 420px;
+}
+
+.drv-card--error p {
+  margin: 0 0 8px;
+  color: #4a5164;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 460px) {
+  .drv-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drv-spinner,
+  .drv-status--ok .drv-status__dot {
+    animation: none;
+  }
+
+  .drv-action:hover {
+    transform: none;
+  }
+}

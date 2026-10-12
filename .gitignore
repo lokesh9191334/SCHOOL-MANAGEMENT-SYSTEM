@@ -19,6 +19,9 @@ dist-ssr
 data/*.json
 data/records/*.json
 
+# Face model binaries (copied from node_modules by scripts/copy-face-models.mjs)
+public/models/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

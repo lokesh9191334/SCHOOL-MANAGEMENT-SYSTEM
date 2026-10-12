@@ -50,6 +50,32 @@ import {
   setWatchlistEntry,
   summarizeTracks,
 } from './loginTracks.js'
+import {
+  ATTENDANCE_COOLDOWN_MS,
+  findBestMatch,
+  isLate,
+  isValidDescriptor,
+  isValidPhotoThumb,
+  istParts,
+  lastRecordFor,
+  matchPercent,
+  nextAttendanceType,
+  normalizeEmail,
+  sanitizeLocation,
+  validDescriptors,
+} from './faceAttendance.js'
+import {
+  generateTrackingKey,
+  isTrackOnline,
+  normalizeTrackKey,
+  sanitizeDevice,
+  sanitizeFix,
+  trailPoint,
+  TRACK_MIN_PING_GAP_MS,
+  TRACK_STALE_MS,
+  TRACK_TRAIL_MAX,
+  TRACKING_KEYS_MAX,
+} from './transportLive.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -243,6 +269,7 @@ app.use('/api/records', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/students', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/teachers', requireRoles('admin', 'super_admin'))
 app.use('/api/attendance', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/face', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/fees', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/exams', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/school-requests', requireRoles('super_admin'))
@@ -1322,6 +1349,367 @@ app.post('/api/attendance', (req, res) => {
   const next = Array.isArray(list) ? [...list, record] : [record]
   writeJsonFile(join('data', 'attendance.json'), next)
   res.json(record)
+})
+
+// API Routes - Staff Face Attendance (teachers, admin and staff — not parents)
+const FACE_PROFILES_FILE = join('data', 'staff_face_profiles.json')
+const STAFF_ATTENDANCE_FILE = join('data', 'staff_attendance.json')
+const STAFF_ATTENDANCE_MAX = 10000
+const STAFF_LATE_AFTER = /^\d{2}:\d{2}$/.test(process.env.STAFF_LATE_AFTER || '')
+  ? process.env.STAFF_LATE_AFTER
+  : '09:30'
+const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
+
+function readFaceProfiles() {
+  const list = readJsonFile(FACE_PROFILES_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function writeFaceProfiles(list) {
+  writeJsonFile(FACE_PROFILES_FILE, list)
+}
+
+function readStaffAttendance() {
+  const list = readJsonFile(STAFF_ATTENDANCE_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function staffRoster() {
+  const users = readJsonFile(USERS_FILE, [])
+  return (Array.isArray(users) ? users : [])
+    .filter((user) => STAFF_ROLES.has(String(user.role || '').toLowerCase()))
+    .map((user) => ({
+      email: normalizeEmail(user.email),
+      name: user.name || user.username || normalizeEmail(user.email).split('@')[0],
+      role: user.role,
+    }))
+}
+
+function selfProfileFor(email) {
+  return readFaceProfiles().find((profile) => normalizeEmail(profile.email) === email) || null
+}
+
+app.get('/api/face/me', (req, res) => {
+  const email = normalizeEmail(req.authUser.email)
+  const profile = selfProfileFor(email)
+  if (!profile) return res.json({ enrolled: false })
+  res.json({
+    enrolled: true,
+    name: profile.name,
+    role: profile.role,
+    enrolledAt: profile.enrolledAt,
+    updatedAt: profile.updatedAt,
+    descriptorCount: Array.isArray(profile.descriptors) ? profile.descriptors.length : 0,
+    photoThumb: profile.photoThumb || null,
+  })
+})
+
+app.post('/api/face/me', (req, res) => {
+  const descriptors = validDescriptors(req.body?.descriptors)
+  if (!descriptors.length) {
+    return res.status(400).json({ error: 'No valid face samples were received. Look straight at the camera in good light and try again.' })
+  }
+  const photoThumb = isValidPhotoThumb(req.body?.photoThumb) ? req.body.photoThumb : null
+  const email = normalizeEmail(req.authUser.email)
+  const users = readJsonFile(USERS_FILE, [])
+  const self = (Array.isArray(users) ? users : []).find((user) => normalizeEmail(user.email) === email)
+  const name = self?.name || self?.username || email.split('@')[0]
+  const role = self?.role || req.authUser.role
+  const now = new Date().toISOString()
+  const profiles = readFaceProfiles()
+  const index = profiles.findIndex((profile) => normalizeEmail(profile.email) === email)
+  const existing = index >= 0 ? profiles[index] : null
+  const entry = {
+    email,
+    userId: req.authUser.id,
+    name,
+    role,
+    descriptors,
+    photoThumb: photoThumb || existing?.photoThumb || null,
+    enrolledAt: existing?.enrolledAt || now,
+    updatedAt: now,
+  }
+  if (index >= 0) profiles[index] = entry
+  else profiles.push(entry)
+  writeFaceProfiles(profiles)
+  res.json({
+    enrolled: true,
+    name,
+    role,
+    enrolledAt: entry.enrolledAt,
+    updatedAt: entry.updatedAt,
+    descriptorCount: descriptors.length,
+    photoThumb: entry.photoThumb,
+  })
+})
+
+app.delete('/api/face/me', (req, res) => {
+  const email = normalizeEmail(req.authUser.email)
+  const profiles = readFaceProfiles()
+  const next = profiles.filter((profile) => normalizeEmail(profile.email) !== email)
+  if (next.length === profiles.length) return res.json({ removed: false })
+  writeFaceProfiles(next)
+  res.json({ removed: true })
+})
+
+app.post('/api/face/attendance', (req, res) => {
+  const descriptor = isValidDescriptor(req.body?.descriptor) ? req.body.descriptor : null
+  if (!descriptor) {
+    return res.status(400).json({ matched: false, error: 'Camera scan was incomplete. Hold still and try again.' })
+  }
+  const profiles = readFaceProfiles()
+  if (!profiles.length) {
+    return res.status(409).json({ matched: false, error: 'No staff faces are enrolled yet. Open “My Face” and enroll first.' })
+  }
+  const match = findBestMatch(descriptor, profiles)
+  if (!match) {
+    return res.json({ matched: false, error: 'Face not recognized. Come closer, face the light and try again.' })
+  }
+  const email = normalizeEmail(match.profile.email)
+  const attendance = readStaffAttendance()
+  const last = lastRecordFor(attendance, email)
+  const person = {
+    name: match.profile.name || email.split('@')[0],
+    role: match.profile.role || 'teacher',
+    photoThumb: match.profile.photoThumb || null,
+  }
+  if (last && Date.now() - Date.parse(last.at) < ATTENDANCE_COOLDOWN_MS) {
+    return res.json({
+      matched: true,
+      cooldown: true,
+      person,
+      record: last,
+      type: last.type,
+      message: last.type === 'in' ? 'Already checked in moments ago.' : 'Already checked out moments ago.',
+    })
+  }
+  const now = istParts()
+  const todayForPerson = attendance.filter(
+    (record) => record.date === now.date && normalizeEmail(record.email) === email,
+  )
+  const type = nextAttendanceType(todayForPerson)
+  const record = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    email,
+    name: person.name,
+    role: person.role,
+    type,
+    at: now.iso,
+    atIST: `${now.date} ${now.time} IST`,
+    date: now.date,
+    time: now.time,
+    matchDistance: Number(match.distance.toFixed(3)),
+    matchPercent: matchPercent(match.distance),
+    location: sanitizeLocation(req.body?.location),
+    device: String(req.body?.device || '').slice(0, 120),
+    source: 'face',
+  }
+  writeStaffAttendance([record, ...attendance].slice(0, STAFF_ATTENDANCE_MAX))
+  res.json({
+    matched: true,
+    record,
+    person,
+    type,
+    message: type === 'in' ? 'Checked in' : 'Checked out',
+  })
+})
+
+app.get('/api/face/attendance', requireRoles('admin', 'super_admin'), (req, res) => {
+  const requested = String(req.query.date || '')
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : istParts().date
+  const profiles = readFaceProfiles()
+  const enrolledEmails = new Set(profiles.map((profile) => normalizeEmail(profile.email)))
+  const thumbByEmail = new Map(profiles.map((profile) => [normalizeEmail(profile.email), profile.photoThumb || null]))
+  const records = readStaffAttendance().filter((record) => record.date === date)
+  const byEmail = new Map()
+  for (const record of records) {
+    const email = normalizeEmail(record.email)
+    if (!byEmail.has(email)) byEmail.set(email, [])
+    byEmail.get(email).push(record)
+  }
+  const roster = staffRoster()
+    .map((person) => {
+      const personRecords = (byEmail.get(person.email) || []).sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+      const firstIn = personRecords.find((record) => record.type === 'in') || null
+      const lastOut = [...personRecords].reverse().find((record) => record.type === 'out') || null
+      return {
+        email: person.email,
+        name: person.name,
+        role: person.role,
+        enrolled: enrolledEmails.has(person.email),
+        photoThumb: thumbByEmail.get(person.email) || null,
+        present: personRecords.length > 0,
+        firstIn: firstIn?.time || null,
+        lastOut: lastOut?.time || null,
+        scans: personRecords.length,
+        late: isLate(firstIn?.time, STAFF_LATE_AFTER),
+      }
+    })
+    .sort((a, b) => Number(b.present) - Number(a.present) || String(a.name).localeCompare(String(b.name)))
+  const summary = {
+    total: roster.length,
+    present: roster.filter((person) => person.present).length,
+    late: roster.filter((person) => person.late).length,
+    absent: roster.filter((person) => person.enrolled && !person.present).length,
+    notEnrolled: roster.filter((person) => !person.enrolled).length,
+    enrolledTotal: profiles.length,
+    lateAfter: STAFF_LATE_AFTER,
+  }
+  res.json({ date, summary, roster, records: records.slice(0, 300) })
+})
+
+function writeStaffAttendance(list) {
+  writeJsonFile(STAFF_ATTENDANCE_FILE, list)
+}
+
+// API Routes - Bus & Driver Live Tracking
+const TRACKING_KEYS_FILE = join('data', 'tracking_keys.json')
+const TRANSPORT_LIVE_FILE = join('data', 'transport_live.json')
+
+function readTrackingKeys() {
+  const list = readJsonFile(TRACKING_KEYS_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function writeTrackingKeys(list) {
+  writeJsonFile(TRACKING_KEYS_FILE, list)
+}
+
+function readTransportLive() {
+  const map = readJsonFile(TRANSPORT_LIVE_FILE, {})
+  return map && typeof map === 'object' && !Array.isArray(map) ? map : {}
+}
+
+function writeTransportLive(map) {
+  writeJsonFile(TRANSPORT_LIVE_FILE, map)
+}
+
+function findTrackingKeyByKey(key) {
+  const normalized = normalizeTrackKey(key)
+  if (!normalized) return null
+  return readTrackingKeys().find((record) => record.key === normalized) || null
+}
+
+app.get('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (_req, res) => {
+  res.json(readTrackingKeys())
+})
+
+app.post('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (req, res) => {
+  const driverName = String(req.body?.driverName || '').trim().slice(0, 80)
+  const vehicleLabel = String(req.body?.vehicleLabel || '').trim().slice(0, 80)
+  const routeLabel = String(req.body?.routeLabel || '').trim().slice(0, 80)
+  const phone = String(req.body?.phone || '').trim().slice(0, 24)
+  if (!driverName) return res.status(400).json({ error: 'Driver name is required.' })
+  const keys = readTrackingKeys()
+  const record = {
+    id: `trk_${Date.now().toString(36)}`,
+    key: generateTrackingKey(),
+    driverName,
+    vehicleLabel,
+    routeLabel,
+    phone,
+    active: true,
+    createdAt: istParts().iso,
+    createdBy: req.authUser?.email || '',
+  }
+  writeTrackingKeys([record, ...keys].slice(0, TRACKING_KEYS_MAX))
+  res.status(201).json(record)
+})
+
+app.patch('/api/transport/tracking-keys/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const keys = readTrackingKeys()
+  const record = keys.find((item) => item.id === req.params.id)
+  if (!record) return res.status(404).json({ error: 'Tracking link not found.' })
+  const updated = { ...record, active: Boolean(req.body?.active), updatedAt: istParts().iso }
+  writeTrackingKeys(keys.map((item) => (item.id === record.id ? updated : item)))
+  res.json(updated)
+})
+
+app.delete('/api/transport/tracking-keys/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const keys = readTrackingKeys()
+  if (!keys.some((item) => item.id === req.params.id)) {
+    return res.status(404).json({ error: 'Tracking link not found.' })
+  }
+  writeTrackingKeys(keys.filter((item) => item.id !== req.params.id))
+  const live = readTransportLive()
+  if (live[req.params.id]) {
+    delete live[req.params.id]
+    writeTransportLive(live)
+  }
+  res.json({ deleted: true })
+})
+
+app.get('/api/transport/live', requireRoles('admin', 'super_admin'), (_req, res) => {
+  const keys = readTrackingKeys()
+  const live = readTransportLive()
+  const now = Date.now()
+  const vehicles = keys.map((record) => {
+    const ping = live[record.id] || null
+    const active = record.active !== false
+    return {
+      id: record.id,
+      key: record.key,
+      driverName: record.driverName,
+      vehicleLabel: record.vehicleLabel,
+      routeLabel: record.routeLabel,
+      phone: record.phone || '',
+      active,
+      online: active && ping ? isTrackOnline(ping.at, now) : false,
+      lastPing: ping
+        ? {
+            lat: ping.lat,
+            lng: ping.lng,
+            accuracy: ping.accuracy,
+            speed: ping.speed,
+            heading: ping.heading,
+            battery: ping.battery,
+            at: ping.at,
+            atIST: ping.atIST,
+            device: ping.device || '',
+          }
+        : null,
+      trail: Array.isArray(ping?.trail) ? ping.trail : [],
+    }
+  })
+  res.json({ vehicles, staleAfterSec: Math.round(TRACK_STALE_MS / 1000), now })
+})
+
+// Public driver endpoints — the link key itself is the capability.
+app.get('/api/track/:key', (req, res) => {
+  const record = findTrackingKeyByKey(req.params.key)
+  if (!record) return res.status(404).json({ error: 'This tracking link is not valid.' })
+  if (record.active === false) return res.status(410).json({ error: 'This tracking link has been switched off by the school.' })
+  res.json({
+    driverName: record.driverName,
+    vehicleLabel: record.vehicleLabel,
+    routeLabel: record.routeLabel,
+    active: true,
+    pingEverySec: 15,
+  })
+})
+
+app.post('/api/track/:key/ping', (req, res) => {
+  const record = findTrackingKeyByKey(req.params.key)
+  if (!record) return res.status(404).json({ error: 'This tracking link is not valid.' })
+  if (record.active === false) return res.status(410).json({ error: 'This tracking link has been switched off by the school.' })
+  const fix = sanitizeFix(req.body)
+  if (!fix) return res.status(400).json({ error: 'A valid GPS position is required.' })
+  const live = readTransportLive()
+  const prev = live[record.id] || null
+  if (prev && Date.now() - Date.parse(prev.at) < TRACK_MIN_PING_GAP_MS) {
+    return res.json({ ok: true, throttled: true })
+  }
+  const ist = istParts()
+  const entry = {
+    ...fix,
+    at: ist.iso,
+    atIST: `${ist.date} ${ist.time}`,
+    device: sanitizeDevice(req.body?.device),
+    trail: [...(Array.isArray(prev?.trail) ? prev.trail : []), trailPoint(fix)].slice(-TRACK_TRAIL_MAX),
+  }
+  live[record.id] = entry
+  writeTransportLive(live)
+  res.json({ ok: true, atIST: entry.atIST, staleAfterSec: Math.round(TRACK_STALE_MS / 1000) })
 })
 
 // API Routes - Fees

@@ -77,6 +77,7 @@ export const ADMIN_NAV = [
     item('/fees/fines', 'Fines', 'alert'),
   ]),
   section('Transport', 'bus', [
+    item('/transport/live', 'Live Bus Tracking', 'locate'),
     item('/transport/vehicles', 'Bus Number', 'bus'),
     item('/transport/drivers', 'Driver Details', 'user'),
     item('/transport/routes', 'Routes', 'route'),
@@ -86,6 +87,7 @@ export const ADMIN_NAV = [
   ]),
   section('Attendance & Library', 'clipboardCheck', [
     item('/attendance/students', 'Student Attendance', 'checkSquare'),
+    item('/attendance/staff-face', 'Staff Attendance (Face)', 'faceScan'),
     item('/attendance/monthly-report', 'Attendance Report', 'calendar'),
     item('/library/books/add', 'Library', 'book'),
   ]),
@@ -109,6 +111,7 @@ export const ADMIN_NAV = [
 /** Teacher — classroom operations */
 export const TEACHER_NAV = [
   section('Home', 'gauge', [item('/teacher', 'Teacher Desk', 'diamond', true)]),
+  section('My Desk', 'faceScan', [item('/attendance/staff-face', 'Face Attendance', 'faceScan')]),
   section('Classroom', 'graduation', [
     item('/teacher/attendance', 'Student Attendance', 'checkSquare'),
     item('/teacher/homework', 'Homework', 'pencil'),
