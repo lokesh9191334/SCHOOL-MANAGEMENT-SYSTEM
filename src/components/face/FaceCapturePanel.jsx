@@ -1,0 +1,176 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  loadFaceEngine,
+  detectFaceDescriptor,
+  captureThumb,
+  startCamera,
+  stopCamera,
+  describeCameraError,
+  scaleBox,
+} from '../../utils/faceEngine'
+
+const SAMPLE_COUNT = 3
+const SAMPLE_MIN_GAP_MS = 900
+const MIN_SCORE = 0.55
+
+const DEFAULT_HINTS = {
+  verify:
+    'Look straight at the camera. 3 clear frames are captured on-device and matched strictly against your enrolled face — no photo ever leaves this device.',
+  enroll:
+    'Look straight at the camera. 3 clear samples are saved as your face profile on the school server — the raw photo never leaves this device.',
+}
+
+const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+  const samplesRef = useRef([])
+  const lastSampleAtRef = useRef(0)
+  const submitRef = useRef(false)
+  const aliveRef = useRef(true)
+
+  const [engineState, setEngineState] = useState('loading')
+  const [engineNote, setEngineNote] = useState('')
+  const [phase, setPhase] = useState('idle')
+  const [camError, setCamError] = useState('')
+  const [box, setBox] = useState(null)
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    aliveRef.current = true
+    let active = true
+    loadFaceEngine((note) => {
+      if (active) setEngineNote(note)
+    })
+      .then(() => {
+        if (active) setEngineState('ready')
+      })
+      .catch((err) => {
+        if (active) {
+          setEngineState('error')
+          setCamError(err?.message || 'Face engine could not load.')
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(
+    () => () => {
+      aliveRef.current = false
+      stopCamera(streamRef.current, videoRef.current)
+      streamRef.current = null
+    },
+    [],
+  )
+
+  const start = useCallback(async () => {
+    if (streamRef.current || engineState !== 'ready') return
+    setCamError('')
+    setPhase('starting')
+    try {
+      const stream = await startCamera(videoRef.current)
+      if (!aliveRef.current) {
+        stopCamera(stream, videoRef.current)
+        return
+      }
+      streamRef.current = stream
+      setPhase('scanning')
+    } catch (err) {
+      setCamError(describeCameraError(err))
+      setPhase('idle')
+    }
+  }, [engineState])
+
+  // Capture 3 spaced frames, then hand them to the parent.
+  useEffect(() => {
+    if (phase !== 'scanning' || engineState !== 'ready') return undefined
+    let cancelled = false
+    const timer = window.setInterval(async () => {
+      if (cancelled || submitRef.current) return
+      const video = videoRef.current
+      if (!video || video.readyState < 2) return
+      try {
+        const hit = await detectFaceDescriptor(video)
+        if (cancelled) return
+        setBox(hit ? scaleBox(hit, video) : null)
+        if (!hit || hit.score < MIN_SCORE) return
+        if (Date.now() - lastSampleAtRef.current < SAMPLE_MIN_GAP_MS) return
+        lastSampleAtRef.current = Date.now()
+        samplesRef.current = [...samplesRef.current, hit.descriptor]
+        setCount(samplesRef.current.length)
+        if (samplesRef.current.length >= SAMPLE_COUNT) {
+          submitRef.current = true
+          setPhase('submitting')
+          const payload = { descriptors: samplesRef.current }
+          if (mode === 'enroll') payload.photoThumb = captureThumb(video)
+          try {
+            await onSubmit(payload)
+          } catch {
+            /* the parent renders the failure message */
+          }
+          if (cancelled || !aliveRef.current) return
+          submitRef.current = false
+          samplesRef.current = []
+          setCount(0)
+          setPhase(streamRef.current ? 'scanning' : 'idle')
+        }
+      } catch {
+        /* keep scanning */
+      }
+    }, 800)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [phase, engineState, mode, onSubmit])
+
+  const overlay = (() => {
+    if (engineState === 'loading') return engineNote || 'Loading on-device face engine…'
+    if (engineState === 'error') return camError || 'Face engine could not load.'
+    if (phase === 'idle') return null
+    if (phase === 'starting') return 'Starting camera…'
+    if (phase === 'submitting') return mode === 'enroll' ? 'Saving your face profile…' : 'Matching your face…'
+    return null
+  })()
+
+  return (
+    <div className="af-panel">
+      <div className={`af-stage${phase === 'scanning' ? ' is-live' : ''}`}>
+        <video ref={videoRef} className="af-video" playsInline muted autoPlay />
+        {box ? (
+          <span
+            className="af-box"
+            style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+          />
+        ) : null}
+        {overlay || (phase === 'idle' && engineState === 'ready') ? (
+          <div className="af-overlay">
+            <span className="af-overlay-note">{overlay}</span>
+            {engineState === 'ready' && phase === 'idle' ? (
+              <button type="button" className="af-start" onClick={start}>
+                Start camera
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="af-progress" aria-hidden="true">
+        {Array.from({ length: SAMPLE_COUNT }, (_, i) => (
+          <span key={i} className={count > i ? 'is-on' : ''} />
+        ))}
+        <em>{phase === 'submitting' ? 'Checking…' : count ? `${count}/${SAMPLE_COUNT} frames` : '3 frames'}</em>
+      </div>
+
+      <p className="af-hint">{hint || DEFAULT_HINTS[mode]}</p>
+      {phase === 'scanning' && !box ? (
+        <p className="af-hint af-hint--soft">No face in frame — come closer and face the light.</p>
+      ) : null}
+      {camError && engineState === 'ready' ? <div className="auth-error">{camError}</div> : null}
+      {error ? <div className="auth-error">{error}</div> : null}
+    </div>
+  )
+}
+
+export default FaceCapturePanel

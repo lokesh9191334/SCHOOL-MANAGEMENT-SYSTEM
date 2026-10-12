@@ -13,6 +13,7 @@ import {
   stopCamera,
   describeCameraError,
   describeDevice,
+  scaleBox,
 } from '../../utils/faceEngine'
 import '../../styles/staff-face-premium.css'
 
@@ -50,24 +51,6 @@ function enrolledLabel(iso) {
   } catch {
     return iso
   }
-}
-
-function scaleBox(hit, videoEl) {
-  const rect = videoEl.getBoundingClientRect()
-  const vw = hit.videoWidth || videoEl.videoWidth
-  const vh = hit.videoHeight || videoEl.videoHeight
-  if (!vw || !vh || !rect.width) return null
-  const scale = Math.max(rect.width / vw, rect.height / vh)
-  const dispW = vw * scale
-  const dispH = vh * scale
-  const offX = (rect.width - dispW) / 2
-  const offY = (rect.height - dispH) / 2
-  const bx = hit.box.x * scale + offX
-  const by = hit.box.y * scale + offY
-  const bw = hit.box.width * scale
-  const bh = hit.box.height * scale
-  // front camera preview is mirrored
-  return { left: rect.width - bx - bw, top: by, width: bw, height: bh }
 }
 
 function initials(name) {

@@ -2,12 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthShell from '../../components/auth/AuthShell'
 import OtpInput from '../../components/auth/OtpInput'
+import FaceCapturePanel from '../../components/face/FaceCapturePanel'
 import * as auth from '../../services/auth'
+import { enrollMyFace, fetchMyFace } from '../../services/faceAttendance'
+import { describeDevice } from '../../utils/faceEngine'
 import { homePathForRole } from '../../data/roleNav'
 import '../../styles/auth-premium.css'
+import '../../styles/auth-face.css'
 
 const isAdminDualMethod = (method) =>
   method === 'admin-dual' || method === 'admin-special-key'
+
+const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
 
 function geoDotTitle(state, place, accuracy) {
   if (state === 'granted') {
@@ -58,6 +64,14 @@ const LoginPage = () => {
   const [maskedEmail, setMaskedEmail] = useState('')
   const [demoOtp, setDemoOtp] = useState('')
   const [resendIn, setResendIn] = useState(0)
+
+  const [authMode, setAuthMode] = useState('password')
+  const [faceError, setFaceError] = useState('')
+  const [faceVerified, setFaceVerified] = useState(null)
+  const [faceSetup, setFaceSetup] = useState(false)
+  const [enrollError, setEnrollError] = useState('')
+  const [pendingHome, setPendingHome] = useState('/')
+  const [attendance, setAttendance] = useState(null)
 
   const geoRef = useRef(null)
   const [geoState, setGeoState] = useState('locating')
@@ -257,6 +271,31 @@ const LoginPage = () => {
     }
   }
 
+  const startFaceLogin = useCallback(async ({ descriptors }) => {
+    try {
+      const res = await auth.faceLogin({
+        descriptors,
+        geo: geoRef.current,
+        device: describeDevice(),
+      })
+      setFaceError('')
+      setOtpStep(true)
+      setLoginToken(res.loginToken)
+      setEmail(res.email || '')
+      setMaskedEmail(res.maskedEmail || res.email || '')
+      setDemoOtp(res.demoOtp || '')
+      setLoginMethod(res.method || 'email-otp')
+      setFaceVerified(res.faceMatch || null)
+      setInfo(res.message || 'Verification code sent to your email.')
+      setResendIn(30)
+      setOtp('')
+      setSpecialKey('')
+    } catch (err) {
+      setFaceError(err.message || String(err))
+      throw err
+    }
+  }, [])
+
   const verifyLogin = async (event) => {
     event.preventDefault()
     setError('')
@@ -270,7 +309,28 @@ const LoginPage = () => {
         geo: geoRef.current,
       })
       auth.saveSession(res)
-      navigate(homePathForRole(res?.user?.role))
+      const home = homePathForRole(res?.user?.role)
+
+      if (res.attendance) {
+        setAttendance(res.attendance)
+        window.setTimeout(() => navigate(home), 2200)
+        return
+      }
+
+      const role = String(res?.user?.role || '').toLowerCase()
+      if (res.faceLogin !== true && STAFF_ROLES.has(role)) {
+        try {
+          const face = await fetchMyFace()
+          if (!face.enrolled) {
+            setPendingHome(home)
+            setFaceSetup(true)
+            return
+          }
+        } catch {
+          /* enrollment check failed — do not lock the user out */
+        }
+      }
+      navigate(home)
     } catch (err) {
       setError(err.message || String(err))
     } finally {
@@ -308,19 +368,31 @@ const LoginPage = () => {
   return (
     <AuthShell
       mode="login"
-      stageClassName={otpStep ? 'auth-stage--login-verify' : ''}
+      stageClassName={otpStep || faceSetup || attendance ? 'auth-stage--login-verify' : ''}
       kicker="Secure sign in"
       title={
-        otpStep
-          ? (isAdminDual ? 'Verify your sign-in' : 'Confirm your email')
-          : 'Welcome back'
+        attendance
+          ? 'Attendance marked'
+          : faceSetup
+            ? 'Set up your face'
+            : otpStep
+              ? (isAdminDual ? 'Verify your sign-in' : 'Confirm your email')
+              : authMode === 'face'
+                ? 'Face sign-in'
+                : 'Welcome back'
       }
       subtitle={
-        otpStep
-          ? isAdminDual
-            ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
-            : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
-          : 'Sign in to continue to your school workspace.'
+        attendance
+          ? attendance.message
+          : faceSetup
+            ? 'Staff accounts need a face profile before entering. It is saved once and marks your attendance on every face sign-in.'
+            : otpStep
+              ? isAdminDual
+                ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
+                : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
+              : authMode === 'face'
+                ? 'Look at the camera — your face is matched strictly, then an email OTP confirms the sign-in.'
+                : 'Sign in to continue to your school workspace.'
       }
       footer={
         <>
@@ -329,7 +401,54 @@ const LoginPage = () => {
         </>
       }
     >
-      {!otpStep ? (
+      {attendance ? (
+        <div className="af-result">
+          <span className={`af-result-badge${attendance.cooldown ? ' is-soft' : ''}`}>
+            {attendance.cooldown ? 'Already marked' : attendance.type === 'in' ? 'Checked in' : 'Checked out'}
+          </span>
+          <strong>{attendance.person?.name}</strong>
+          <p className="af-result-time">{attendance.record?.atIST}</p>
+          {!attendance.cooldown && attendance.record?.matchPercent != null ? (
+            <p className="af-result-note">
+              Face match {attendance.record.matchPercent}% — marked by face sign-in
+            </p>
+          ) : null}
+          <p className="af-result-note">Opening your workspace…</p>
+        </div>
+      ) : faceSetup ? (
+        <div className="af-setup">
+          <FaceCapturePanel
+            mode="enroll"
+            error={enrollError}
+            onSubmit={async ({ descriptors, photoThumb }) => {
+              setEnrollError('')
+              try {
+                await enrollMyFace({ descriptors, photoThumb })
+                navigate(pendingHome)
+              } catch (err) {
+                setEnrollError(err.message || String(err))
+                throw err
+              }
+            }}
+          />
+        </div>
+      ) : !otpStep ? (
+        authMode === 'face' ? (
+          <div className="af-signin">
+            <FaceCapturePanel mode="verify" error={faceError} onSubmit={startFaceLogin} />
+            <button
+              type="button"
+              className="auth-text-button"
+              onClick={() => {
+                setAuthMode('password')
+                setFaceError('')
+              }}
+            >
+              <span aria-hidden="true">←</span>
+              Use password instead
+            </button>
+          </div>
+        ) : (
         <form className="auth-form-stack" onSubmit={startLogin}>
           <label className="auth-field">
             <span>Work email</span>
@@ -385,13 +504,39 @@ const LoginPage = () => {
           <button className="auth-submit" type="submit" disabled={loading}>
             {loading ? 'Checking credentials…' : 'Continue'}
           </button>
+
+          <div className="af-or">
+            <span>or</span>
+          </div>
+
+          <button
+            type="button"
+            className="auth-face-btn"
+            onClick={() => {
+              setAuthMode('face')
+              setError('')
+              setInfo('')
+            }}
+          >
+            Sign in with face (staff &amp; admin)
+          </button>
         </form>
+        )
       ) : (
         <form className="otp-panel" onSubmit={verifyLogin}>
           <div className="auth-field">
             <span>Email OTP</span>
             <OtpInput value={otp} onChange={setOtp} disabled={loading} />
           </div>
+
+          {faceVerified ? (
+            <div className="af-verified">
+              <strong>Face verified</strong>
+              <span>
+                {faceVerified.name} · {faceVerified.percent}% strict match · {faceVerified.frames} frames
+              </span>
+            </div>
+          ) : null}
 
           {isAdminDual ? (
             <label className="auth-field">
@@ -447,6 +592,13 @@ const LoginPage = () => {
                 setEmail('')
                 setPassword('')
                 setLoginMethod('email-otp')
+                setFaceVerified(null)
+                setAuthMode('password')
+                setFaceError('')
+                setFaceSetup(false)
+                setEnrollError('')
+                setAttendance(null)
+                setPendingHome('/')
               }}
             >
               <span aria-hidden="true">←</span>

@@ -52,6 +52,7 @@ import {
 } from './loginTracks.js'
 import {
   ATTENDANCE_COOLDOWN_MS,
+  FACE_LOGIN_FRAMES,
   findBestMatch,
   isLate,
   isValidDescriptor,
@@ -62,6 +63,7 @@ import {
   nextAttendanceType,
   normalizeEmail,
   sanitizeLocation,
+  strictMatchFrames,
   validDescriptors,
 } from './faceAttendance.js'
 import {
@@ -949,6 +951,199 @@ app.post('/api/auth/login', async (req, res) => {
   }
 })
 
+/** Face sign-in (staff roles only) — strict multi-frame match, then the usual OTP step */
+app.post('/api/auth/face-login', async (req, res) => {
+  try {
+    const descriptors = validDescriptors(req.body?.descriptors)
+    if (descriptors.length < FACE_LOGIN_FRAMES) {
+      return res.status(400).json({
+        error: `Camera captured ${descriptors.length} of ${FACE_LOGIN_FRAMES} frames. Hold still in good light and try again.`,
+      })
+    }
+
+    const profiles = readFaceProfiles().filter(
+      (profile) =>
+        STAFF_ROLES.has(String(profile.role || '').toLowerCase()) &&
+        Array.isArray(profile.descriptors) &&
+        profile.descriptors.length,
+    )
+    if (!profiles.length) {
+      return res.status(409).json({
+        error: 'No staff faces are enrolled yet. Sign in with password first, then set up your face under “My Face”.',
+      })
+    }
+
+    const match = strictMatchFrames(descriptors, profiles)
+    if (!match.ok) {
+      await trackLogin(req, {
+        stage: 'login-failed',
+        method: 'face',
+        note: `Face sign-in rejected — ${match.reason}`,
+      })
+      return res.status(401).json({ error: match.message, reason: match.reason })
+    }
+
+    const matchedEmail = normalizeEmail(match.profile.email)
+    const users = ensureBootstrapSuperAdmin(readJsonFile(join('data', 'users.json'), []))
+    const user = users.find((u) => String(u.email).toLowerCase() === matchedEmail)
+    if (!user) {
+      await trackLogin(req, {
+        stage: 'login-failed',
+        email: matchedEmail,
+        method: 'face',
+        note: 'Face matched an enrolled profile with no linked account',
+      })
+      return res.status(401).json({ error: 'Face matched but the linked staff account no longer exists. Contact your admin.' })
+    }
+    if (user.accountStatus === 'Pending approval') {
+      return res.status(403).json({ error: 'Your school account is awaiting Super Admin approval and subscription assignment.' })
+    }
+
+    const role = String(user.role || '').toLowerCase()
+    if (!STAFF_ROLES.has(role)) {
+      return res.status(403).json({ error: 'Face sign-in is only for staff accounts. Use password sign-in instead.' })
+    }
+
+    const isAdminLogin = role === 'admin' || role === 'super_admin'
+    const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    const faceMatch = {
+      name: match.profile.name || user.name || matchedEmail.split('@')[0],
+      percent: match.percent,
+      distance: Number(match.distance.toFixed(3)),
+      margin: Number(match.margin.toFixed(3)),
+      frames: match.frames,
+    }
+    const verifyLine = `Face verified as ${faceMatch.name} (${faceMatch.percent}% match). `
+    const geo = clientGeoToLocation(req.body?.geo)
+    const device = String(req.body?.device || '').slice(0, 120)
+
+    await trackLogin(req, {
+      stage: 'login-attempt',
+      email: matchedEmail,
+      userId: user.id,
+      name: user.name,
+      role,
+      method: 'face',
+      note: `Face verified ${faceMatch.percent}% (margin ${faceMatch.margin.toFixed(2)}) — OTP required`,
+    })
+
+    if (isAdminLogin) {
+      // Both email OTP + 7-char special key (e.g. lok@010). Key changes every login.
+      const loginKey = generateAdminLoginKey(role)
+      const otp = generateOtp()
+      const keyHash = hashOtp(normalizeAdminLoginKey(loginKey))
+      const otpHash = hashOtp(otp)
+      savePending(pendingKey('login', matchedEmail), {
+        purpose: 'login',
+        method: 'admin-dual',
+        pendingToken: loginToken,
+        email: matchedEmail,
+        userId: user.id,
+        role,
+        otpHash,
+        specialKeyHash: keyHash,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        attempts: 0,
+        origin: 'face',
+        faceMatch,
+        geo,
+        device,
+      })
+
+      const updated = users.map((u) =>
+        u.id === user.id
+          ? {
+              ...u,
+              loginToken,
+              loginTokenExpiry: Date.now() + 10 * 60 * 1000,
+              adminLoginKeyHash: keyHash,
+              adminLoginKeyIssuedAt: new Date().toISOString(),
+            }
+          : u,
+      )
+      writeJsonFile(join('data', 'users.json'), updated)
+
+      const mail = await sendAdminLoginKeyEmail({
+        to: matchedEmail,
+        loginKey,
+        otp,
+        purpose: 'sign in to your admin account',
+      })
+
+      return res.json({
+        otpRequired: true,
+        specialKeyRequired: true,
+        twoFactor: true,
+        method: 'admin-dual',
+        faceLogin: true,
+        faceMatch,
+        role,
+        loginToken,
+        email: matchedEmail,
+        maskedEmail: mail.maskedEmail || maskEmail(matchedEmail),
+        delivery: mail.delivery,
+        message:
+          mail.delivery === 'smtp'
+            ? `${verifyLine}OTP and a new special key were emailed to ${mail.maskedEmail}. Enter both to sign in.`
+            : `${verifyLine}${mail.message}`,
+        demoOtp: mail.demoOtp,
+        expiresInSec: 600,
+      })
+    }
+
+    const otp = generateOtp()
+    savePending(pendingKey('login', matchedEmail), {
+      purpose: 'login',
+      method: 'email-otp',
+      pendingToken: loginToken,
+      email: matchedEmail,
+      userId: user.id,
+      role,
+      otpHash: hashOtp(otp),
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      attempts: 0,
+      origin: 'face',
+      faceMatch,
+      geo,
+      device,
+    })
+
+    const updated = users.map((u) =>
+      u.id === user.id
+        ? { ...u, loginToken, loginTokenExpiry: Date.now() + 10 * 60 * 1000 }
+        : u,
+    )
+    writeJsonFile(join('data', 'users.json'), updated)
+
+    const mail = await sendOtpEmail({
+      to: matchedEmail,
+      otp,
+      purpose: 'sign in to School Management System',
+      subject: 'Your SMS login OTP',
+    })
+
+    res.json({
+      otpRequired: true,
+      specialKeyRequired: false,
+      twoFactor: true,
+      method: 'email-otp',
+      faceLogin: true,
+      faceMatch,
+      role,
+      loginToken,
+      email: matchedEmail,
+      maskedEmail: mail.maskedEmail || maskEmail(matchedEmail),
+      delivery: mail.delivery,
+      message: `${verifyLine}${mail.message}`,
+      demoOtp: mail.demoOtp,
+      expiresInSec: 600,
+    })
+  } catch (err) {
+    console.error('Error in /api/auth/face-login:', err)
+    res.status(503).json({ error: err.message || 'Server error during face sign-in' })
+  }
+})
+
 /** Step 2 — Verify login email OTP (and admin special key when required) */
 app.post('/api/auth/login/verify', async (req, res) => {
   try {
@@ -1080,6 +1275,21 @@ app.post('/api/auth/login/verify', async (req, res) => {
     )
     writeJsonFile(join('data', 'users.json'), cleared)
 
+    let attendance = null
+    if (pending.origin === 'face' && STAFF_ROLES.has(String(user.role || '').toLowerCase())) {
+      const profile = selfProfileFor(normalizedEmail)
+      attendance = recordFaceAttendance({
+        email: normalizedEmail,
+        name: user.name,
+        role: user.role,
+        photoThumb: profile?.photoThumb || null,
+        distance: pending.faceMatch?.distance,
+        location: clientGeoToLocation(req.body?.geo) || pending.geo,
+        device: pending.device || '',
+        source: 'face-login',
+      })
+    }
+
     await trackLogin(req, {
       stage: 'login-success',
       email: normalizedEmail,
@@ -1087,10 +1297,15 @@ app.post('/api/auth/login/verify', async (req, res) => {
       name: user.name,
       role: user.role,
       method: pending.method || 'email-otp',
-      note: 'Login verified',
+      note: pending.origin === 'face' ? 'Face + OTP verified' : 'Login verified',
     })
 
-    res.json(issueAuthToken({ ...user, emailVerified: true }))
+    const payload = issueAuthToken({ ...user, emailVerified: true })
+    if (attendance) {
+      payload.faceLogin = true
+      payload.attendance = attendance
+    }
+    res.json(payload)
   } catch (err) {
     console.error('Error in /api/auth/login/verify:', err)
     res.status(500).json({ error: 'Server error during login verification' })
@@ -1452,6 +1667,66 @@ app.delete('/api/face/me', (req, res) => {
   res.json({ removed: true })
 })
 
+/** Browser geo objects use `lon`; attendance storage expects `lng`. */
+function clientGeoToLocation(geo) {
+  if (!geo || typeof geo !== 'object') return null
+  return sanitizeLocation({
+    lat: geo.lat ?? geo.latitude,
+    lng: geo.lng ?? geo.lon ?? geo.longitude,
+    accuracy: geo.accuracy,
+  })
+}
+
+/** Shared by kiosk scans and face sign-in: cooldown check, in/out toggle, IST record. */
+function recordFaceAttendance({ email, name, role, photoThumb, distance, location, device, source }) {
+  const attendance = readStaffAttendance()
+  const last = lastRecordFor(attendance, email)
+  const person = {
+    name: name || email.split('@')[0],
+    role: role || 'teacher',
+    photoThumb: photoThumb || null,
+  }
+  if (last && Date.now() - Date.parse(last.at) < ATTENDANCE_COOLDOWN_MS) {
+    return {
+      cooldown: true,
+      person,
+      record: last,
+      type: last.type,
+      message: last.type === 'in' ? 'Already checked in moments ago.' : 'Already checked out moments ago.',
+    }
+  }
+  const now = istParts()
+  const todayForPerson = attendance.filter(
+    (record) => record.date === now.date && normalizeEmail(record.email) === email,
+  )
+  const type = nextAttendanceType(todayForPerson)
+  const distanceValue = Number.isFinite(Number(distance)) ? Number(distance) : 0
+  const record = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    email,
+    name: person.name,
+    role: person.role,
+    type,
+    at: now.iso,
+    atIST: `${now.date} ${now.time} IST`,
+    date: now.date,
+    time: now.time,
+    matchDistance: Number(distanceValue.toFixed(3)),
+    matchPercent: matchPercent(distanceValue),
+    location: sanitizeLocation(location),
+    device: String(device || '').slice(0, 120),
+    source: source || 'face',
+  }
+  writeStaffAttendance([record, ...attendance].slice(0, STAFF_ATTENDANCE_MAX))
+  return {
+    cooldown: false,
+    person,
+    record,
+    type,
+    message: type === 'in' ? 'Checked in' : 'Checked out',
+  }
+}
+
 app.post('/api/face/attendance', (req, res) => {
   const descriptor = isValidDescriptor(req.body?.descriptor) ? req.body.descriptor : null
   if (!descriptor) {
@@ -1465,53 +1740,17 @@ app.post('/api/face/attendance', (req, res) => {
   if (!match) {
     return res.json({ matched: false, error: 'Face not recognized. Come closer, face the light and try again.' })
   }
-  const email = normalizeEmail(match.profile.email)
-  const attendance = readStaffAttendance()
-  const last = lastRecordFor(attendance, email)
-  const person = {
-    name: match.profile.name || email.split('@')[0],
-    role: match.profile.role || 'teacher',
-    photoThumb: match.profile.photoThumb || null,
-  }
-  if (last && Date.now() - Date.parse(last.at) < ATTENDANCE_COOLDOWN_MS) {
-    return res.json({
-      matched: true,
-      cooldown: true,
-      person,
-      record: last,
-      type: last.type,
-      message: last.type === 'in' ? 'Already checked in moments ago.' : 'Already checked out moments ago.',
-    })
-  }
-  const now = istParts()
-  const todayForPerson = attendance.filter(
-    (record) => record.date === now.date && normalizeEmail(record.email) === email,
-  )
-  const type = nextAttendanceType(todayForPerson)
-  const record = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    email,
-    name: person.name,
-    role: person.role,
-    type,
-    at: now.iso,
-    atIST: `${now.date} ${now.time} IST`,
-    date: now.date,
-    time: now.time,
-    matchDistance: Number(match.distance.toFixed(3)),
-    matchPercent: matchPercent(match.distance),
-    location: sanitizeLocation(req.body?.location),
-    device: String(req.body?.device || '').slice(0, 120),
+  const result = recordFaceAttendance({
+    email: normalizeEmail(match.profile.email),
+    name: match.profile.name,
+    role: match.profile.role,
+    photoThumb: match.profile.photoThumb,
+    distance: match.distance,
+    location: req.body?.location,
+    device: req.body?.device,
     source: 'face',
-  }
-  writeStaffAttendance([record, ...attendance].slice(0, STAFF_ATTENDANCE_MAX))
-  res.json({
-    matched: true,
-    record,
-    person,
-    type,
-    message: type === 'in' ? 'Checked in' : 'Checked out',
   })
+  res.json({ matched: true, ...result })
 })
 
 app.get('/api/face/attendance', requireRoles('admin', 'super_admin'), (req, res) => {

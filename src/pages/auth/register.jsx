@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthShell from '../../components/auth/AuthShell'
 import OtpInput from '../../components/auth/OtpInput'
+import FaceCapturePanel from '../../components/face/FaceCapturePanel'
 import * as auth from '../../services/auth'
+import { enrollMyFace } from '../../services/faceAttendance'
 import { lookupInviteKey } from '../../services/inviteKeys'
 import { INVITE_REQUIRED_ROLES, REGISTER_ROLE_OPTIONS } from '../../utils/constants'
 import { homePathForRole } from '../../data/roleNav'
 import '../../styles/auth-premium.css'
+import '../../styles/auth-face.css'
+
+const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
 
 function passwordScore(password) {
   let score = 0
@@ -40,6 +45,10 @@ const RegisterPage = () => {
   const [maskedEmail, setMaskedEmail] = useState('')
   const [demoOtp, setDemoOtp] = useState('')
   const [resendIn, setResendIn] = useState(0)
+
+  const [faceStep, setFaceStep] = useState(false)
+  const [enrollError, setEnrollError] = useState('')
+  const [pendingHome, setPendingHome] = useState('/')
 
   const strength = passwordScore(password)
   const needsInvite = INVITE_REQUIRED_ROLES.has(role)
@@ -146,6 +155,12 @@ const RegisterPage = () => {
         return
       }
       auth.saveSession(res)
+      const role = String(res?.user?.role || '').toLowerCase()
+      if (STAFF_ROLES.has(role)) {
+        setPendingHome(homePathForRole(res?.user?.role))
+        setFaceStep(true)
+        return
+      }
       navigate(homePathForRole(res?.user?.role))
     } catch (err) {
       setError(err.message || String(err))
@@ -178,12 +193,15 @@ const RegisterPage = () => {
   return (
     <AuthShell
       mode="register"
+      stageClassName={faceStep ? 'auth-stage--login-verify' : ''}
       kicker="Create secure account"
-      title={otpStep ? 'Verify email OTP' : 'Create your SMS account'}
+      title={faceStep ? 'Enroll your face' : otpStep ? 'Verify email OTP' : 'Create your SMS account'}
       subtitle={
-        otpStep
-          ? `We emailed a 6-digit code to ${maskedEmail}. Account is created only after successful OTP verification.`
-          : 'Create your school account. Teachers and parents need an admin-issued key.'
+        faceStep
+          ? 'One-time face setup. It is saved as your profile, and every face sign-in after this marks your attendance automatically.'
+          : otpStep
+            ? `We emailed a 6-digit code to ${maskedEmail}. Account is created only after successful OTP verification.`
+            : 'Create your school account. Teachers and parents need an admin-issued key.'
       }
       footer={
         <>
@@ -192,7 +210,24 @@ const RegisterPage = () => {
         </>
       }
     >
-      {!otpStep ? (
+      {faceStep ? (
+        <div className="af-setup">
+          <FaceCapturePanel
+            mode="enroll"
+            error={enrollError}
+            onSubmit={async ({ descriptors, photoThumb }) => {
+              setEnrollError('')
+              try {
+                await enrollMyFace({ descriptors, photoThumb })
+                navigate(pendingHome)
+              } catch (err) {
+                setEnrollError(err.message || String(err))
+                throw err
+              }
+            }}
+          />
+        </div>
+      ) : !otpStep ? (
         <form className="auth-form-stack" onSubmit={startRegister}>
           <label className="auth-field">
             <span>Role</span>

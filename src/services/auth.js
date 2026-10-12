@@ -78,6 +78,17 @@ export const loginVerify = async ({ email, code, loginToken, specialKey, geo }) 
   return body
 }
 
+export const faceLogin = async ({ descriptors, geo, device }) => {
+  const res = await safeFetch(`${API}/face-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ descriptors, geo, device }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res) || 'Face sign-in failed')
+  return body
+}
+
 export const requestPasswordReset = async ({ email }) => {
   const res = await safeFetch(`${API}/password-reset`, {
     method: 'POST',

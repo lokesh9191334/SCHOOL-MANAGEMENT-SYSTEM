@@ -81,6 +81,25 @@ export function captureThumb(videoEl, maxSize = 240) {
   return canvas.toDataURL('image/jpeg', 0.72)
 }
 
+/** Detection box mapped to the on-screen mirrored preview coordinates. */
+export function scaleBox(hit, videoEl) {
+  const rect = videoEl.getBoundingClientRect()
+  const vw = hit.videoWidth || videoEl.videoWidth
+  const vh = hit.videoHeight || videoEl.videoHeight
+  if (!vw || !vh || !rect.width) return null
+  const scale = Math.max(rect.width / vw, rect.height / vh)
+  const dispW = vw * scale
+  const dispH = vh * scale
+  const offX = (rect.width - dispW) / 2
+  const offY = (rect.height - dispH) / 2
+  const bx = hit.box.x * scale + offX
+  const by = hit.box.y * scale + offY
+  const bw = hit.box.width * scale
+  const bh = hit.box.height * scale
+  // front camera preview is mirrored
+  return { left: rect.width - bx - bw, top: by, width: bw, height: bh }
+}
+
 export function cameraSupportError() {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
     return window.isSecureContext
