@@ -368,8 +368,11 @@ export default function PremiumWorkspace({ config }) {
     if (config.notifyParentsOnStatus && autoNotifyParents && previous !== status) {
       const alert = await dispatchParentAlert(nextRow, status)
       if (alert) {
-        const channelText = alert.channels.join(' + ')
-        setToast(`${status} marked · ${channelText} opened for ${alert.parentName}`)
+        if (alert.delivery.some((d) => d.ok)) {
+          setToast(`${status} marked · ${alert.channels.join(' + ')} opened for ${alert.parentName}`)
+        } else {
+          setToast(`${status} marked · no parent contact on file — alert not sent`)
+        }
         return
       }
     }
@@ -383,17 +386,6 @@ export default function PremiumWorkspace({ config }) {
     setRows((prev) => prev.filter((row) => row.id !== selected.id))
     setSelectedId(null)
     setToast('Record removed')
-  }
-
-  const resetDemo = () => {
-    setRows(seed)
-    setSearchQuery('')
-    setStatusFilter('All')
-    setSelectedId(seed[0]?.id ?? null)
-    setShowCreate(false)
-    setForm(emptyForm(fields, statusOptions))
-    setLastParentAlert(null)
-    setToast('Demo data restored')
   }
 
   const createRecord = async (event) => {
@@ -527,7 +519,11 @@ export default function PremiumWorkspace({ config }) {
       ) {
         const alert = await dispatchParentAlert(nextRow, action.patch[statusKey])
         if (alert) {
-          setToast(`${action.toast || 'Updated'} · ${alert.channels.join(' + ')} opened for ${alert.parentName}`)
+          if (alert.delivery.some((d) => d.ok)) {
+            setToast(`${action.toast || 'Updated'} · ${alert.channels.join(' + ')} opened for ${alert.parentName}`)
+          } else {
+            setToast(`${action.toast || 'Updated'} · no parent contact on file — alert not sent`)
+          }
           return
         }
       }
@@ -558,7 +554,11 @@ export default function PremiumWorkspace({ config }) {
       },
       { silentToast: true },
     )
-    setToast(`Resent to ${alert.parentName} via ${alert.channels.join(' + ')}`)
+    setToast(
+      alert.delivery.some((d) => d.ok)
+        ? `Resent to ${alert.parentName} via ${alert.channels.join(' + ')}`
+        : 'No parent contact on file — nothing sent',
+    )
   }
 
   const parentPreview = config.notifyParentsOnStatus
@@ -598,9 +598,6 @@ export default function PremiumWorkspace({ config }) {
           ) : null}
           <button type="button" className="pw-btn pw-btn-glass" onClick={() => downloadCsv(title.toLowerCase().replace(/\s+/g, '-'), columns, filtered)}>
             Export CSV
-          </button>
-          <button type="button" className="pw-btn pw-btn-glass" onClick={resetDemo}>
-            Reset demo
           </button>
           <button type="button" className="pw-btn pw-btn-light" onClick={() => setShowCreate(true)}>
             {createLabel}
@@ -741,11 +738,8 @@ export default function PremiumWorkspace({ config }) {
                 <PwIcon paths={SECTION_ICONS[section] || SECTION_ICONS.default} size={30} />
               </span>
               <strong>No records yet</strong>
-              <p>Create the first entry or restore demo data to explore this module.</p>
+              <p>Create the first entry to start using this module.</p>
               <div className="pw-empty-actions">
-                <button type="button" className="pw-btn pw-btn-secondary" onClick={resetDemo}>
-                  Reset demo
-                </button>
                 <button type="button" className="pw-btn pw-btn-accent" onClick={() => setShowCreate(true)}>
                   {createLabel}
                 </button>
@@ -996,7 +990,9 @@ export default function PremiumWorkspace({ config }) {
                         <span>{parentPreview.phone || 'No phone'}</span>
                         <span>{parentPreview.email || 'No email'}</span>
                       </div>
-                    ) : null}
+                    ) : (
+                      <p className="pw-notify-last">No parent contact on file for this student.</p>
+                    )}
                     {(lastParentAlert || selected.lastNotifiedAt) && (
                       <p className="pw-notify-last">
                         Last alert:{' '}

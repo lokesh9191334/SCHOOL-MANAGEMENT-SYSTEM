@@ -308,6 +308,20 @@
   text-align: center;
 }
 
+.exec-chart-empty {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  border: 1px dashed rgba(16, 24, 47, 0.14);
+  border-radius: 14px;
+  color: var(--exec-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .exec-donut-block {
   display: flex;
   align-items: center;

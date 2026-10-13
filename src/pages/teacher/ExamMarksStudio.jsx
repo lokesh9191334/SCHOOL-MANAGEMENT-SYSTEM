@@ -18,13 +18,7 @@ function gradeFromPercent(percent) {
   return band?.grade || 'F'
 }
 
-const SEED_ROWS = [
-  { id: '1', name: 'Aanya Sharma', math: 38, science: 36, english: 34, sst: 32 },
-  { id: '2', name: 'Kabir Khan', math: 34, science: 33, english: 31, sst: 30 },
-  { id: '3', name: 'Diya Patel', math: 28, science: 30, english: 35, sst: 29 },
-  { id: '4', name: 'Arjun Mehta', math: 40, science: 39, english: 37, sst: 36 },
-  { id: '5', name: 'Sara Ali', math: 22, science: 25, english: 28, sst: 24 },
-]
+const SEED_ROWS = []
 
 const SUBJECTS = [
   { key: 'math', label: 'Mathematics', max: 40 },

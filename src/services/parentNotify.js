@@ -1,43 +1,8 @@
-import { SEED_STUDENTS } from '../data/seed'
 import { STORAGE_KEYS } from '../utils/constants'
 
 const PARENT_DETAILS_KEY = 'sms_mod__students_parent_details'
 const ALERT_LOG_KEY = 'sms_parent_attendance_alerts'
 const COMM_NOTIFY_KEY = 'sms_mod__communication_parent_notifications'
-
-/** Hard fallback so demo attendance always has parent contacts */
-const FALLBACK_CONTACTS = {
-  'aanya sharma': {
-    parentName: 'Neha Sharma',
-    phone: '+91 98765 41001',
-    email: 'parent@example.com',
-    relation: 'Mother',
-  },
-  'kabir khan': {
-    parentName: 'Salma Khan',
-    phone: '+91 98765 41002',
-    email: 'khan.family@example.com',
-    relation: 'Mother',
-  },
-  'diya patel': {
-    parentName: 'Ravi Patel',
-    phone: '+91 98765 41003',
-    email: 'ravi.patel@example.com',
-    relation: 'Father',
-  },
-  'leo fernandes': {
-    parentName: 'Maria Fernandes',
-    phone: '+91 98765 41004',
-    email: 'maria.f@example.com',
-    relation: 'Mother',
-  },
-  'zara ahmed': {
-    parentName: 'Imran Ahmed',
-    phone: '+91 98765 41005',
-    email: 'imran.a@example.com',
-    relation: 'Father',
-  },
-}
 
 function readJson(key, fallback) {
   if (typeof window === 'undefined') return fallback
@@ -61,8 +26,7 @@ function writeJson(key, value) {
 
 function readStudents() {
   const stored = readJson(STORAGE_KEYS.students, null)
-  if (Array.isArray(stored) && stored.length) return stored
-  return SEED_STUDENTS
+  return Array.isArray(stored) ? stored : []
 }
 
 function readParents() {
@@ -106,14 +70,19 @@ async function copyText(text) {
   }
 }
 
+function cleanContactValue(value) {
+  const v = String(value || '').trim()
+  return v && v !== '—' ? v : ''
+}
+
 export function resolveParentContact(studentName, row = null) {
   const name = String(studentName || '').trim().toLowerCase()
 
   if (row?.parentPhone || row?.parentEmail || row?.guardianPhone || row?.guardianEmail) {
     return {
       parentName: row.parentName || row.guardianName || row.primary || 'Guardian',
-      phone: row.parentPhone || row.guardianPhone || row.phone || '',
-      email: row.parentEmail || row.guardianEmail || row.email || row.owner || '',
+      phone: cleanContactValue(row.parentPhone || row.guardianPhone || row.phone),
+      email: cleanContactValue(row.parentEmail || row.guardianEmail || row.email || row.owner),
       relation: row.relation || 'Guardian',
       studentName: row.title || row.name || studentName,
     }
@@ -125,8 +94,8 @@ export function resolveParentContact(studentName, row = null) {
     if (parentHit && (parentHit.phone || parentHit.email)) {
       return {
         parentName: parentHit.title || 'Guardian',
-        phone: parentHit.phone || '',
-        email: parentHit.email || '',
+        phone: cleanContactValue(parentHit.phone),
+        email: cleanContactValue(parentHit.email),
         relation: parentHit.relation || 'Guardian',
         studentName: parentHit.student || studentName,
       }
@@ -137,29 +106,16 @@ export function resolveParentContact(studentName, row = null) {
     if (studentHit && (studentHit.phone || studentHit.owner)) {
       return {
         parentName: studentHit.primary || 'Guardian',
-        phone: studentHit.phone || '',
-        email: studentHit.owner || '',
+        phone: cleanContactValue(studentHit.phone),
+        email: cleanContactValue(studentHit.owner),
         relation: 'Guardian',
         studentName: studentHit.title || studentName,
       }
     }
-
-    const fallback = FALLBACK_CONTACTS[name]
-    if (fallback) {
-      return {
-        ...fallback,
-        studentName,
-      }
-    }
   }
 
-  return {
-    parentName: 'Guardian',
-    phone: '+91 98765 41000',
-    email: 'guardian@school.edu',
-    relation: 'Guardian',
-    studentName: studentName || 'Student',
-  }
+  // No contact anywhere — return null so callers never invent one.
+  return null
 }
 
 function buildMessage({ studentName, status, className, date, period }) {
@@ -219,6 +175,32 @@ export async function notifyParentAttendance({
   row = null,
 }) {
   const contact = resolveParentContact(studentName, row)
+  const usedChannels = []
+  if (channels.sms) usedChannels.push('SMS')
+  if (channels.email) usedChannels.push('Email')
+
+  if (!contact) {
+    // No contact on record — log the attempt honestly instead of faking a send.
+    const entry = {
+      id: `ATT-ALERT-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      studentName: studentName || 'Student',
+      parentName: '—',
+      phone: '',
+      email: '',
+      status,
+      className: className || '',
+      message: '',
+      channels: usedChannels,
+      delivery: usedChannels.map((channel) => ({ channel, to: '—', ok: false, error: 'No contact on record' })),
+      smsCopied: false,
+      deliveryStatus: 'No contact',
+    }
+    appendAlertLog(entry)
+    mirrorToParentNotifications(entry)
+    return entry
+  }
+
   const message = buildMessage({
     studentName: contact.studentName || studentName,
     status,
@@ -227,12 +209,10 @@ export async function notifyParentAttendance({
     period,
   })
 
-  const usedChannels = []
   const delivery = []
   let smsCopied = false
 
   if (channels.sms) {
-    usedChannels.push('SMS')
     if (contact.phone) {
       const phone = normalizePhone(contact.phone)
       let launched = false
@@ -257,7 +237,6 @@ export async function notifyParentAttendance({
   }
 
   if (channels.email) {
-    usedChannels.push('Email')
     if (contact.email) {
       let launched = false
       if (openExternal) {

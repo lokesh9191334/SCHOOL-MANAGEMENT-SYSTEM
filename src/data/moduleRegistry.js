@@ -10,7 +10,6 @@ function mod({
   description,
   idPrefix,
   storageKey,
-  seed,
   columns,
   fields,
   statusOptions,
@@ -32,7 +31,9 @@ function mod({
     description,
     idPrefix,
     storageKey: storageKey || `sms_mod_${path.replace(/\W+/g, '_')}`,
-    seed,
+    // Seeding removed on purpose: modules must start empty so only real
+    // data is ever shown. Legacy inline seed arrays below are ignored.
+    seed: [],
     columns,
     fields,
     statusOptions,

@@ -391,22 +391,31 @@ app.post('/api/aadhaar/verify', (req, res) => {
   })
 })
 
-const emptyStudents = []
+// Students live in the shared records store (data/records/sms_students.json) —
+// the same store the admission form and student list write — so fee setup,
+// payments and the registry all read one student list.
+const STUDENT_RECORDS_KEY = 'sms_students'
+const studentRecordsFile = () => join('data', 'records', `${STUDENT_RECORDS_KEY}.json`)
+function readStudentRecords() {
+  const rows = readJsonFile(studentRecordsFile(), [])
+  return Array.isArray(rows) ? rows : []
+}
+function writeStudentRecords(rows) {
+  writeJsonFile(studentRecordsFile(), Array.isArray(rows) ? rows : [])
+}
 
 // API Routes - Students
 app.get('/api/students', (_req, res) => {
-  const data = readJsonFile(join('data', 'students.json'), emptyStudents)
-  res.json(Array.isArray(data) ? data : emptyStudents)
+  res.json(readStudentRecords())
 })
 
 app.post('/api/students', (req, res) => {
   if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
     return res.status(400).json({ error: 'Student record must be an object' })
   }
-  const list = readJsonFile(join('data', 'students.json'), emptyStudents)
+  const list = readStudentRecords()
   const student = { ...req.body, id: String(req.body.id || Date.now()) }
-  const next = Array.isArray(list) ? [...list, student] : [student]
-  writeJsonFile(join('data', 'students.json'), next)
+  writeStudentRecords([...list, student])
   res.status(201).json(student)
 })
 
@@ -414,12 +423,12 @@ app.put('/api/students', (req, res) => {
   if (!Array.isArray(req.body) || req.body.some((student) => !student || typeof student !== 'object' || Array.isArray(student))) {
     return res.status(400).json({ error: 'Students must be an array of student records' })
   }
-  writeJsonFile(join('data', 'students.json'), req.body)
+  writeStudentRecords(req.body)
   res.json(req.body)
 })
 
 app.patch('/api/students/:id/fee', requireRoles('admin', 'super_admin'), (req, res) => {
-  const list = readJsonFile(join('data', 'students.json'), emptyStudents)
+  const list = readStudentRecords()
   const index = list.findIndex((student) => String(student.id) === String(req.params.id))
   if (index < 0) return res.status(404).json({ error: 'Student not found.' })
   const raw = req.body?.totalFee
@@ -429,7 +438,7 @@ app.patch('/api/students/:id/fee', requireRoles('admin', 'super_admin'), (req, r
   }
   const updated = { ...list[index], totalFee }
   list[index] = updated
-  writeJsonFile(join('data', 'students.json'), list)
+  writeStudentRecords(list)
   res.json(updated)
 })
 
@@ -2026,7 +2035,7 @@ app.get('/api/payments', (req, res) => {
 // Parents see only their linked child; staff can filter with ?studentId or
 // receive every student.
 app.get('/api/payments/summary', (req, res) => {
-  const students = readJsonFile(join('data', 'students.json'), emptyStudents)
+  const students = readStudentRecords()
   const payments = readJsonFile(join('data', 'payments.json'), [])
   const build = (student, linkedId) => {
     const keys = [student?.id, linkedId].filter((value) => value !== undefined && value !== null).map(String)

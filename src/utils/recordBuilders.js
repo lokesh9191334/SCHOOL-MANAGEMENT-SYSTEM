@@ -17,7 +17,7 @@ export function buildStudentRecord(formValues, index) {
     subtitle: `Class ${cls}`,
     primary: formValues.guardianName || formValues.guardian || formValues.fatherName || 'Parent',
     status: 'Active',
-    owner: formValues.guardianEmail || formValues.email || 'guardian@example.com',
+    owner: formValues.guardianEmail || formValues.email || '—',
     phone: formValues.guardianPhone || formValues.phone || '—',
     gender: formValues.gender || '—',
     rollNo: formValues.rollNo || `NEW-${index + 1}`,
@@ -32,11 +32,12 @@ export function buildAdmissionRecord(formValues, index) {
   const last = formValues.lastName || ''
   return {
     id: `ADM-${301 + index}`,
+    createdAt: new Date().toISOString(),
     title: `${first} ${last}`.trim(),
     subtitle: `Applied for ${cls}`,
     primary: formValues.guardianName || formValues.guardian || formValues.fatherName || 'Parent',
     status: 'Draft Created',
-    owner: formValues.guardianEmail || formValues.email || 'guardian@example.com',
+    owner: formValues.guardianEmail || formValues.email || '—',
     tone: 'warning',
   }
 }

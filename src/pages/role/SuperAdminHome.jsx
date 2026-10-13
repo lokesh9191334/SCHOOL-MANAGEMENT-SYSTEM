@@ -37,9 +37,12 @@ export default function SuperAdminHome() {
           <p>Schools, subscriptions, plans, analytics and support — no campus ERP noise.</p>
         </div>
         <div className="role-home__metrics">
-          <article><strong>{liveSchools}</strong><span>Live schools</span></article>
-          <article><strong>₹{recurringRevenue.toLocaleString('en-IN')}</strong><span>MRR tracked</span></article>
-          <article><strong>{openTickets}</strong><span>Open tickets</span></article>
+          <article><strong>{schools.length ? liveSchools : '—'}</strong><span>Live schools</span></article>
+          <article>
+            <strong>{subscriptions.length && recurringRevenue ? `₹${recurringRevenue.toLocaleString('en-IN')}` : '—'}</strong>
+            <span>MRR tracked</span>
+          </article>
+          <article><strong>{tickets.length ? openTickets : '—'}</strong><span>Open tickets</span></article>
         </div>
       </header>
 

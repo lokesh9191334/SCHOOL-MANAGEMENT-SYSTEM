@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
-import { SEED_ATTENDANCE, SEED_STUDENTS } from '../../data/seed'
 import { getAuthUser } from '../../utils/session'
 import { getApiAuthHeaders } from '../../services/apiAuth'
 import './RoleHome.css'
@@ -19,8 +18,8 @@ const cards = [
 ]
 
 export default function ParentHome() {
-  const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
-  const [attendance] = usePersistentState(STORAGE_KEYS.attendance, SEED_ATTENDANCE)
+  const [students] = usePersistentState(STORAGE_KEYS.students, [])
+  const [attendance] = usePersistentState(STORAGE_KEYS.attendance, [])
   const [feeEntry, setFeeEntry] = useState(undefined)
   const linkedId = getAuthUser()?.linkedId
   const localChild = linkedId ? students.find((student) => student.applicationId === linkedId || student.id === linkedId) || null : null

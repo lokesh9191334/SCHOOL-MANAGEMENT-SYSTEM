@@ -1,9 +1,11 @@
+// teachers/attendance/fees must mirror the live PremiumWorkspace module
+// storage keys so dashboards read real records instead of dead stores.
 export const STORAGE_KEYS = {
   students: 'sms_students',
   admissions: 'sms_admissions',
-  teachers: 'sms_teachers',
-  attendance: 'sms_attendance_day',
-  fees: 'sms_fee_payments',
+  teachers: 'sms_mod__teachers',
+  attendance: 'sms_mod__students_attendance',
+  fees: 'sms_mod__fees_payments',
   examMarks: 'sms_exam_marks',
 }
 

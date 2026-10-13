@@ -137,20 +137,6 @@ const StudentsPage = () => {
     }
   }
 
-  const resetDemo = async () => {
-    try {
-      setStudents(await replaceStudents(SEED_STUDENTS))
-      setSearchQuery('')
-      setClassFilter('All')
-      setStatusFilter('All')
-      setSortBy('name')
-      setSelectedId(SEED_STUDENTS[0]?.id ?? null)
-      setToast('Demo student list restored')
-    } catch (error) {
-      setToast(`Could not restore the student list: ${error.message}`)
-    }
-  }
-
   return (
     <div className="sl-page">
       <section className="sl-hero">
@@ -165,9 +151,6 @@ const StudentsPage = () => {
         <div className="sl-hero-actions">
           <button type="button" className="sl-btn sl-btn-secondary" onClick={() => downloadCsv(filteredStudents)}>
             Export CSV
-          </button>
-          <button type="button" className="sl-btn sl-btn-secondary" onClick={resetDemo}>
-            Reset demo
           </button>
           <button type="button" className="sl-btn sl-btn-primary" onClick={() => navigate('/students/add')}>
             New admission

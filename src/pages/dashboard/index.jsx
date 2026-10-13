@@ -5,20 +5,46 @@ import Slide from '../../components/Slide'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { buildAdmissionRecord, buildStudentRecord } from '../../utils/recordBuilders'
-import { SEED_ATTENDANCE, SEED_FEE_PAYMENTS, SEED_STUDENTS, SEED_TEACHERS } from '../../data/seed'
 import { getAuthUser } from '../../utils/session'
 import { AreaTrendChart, BarClusterChart, DonutChart, HorizontalBars, Sparkline } from './ExecCharts'
 import './ExecutiveDashboard.css'
 
-const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+const pad2 = (n) => String(n).padStart(2, '0')
+
+function parseAmount(value) {
+  const n = Number(String(value ?? '').replace(/[^0-9.-]/g, ''))
+  return Number.isFinite(n) ? n : 0
+}
+
+function dayLabel(iso) {
+  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return String(iso)
+  return `${pad2(d.getDate())} ${MONTH_LABELS[d.getMonth()]}`
+}
+
+function lastMonthWindow(count) {
+  const out = []
+  const now = new Date()
+  for (let i = count - 1; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    out.push({
+      key: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`,
+      label: MONTH_LABELS[d.getMonth()],
+    })
+  }
+  return out
+}
+
+const sumBy = (rows, pick) => rows.reduce((sum, row) => sum + pick(row), 0)
+
 const DashboardPage = () => {
-  const [students, setStudents] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
+  const [students, setStudents] = usePersistentState(STORAGE_KEYS.students, [])
   const [admissions, setAdmissions] = usePersistentState(STORAGE_KEYS.admissions, [])
-  const [teachers] = usePersistentState(STORAGE_KEYS.teachers, SEED_TEACHERS)
-  const [attendanceRows] = usePersistentState(STORAGE_KEYS.attendance, SEED_ATTENDANCE)
-  const [feeRows] = usePersistentState(STORAGE_KEYS.fees, SEED_FEE_PAYMENTS)
+  const [teachers] = usePersistentState(STORAGE_KEYS.teachers, [])
+  const [attendanceRows] = usePersistentState(STORAGE_KEYS.attendance, [])
+  const [feeRows] = usePersistentState(STORAGE_KEYS.fees, [])
 
   const [showForm, setShowForm] = useState(false)
   const [formMode, setFormMode] = useState('admission')
@@ -36,16 +62,31 @@ const DashboardPage = () => {
     return () => window.clearTimeout(timer)
   }, [toast])
 
+  // —— Metrics below are derived only from real records. Where history does
+  // not exist the chart/series is marked not `ready` and the panel shows an
+  // honest empty note instead of fabricated values. ——
+  const paidRevenue = sumBy(
+    feeRows.filter((r) => r.status === 'Paid'),
+    (r) => parseAmount(r.amount),
+  )
+  const feeTotal = sumBy(feeRows, (r) => parseAmount(r.amount))
   const pendingFees = feeRows.filter((r) => r.status !== 'Paid').length
-  const paidRows = feeRows.filter((r) => r.status === 'Paid')
-  const paidRevenue = paidRows.reduce((sum, row) => sum + row.amount, 0)
-  const totalRevenue = feeRows.reduce((sum, row) => sum + row.amount, 0)
-  const collectionRate = totalRevenue ? Math.round((paidRevenue / totalRevenue) * 100) : 0
+  const collectionRate = feeTotal ? Math.round((paidRevenue / feeTotal) * 100) : 0
 
-  const presentCount = attendanceRows.filter((row) => row.status === 'Present').length
-  const lateCount = attendanceRows.filter((row) => row.status === 'Late').length
-  const absentCount = attendanceRows.filter((row) => row.status === 'Absent').length
-  const attendanceRate = attendanceRows.length ? Math.round((presentCount / attendanceRows.length) * 100) : 0
+  const datedDays = useMemo(
+    () =>
+      [...new Set(attendanceRows.map((r) => String(r.date || '').slice(0, 10)).filter(Boolean))].sort(),
+    [attendanceRows],
+  )
+  const latestDay = datedDays[datedDays.length - 1] || null
+  const latestRows = useMemo(
+    () => (latestDay ? attendanceRows.filter((r) => String(r.date || '').slice(0, 10) === latestDay) : []),
+    [attendanceRows, latestDay],
+  )
+  const latestPresent = latestRows.filter((r) => r.status === 'Present').length
+  const latestLate = latestRows.filter((r) => r.status === 'Late').length
+  const latestAbsent = latestRows.filter((r) => r.status === 'Absent').length
+  const latestRate = latestRows.length ? Math.round((latestPresent / latestRows.length) * 100) : 0
 
   const maleCount = students.filter((s) => String(s.gender).toLowerCase() === 'male').length
   const femaleCount = students.filter((s) => String(s.gender).toLowerCase() === 'female').length
@@ -62,66 +103,128 @@ const DashboardPage = () => {
       .slice(0, 6)
   }, [students])
 
-  const attendanceTrend = useMemo(
-    () => ({
-      present: [92, 94, 91, 95, 93, attendanceRate || 90],
-      absent: [5, 4, 6, 3, 4, Math.max(absentCount, 2)],
-    }),
-    [attendanceRate, absentCount],
-  )
+  const monthWindow = useMemo(() => lastMonthWindow(6), [])
+
+  const attendanceTrend = useMemo(() => {
+    const days = datedDays.slice(-6)
+    const rowsFor = (day) => attendanceRows.filter((r) => String(r.date || '').slice(0, 10) === day)
+    return {
+      labels: days.map(dayLabel),
+      present: days.map((day) => {
+        const rows = rowsFor(day)
+        const present = rows.filter((r) => r.status === 'Present').length
+        return rows.length ? Math.round((present / rows.length) * 100) : 0
+      }),
+      absent: days.map((day) => rowsFor(day).filter((r) => r.status === 'Absent').length),
+      ready: days.length >= 2,
+    }
+  }, [attendanceRows, datedDays])
 
   const feeTrend = useMemo(() => {
-    const base = Math.max(Math.round(paidRevenue / 6) || 18000, 12000)
+    const byMonth = monthWindow.map(({ key, label }) => {
+      const rows = feeRows.filter((r) => String(r.date || '').slice(0, 7) === key)
+      return {
+        label,
+        collected: sumBy(
+          rows.filter((r) => r.status === 'Paid'),
+          (r) => parseAmount(r.amount),
+        ),
+        billed: sumBy(rows, (r) => parseAmount(r.amount)),
+      }
+    })
     return {
-      collected: [base * 0.72, base * 0.8, base * 0.88, base * 0.95, base * 1.02, paidRevenue || base],
-      billed: [base, base * 1.05, base * 1.08, base * 1.1, base * 1.12, totalRevenue || base * 1.15],
+      labels: byMonth.map((m) => m.label),
+      collected: byMonth.map((m) => m.collected),
+      billed: byMonth.map((m) => m.billed),
+      ready: byMonth.some((m) => m.billed > 0),
     }
-  }, [paidRevenue, totalRevenue])
-
-  const admissionTrend = useMemo(() => {
-    const live = Math.max(admissions.length, 2)
-    return {
-      applications: [4, 6, 5, 8, 7, 9, 8, 11, 10, 12, 11, live + 8],
-      enrolled: [2, 3, 3, 4, 5, 5, 6, 7, 6, 8, 7, students.length],
-    }
-  }, [admissions.length, students.length])
+  }, [feeRows, monthWindow])
 
   const weeklyFees = useMemo(() => {
-    const chunk = Math.max(Math.round(paidRevenue / 4) || 9000, 4000)
-    return [chunk * 0.7, chunk * 0.95, chunk * 1.1, paidRevenue ? Math.round(paidRevenue * 0.35) : chunk]
-  }, [paidRevenue])
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const buckets = [0, 0, 0, 0] // [3 weeks ago, 2 weeks ago, last week, this week]
+    feeRows.forEach((row) => {
+      if (row.status !== 'Paid' || !row.date) return
+      const d = new Date(`${String(row.date).slice(0, 10)}T00:00:00`)
+      if (Number.isNaN(d.getTime())) return
+      const daysAgo = Math.floor((now - d) / 86400000)
+      if (daysAgo < 0) return
+      const bucket = 3 - Math.floor(daysAgo / 7)
+      if (bucket >= 0) buckets[bucket] += parseAmount(row.amount)
+    })
+    return { values: buckets, ready: buckets.some((v) => v > 0) }
+  }, [feeRows])
+
+  const admissionTrend = useMemo(() => {
+    const applications = monthWindow.map(({ key }) =>
+      admissions.filter((row) => String(row.createdAt || '').slice(0, 7) === key).length,
+    )
+    const enrolled = monthWindow.map(({ key }) => {
+      const start = `${key}-01`
+      const end = `${key}-31`
+      return students.filter((s) => {
+        const d = String(s.admissionDate || '')
+        return d >= start && d <= end
+      }).length
+    })
+    return {
+      labels: monthWindow.map((m) => m.label),
+      applications,
+      enrolled,
+      ready: admissions.some((row) => row.createdAt) || students.some((s) => s.admissionDate),
+    }
+  }, [admissions, students, monthWindow])
+
+  const enrollmentSpark = useMemo(() => {
+    if (!students.some((s) => s.admissionDate)) return null
+    return monthWindow.map(({ key }) =>
+      students.filter((s) => String(s.admissionDate || '') <= `${key}-31`).length,
+    )
+  }, [students, monthWindow])
+
+  const newThisWeek = useMemo(() => {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 7)
+    const cutoffIso = `${cutoff.getFullYear()}-${pad2(cutoff.getMonth() + 1)}-${pad2(cutoff.getDate())}`
+    return students.filter((s) => s.admissionDate && s.admissionDate >= cutoffIso).length
+  }, [students])
+
+  const recentIntake = useMemo(() => [...admissions].slice(-4).reverse(), [admissions])
 
   const kpis = [
     {
       label: 'Students on roll',
       value: students.length,
-      note: '+3 this week',
+      note: newThisWeek > 0 ? `+${newThisWeek} admitted this week` : 'No new admissions this week',
       tone: 'blue',
-      spark: [18, 19, 20, 21, 22, students.length || 22],
+      spark: enrollmentSpark,
       to: '/students',
     },
     {
-      label: 'Attendance today',
-      value: `${attendanceRate}%`,
-      note: `${presentCount} present · ${absentCount} absent`,
+      label: 'Attendance',
+      value: latestRows.length ? `${latestRate}%` : '—',
+      note: latestRows.length
+        ? `${dayLabel(latestDay)} · ${latestPresent} present · ${latestAbsent} absent`
+        : 'No attendance recorded yet',
       tone: 'teal',
-      spark: attendanceTrend.present,
-      to: '/attendance',
+      spark: attendanceTrend.ready ? attendanceTrend.present : null,
+      to: '/students/attendance',
     },
     {
       label: 'Fee collected',
-      value: `₹${(paidRevenue / 1000).toFixed(paidRevenue >= 10000 ? 0 : 1)}k`,
-      note: `${collectionRate}% of billed`,
+      value: feeRows.length ? `₹${Math.round(paidRevenue).toLocaleString('en-IN')}` : '—',
+      note: feeRows.length ? `${collectionRate}% of billed` : 'No fee records yet',
       tone: 'navy',
-      spark: feeTrend.collected.map((v) => Math.round(v / 1000)),
+      spark: feeTrend.ready ? feeTrend.collected : null,
       to: '/fees/payments',
     },
     {
       label: 'Open exceptions',
-      value: lateCount + absentCount + pendingFees,
-      note: `${pendingFees} fee · ${lateCount + absentCount} attendance`,
+      value: latestLate + latestAbsent + pendingFees,
+      note: `${pendingFees} fee · ${latestLate + latestAbsent} attendance`,
       tone: 'amber',
-      spark: [8, 7, 9, 6, 5, lateCount + absentCount + pendingFees],
+      spark: null,
       to: '/fees/payments',
     },
   ]
@@ -129,38 +232,42 @@ const DashboardPage = () => {
   const priorityAlerts = [
     {
       title: 'Fee follow-up',
-      detail: `${pendingFees} invoices still open before cycle close.`,
-      tone: 'warning',
+      detail:
+        pendingFees > 0
+          ? `${pendingFees} invoice${pendingFees === 1 ? '' : 's'} still open before cycle close.`
+          : 'No open fee invoices right now.',
+      tone: pendingFees > 0 ? 'warning' : 'success',
       to: '/fees/payments',
     },
     {
       title: 'Attendance exceptions',
-      detail: `${lateCount + absentCount} students need review today.`,
+      detail:
+        latestLate + latestAbsent > 0
+          ? `${latestLate + latestAbsent} late/absent marks on ${dayLabel(latestDay)}.`
+          : 'No late or absent marks in the latest attendance.',
       tone: 'accent',
-      to: '/attendance',
+      to: '/students/attendance',
     },
     {
       title: 'Admissions queue',
-      detail: `${admissions.length || 1} intake items waiting on decision.`,
+      detail:
+        admissions.length > 0
+          ? `${admissions.length} intake item${admissions.length === 1 ? '' : 's'} waiting on decision.`
+          : 'No intake items waiting.',
       tone: 'success',
       to: '/students',
     },
   ]
 
-  const todaySchedule = [
-    { time: '08:30', title: 'Homeroom lock', detail: 'Class teachers confirm presence' },
-    { time: '10:00', title: 'Admissions review', detail: 'Counsellor document clearance' },
-    { time: '12:15', title: 'Fee reconciliation', detail: 'Cashier walk-in batch close' },
-    { time: '15:00', title: 'Ops brief', detail: 'Alerts · transport · academics' },
-  ]
-
   const chartConfig = {
     attendance: {
       title: 'Attendance trend',
-      subtitle: 'Present vs absent across this week',
+      subtitle: 'Present % vs absent count · recent recorded days',
+      ready: attendanceTrend.ready,
+      emptyMessage: 'No dated attendance records yet — the chart fills as attendance is marked.',
       seriesA: attendanceTrend.present,
       seriesB: attendanceTrend.absent,
-      labels: WEEK_LABELS,
+      labels: attendanceTrend.labels,
       labelA: 'Present %',
       labelB: 'Absent count',
       colorA: '#2f46d8',
@@ -168,21 +275,25 @@ const DashboardPage = () => {
     },
     finance: {
       title: 'Fee collection trend',
-      subtitle: 'Collected vs billed over recent weeks',
-      seriesA: feeTrend.collected.map((v) => Math.round(v / 1000)),
-      seriesB: feeTrend.billed.map((v) => Math.round(v / 1000)),
-      labels: WEEK_LABELS,
-      labelA: 'Collected (₹k)',
-      labelB: 'Billed (₹k)',
+      subtitle: 'Collected vs billed · last 6 months',
+      ready: feeTrend.ready,
+      emptyMessage: 'No dated fee records yet — record payments with dates to build the trend.',
+      seriesA: feeTrend.collected,
+      seriesB: feeTrend.billed,
+      labels: feeTrend.labels,
+      labelA: 'Collected (₹)',
+      labelB: 'Billed (₹)',
       colorA: '#17b398',
       colorB: '#2f46d8',
     },
     admissions: {
       title: 'Admissions pipeline',
-      subtitle: 'Applications vs enrolled students this year',
+      subtitle: 'Applications vs enrolled · last 6 months',
+      ready: admissionTrend.ready,
+      emptyMessage: 'No dated intake records yet — new drafts and admissions build this chart.',
       seriesA: admissionTrend.applications,
       seriesB: admissionTrend.enrolled,
-      labels: MONTH_LABELS,
+      labels: admissionTrend.labels,
       labelA: 'Applications',
       labelB: 'Enrolled',
       colorA: '#1b2a55',
@@ -193,9 +304,9 @@ const DashboardPage = () => {
   const activeChart = chartConfig[chartTab]
 
   const attendanceSegments = [
-    { label: 'Present', value: presentCount || 1, color: '#17b398' },
-    { label: 'Late', value: lateCount || 0, color: '#e08a2c' },
-    { label: 'Absent', value: absentCount || 0, color: '#d64545' },
+    { label: 'Present', value: latestPresent, color: '#17b398' },
+    { label: 'Late', value: latestLate, color: '#e08a2c' },
+    { label: 'Absent', value: latestAbsent, color: '#d64545' },
   ]
 
   const openAdmission = () => {
@@ -227,7 +338,7 @@ const DashboardPage = () => {
             <Link className="exec-btn exec-btn--solid" to="/students/add">
               New admission
             </Link>
-            <Link className="exec-btn" to="/attendance">
+            <Link className="exec-btn" to="/students/attendance">
               Attendance
             </Link>
             <Link className="exec-btn" to="/fees/payments">
@@ -246,12 +357,14 @@ const DashboardPage = () => {
             <Link to={kpi.to} className={`exec-kpi tone-${kpi.tone}`}>
               <div className="exec-kpi__head">
                 <span>{kpi.label}</span>
-                <Sparkline
-                  values={kpi.spark}
-                  color={
-                    kpi.tone === 'teal' ? '#17b398' : kpi.tone === 'amber' ? '#e08a2c' : kpi.tone === 'navy' ? '#1b2a55' : '#2f46d8'
-                  }
-                />
+                {kpi.spark && kpi.spark.length > 1 ? (
+                  <Sparkline
+                    values={kpi.spark}
+                    color={
+                      kpi.tone === 'teal' ? '#17b398' : kpi.tone === 'amber' ? '#e08a2c' : kpi.tone === 'navy' ? '#1b2a55' : '#2f46d8'
+                    }
+                  />
+                ) : null}
               </div>
               <strong>{kpi.value}</strong>
               <p>{kpi.note}</p>
@@ -288,15 +401,19 @@ const DashboardPage = () => {
                 ))}
               </div>
             </header>
-            <AreaTrendChart
-              seriesA={activeChart.seriesA}
-              seriesB={activeChart.seriesB}
-              labels={activeChart.labels}
-              labelA={activeChart.labelA}
-              labelB={activeChart.labelB}
-              colorA={activeChart.colorA}
-              colorB={activeChart.colorB}
-            />
+            {activeChart.ready ? (
+              <AreaTrendChart
+                seriesA={activeChart.seriesA}
+                seriesB={activeChart.seriesB}
+                labels={activeChart.labels}
+                labelA={activeChart.labelA}
+                labelB={activeChart.labelB}
+                colorA={activeChart.colorA}
+                colorB={activeChart.colorB}
+              />
+            ) : (
+              <p className="exec-chart-empty">{activeChart.emptyMessage}</p>
+            )}
           </section>
         </Slide>
 
@@ -309,22 +426,26 @@ const DashboardPage = () => {
                   <h3>Attendance mix</h3>
                 </div>
               </header>
-              <div className="exec-donut-block">
-                <DonutChart
-                  segments={attendanceSegments}
-                  centerValue={`${attendanceRate}%`}
-                  centerLabel="Present"
-                />
-                <ul className="exec-donut-legend">
-                  {attendanceSegments.map((s) => (
-                    <li key={s.label}>
-                      <i style={{ background: s.color }} />
-                      <span>{s.label}</span>
-                      <strong>{s.value}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {latestRows.length ? (
+                <div className="exec-donut-block">
+                  <DonutChart
+                    segments={attendanceSegments}
+                    centerValue={`${latestRate}%`}
+                    centerLabel="Present"
+                  />
+                  <ul className="exec-donut-legend">
+                    {attendanceSegments.map((s) => (
+                      <li key={s.label}>
+                        <i style={{ background: s.color }} />
+                        <span>{s.label}</span>
+                        <strong>{s.value}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="exec-chart-empty">No attendance recorded yet.</p>
+              )}
             </section>
           </Slide>
 
@@ -336,12 +457,16 @@ const DashboardPage = () => {
                   <h3>Weekly collections</h3>
                 </div>
               </header>
-              <BarClusterChart
-                labels={['W1', 'W2', 'W3', 'W4']}
-                values={weeklyFees}
-                color="#17b398"
-                formatValue={(v) => `₹${Math.round(v / 1000)}k`}
-              />
+              {weeklyFees.ready ? (
+                <BarClusterChart
+                  labels={['3w ago', '2w ago', 'Last wk', 'This wk']}
+                  values={weeklyFees.values}
+                  color="#17b398"
+                  formatValue={(v) => `₹${Math.round(v / 1000)}k`}
+                />
+              ) : (
+                <p className="exec-chart-empty">No fee collections in the last 4 weeks.</p>
+              )}
             </section>
           </Slide>
         </div>
@@ -359,12 +484,16 @@ const DashboardPage = () => {
                 Open registry →
               </Link>
             </header>
-            <HorizontalBars
-              items={classStrength.map((row, i) => ({
-                ...row,
-                color: ['#2f46d8', '#17b398', '#1b2a55', '#e08a2c', '#5c6bff', '#0d8f7a'][i % 6],
-              }))}
-            />
+            {classStrength.length ? (
+              <HorizontalBars
+                items={classStrength.map((row, i) => ({
+                  ...row,
+                  color: ['#2f46d8', '#17b398', '#1b2a55', '#e08a2c', '#5c6bff', '#0d8f7a'][i % 6],
+                }))}
+              />
+            ) : (
+              <p className="exec-chart-empty">No students on roll yet.</p>
+            )}
             <div className="exec-gender">
               <div>
                 <span>Boys</span>
@@ -405,21 +534,31 @@ const DashboardPage = () => {
           <section className="exec-panel">
             <header className="exec-panel__head exec-panel__head--compact">
               <div>
-                <p className="exec-kicker">Today</p>
-                <h3>Leadership timeline</h3>
+                <p className="exec-kicker">Intake</p>
+                <h3>Recent admission drafts</h3>
               </div>
             </header>
-            <div className="exec-timeline">
-              {todaySchedule.map((item) => (
-                <article key={item.time} className="exec-timeline__item">
-                  <time>{item.time}</time>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.detail}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
+            {recentIntake.length ? (
+              <div className="exec-timeline">
+                {recentIntake.map((item) => (
+                  <article key={item.id} className="exec-timeline__item">
+                    <time>
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                        : '—'}
+                    </time>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>
+                        {item.subtitle} · {item.status}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="exec-chart-empty">No intake drafts yet — use “Launch intake” to start one.</p>
+            )}
             <div className="exec-launch-row">
               <Link to="/academics/timetable">Timetable</Link>
               <Link to="/examination/schedule">Exams</Link>
