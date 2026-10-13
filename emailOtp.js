@@ -326,6 +326,53 @@ export async function sendSecurityAlertEmail({ to, event }) {
   }
 }
 
+/**
+ * Attendance alert to a parent/guardian. Sent from the school's own SMTP
+ * account. Never throws — callers get { sent: true/false } either way.
+ */
+export async function sendParentAttendanceEmail({ to, studentName, status, className, date, period }) {
+  const when = date || new Date().toLocaleDateString('en-IN')
+  const where = className ? `Class ${className}` : 'School'
+  const statusText = String(status || 'UPDATED').toUpperCase()
+  const slot = period ? ` · ${escapeHtml(period)}` : ''
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Attendance update</p>
+    <h2 style="margin:6px 0 12px;color:#111b33">${escapeHtml(studentName)} — ${escapeHtml(statusText)}</h2>
+    <p style="color:#5c6b8c;line-height:1.6;margin:0 0 16px">
+      ${escapeHtml(where)} has marked <strong>${escapeHtml(statusText)}</strong> for
+      <strong>${escapeHtml(studentName)}</strong> on ${escapeHtml(when)}${slot}.
+      Please contact the school office if this looks unexpected.
+    </p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Attendance Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    `School attendance update: ${studentName} — ${statusText}`,
+    `${where} · ${when}${period ? ` · ${period}` : ''}`,
+    'Please contact the school office if this looks unexpected.',
+  ].join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Attendance update · ${studentName} (${statusText})`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'parent-attendance-alert',
+      logLabel: 'Parent attendance alert',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] parent attendance alert failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [

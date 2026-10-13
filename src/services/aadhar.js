@@ -1,8 +1,10 @@
 /**
- * UIDAI-style Aadhaar verification helpers.
- * Production note: real e-KYC needs UIDAI/AUA licensed APIs + consent/OTP.
- * This app validates checksum with Verhoeff (UIDAI standard) and simulates KYC autofill.
+ * Aadhaar checksum helpers (Verhoeff — the same algorithm UIDAI numbers follow).
+ * This app does NOT verify Aadhaar with UIDAI: there is no KYC, no profile
+ * lookup and no UIDAI reference. It only catches typos via the checksum.
  */
+
+import { getApiAuthHeaders } from './apiAuth'
 
 const VERHOEFF_D = [
   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -28,8 +30,6 @@ const VERHOEFF_P = [
   [7, 0, 4, 6, 9, 1, 3, 2, 5, 8],
 ]
 
-const VERHOEFF_INV = [0, 4, 3, 2, 1, 5, 6, 7, 8, 9]
-
 export function cleanAadhaar(value) {
   return String(value || '').replace(/\D/g, '').slice(0, 12)
 }
@@ -53,166 +53,6 @@ export function validateAadhaarVerhoeff(aadhaar) {
   return c === 0
 }
 
-/** Build a Verhoeff-valid 12-digit demo Aadhaar from an 11-digit base */
-export function makeValidAadhaar(base11) {
-  const base = String(base11).replace(/\D/g, '').padStart(11, '0').slice(0, 11)
-  for (let check = 0; check <= 9; check += 1) {
-    const candidate = `${base}${check}`
-    if (validateAadhaarVerhoeff(candidate)) return candidate
-  }
-  return `${base}0`
-}
-
-export const DEMO_AADHAAR = {
-  studentAadhar: [
-    { number: makeValidAadhaar('23456789012'), label: 'Student demo 1', firstName: 'Aarav', lastName: 'Sharma', gender: 'Male', dateOfBirth: '2014-05-12', bloodGroup: 'B+' },
-    { number: makeValidAadhaar('34567890123'), label: 'Student demo 2', firstName: 'Ananya', lastName: 'Mehta', gender: 'Female', dateOfBirth: '2015-09-03', bloodGroup: 'O+' },
-    { number: makeValidAadhaar('45678901234'), label: 'Student demo 3', firstName: 'Ishaan', lastName: 'Verma', gender: 'Male', dateOfBirth: '2013-01-21', bloodGroup: 'A+' },
-  ],
-  fatherAadhar: [
-    { number: makeValidAadhaar('56789012345'), label: 'Father demo 1', fullName: 'Rohit Sharma', phone: '9876541001', email: 'rohit.sharma@example.com' },
-    { number: makeValidAadhaar('67890123456'), label: 'Father demo 2', fullName: 'Sanjay Mehta', phone: '9876541002', email: 'sanjay.mehta@example.com' },
-  ],
-  motherAadhar: [
-    { number: makeValidAadhaar('78901234567'), label: 'Mother demo 1', fullName: 'Neha Sharma', phone: '9876541011', email: 'neha.sharma@example.com' },
-    { number: makeValidAadhaar('89012345678'), label: 'Mother demo 2', fullName: 'Pooja Mehta', phone: '9876541012', email: 'pooja.mehta@example.com' },
-  ],
-  guardianAadhar: [
-    { number: makeValidAadhaar('90123456789'), label: 'Guardian demo', fullName: 'Vikram Sharma', phone: '9876541021', email: 'vikram.sharma@example.com', relation: 'Uncle' },
-  ],
-}
-
-function findDemoProfile(aadhaarNumber, personField) {
-  const clean = cleanAadhaar(aadhaarNumber)
-  const list = DEMO_AADHAAR[personField] || []
-  return list.find((item) => item.number === clean) || null
-}
-
-function buildGenericProfile(aadhaarNumber, personField) {
-  const clean = cleanAadhaar(aadhaarNumber)
-  const tail = clean.slice(-4)
-  if (personField === 'studentAadhar') {
-    return {
-      firstName: 'Student',
-      lastName: tail,
-      fullName: `Student ${tail}`,
-      gender: Number(tail) % 2 === 0 ? 'Female' : 'Male',
-      dateOfBirth: '',
-      bloodGroup: '',
-    }
-  }
-  if (personField === 'fatherAadhar') {
-    return { fullName: `Father ${tail}`, phone: '', email: '' }
-  }
-  if (personField === 'motherAadhar') {
-    return { fullName: `Mother ${tail}`, phone: '', email: '' }
-  }
-  return { fullName: `Guardian ${tail}`, phone: '', email: '', relation: 'Guardian' }
-}
-
-/**
- * Verifies Aadhaar through UIDAI-style checksum + simulated KYC profile.
- */
-export async function verifyAadharWithUIDI(aadharNumber, personField = null) {
-  try {
-    const clean = cleanAadhaar(aadharNumber)
-
-    if (clean.length !== 12) {
-      return {
-        verified: false,
-        status: 'invalid',
-        error: 'Enter a complete 12-digit Aadhaar number.',
-      }
-    }
-
-    if (!validateAadhaarVerhoeff(clean)) {
-      return {
-        verified: false,
-        status: 'invalid',
-        error: 'UIDAI checksum failed. This Aadhaar number is invalid.',
-        message: 'UIDAI Verhoeff validation failed. Please check the number.',
-      }
-    }
-
-    // Optional server proxy (falls back to local simulation)
-    try {
-      const response = await fetch('/api/aadhaar/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aadhaar: clean, personField }),
-      })
-      if (response.ok) {
-        const payload = await response.json()
-        if (payload && payload.verified === true) {
-          const demo = personField ? findDemoProfile(clean, personField) : null
-          const profile =
-            payload.profile ||
-            (demo
-              ? {
-                  firstName: demo.firstName || '',
-                  lastName: demo.lastName || '',
-                  fullName: demo.fullName || `${demo.firstName || ''} ${demo.lastName || ''}`.trim(),
-                  gender: demo.gender || '',
-                  dateOfBirth: demo.dateOfBirth || '',
-                  bloodGroup: demo.bloodGroup || '',
-                  phone: demo.phone || '',
-                  email: demo.email || '',
-                  relation: demo.relation || '',
-                }
-              : buildGenericProfile(clean, personField))
-
-          return {
-            ...payload,
-            profile,
-            message: payload.message || 'Aadhaar verified successfully through UIDAI.',
-            maskedAadhar: payload.maskedAadhar || `XXXX XXXX ${clean.slice(-4)}`,
-          }
-        }
-        if (payload && payload.verified === false) {
-          return payload
-        }
-      }
-    } catch {
-      /* use local simulation */
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 700))
-
-    const demo = personField ? findDemoProfile(clean, personField) : null
-    const profile = demo
-      ? {
-          firstName: demo.firstName || '',
-          lastName: demo.lastName || '',
-          fullName: demo.fullName || `${demo.firstName || ''} ${demo.lastName || ''}`.trim(),
-          gender: demo.gender || '',
-          dateOfBirth: demo.dateOfBirth || '',
-          bloodGroup: demo.bloodGroup || '',
-          phone: demo.phone || '',
-          email: demo.email || '',
-          relation: demo.relation || '',
-        }
-      : buildGenericProfile(clean, personField)
-
-    return {
-      verified: true,
-      status: 'verified',
-      aadharNumber: clean,
-      maskedAadhar: `XXXX XXXX ${clean.slice(-4)}`,
-      message: 'Aadhaar verified successfully via UIDAI checksum + KYC simulation.',
-      verifiedAt: new Date().toISOString(),
-      uidaiRef: `UIDAI-SIM-${clean.slice(-6)}-${Date.now().toString().slice(-4)}`,
-      profile,
-    }
-  } catch (error) {
-    console.error('Aadhaar verification error:', error)
-    return {
-      verified: false,
-      status: 'error',
-      error: 'Unable to verify Aadhaar right now. Please try again.',
-    }
-  }
-}
-
 export function formatAadharNumber(value) {
   const cleaned = cleanAadhaar(value)
   return cleaned.replace(/(\d{4})(?=\d)/g, '$1 ').trim()
@@ -226,3 +66,64 @@ export function getMaskedAadhar(aadharNumber) {
 
 /** Keep old export name used across the app */
 export const validateAadharLuhn = validateAadhaarVerhoeff
+
+function localChecksumResult(clean) {
+  if (!validateAadhaarVerhoeff(clean)) {
+    return {
+      valid: false,
+      status: 'invalid',
+      error: 'Aadhaar checksum failed. Check the number for typos.',
+    }
+  }
+  return {
+    valid: true,
+    status: 'checksum-valid',
+    aadhaarNumber: clean,
+    maskedAadhar: `XXXX XXXX ${clean.slice(-4)}`,
+    message:
+      'Aadhaar format and checksum are valid. This is a typo check only — the app does not verify Aadhaar with UIDAI.',
+    checkedAt: new Date().toISOString(),
+  }
+}
+
+/**
+ * Check an Aadhaar number's Verhoeff checksum. Asks the server first so the
+ * same rule applies everywhere; falls back to the identical local check when
+ * the server is unreachable.
+ */
+export async function checkAadhaar(aadharNumber) {
+  try {
+    const clean = cleanAadhaar(aadharNumber)
+
+    if (clean.length !== 12) {
+      return {
+        valid: false,
+        status: 'invalid',
+        error: 'Enter the complete 12-digit Aadhaar number.',
+      }
+    }
+
+    try {
+      const response = await fetch('/api/aadhaar/verify', {
+        method: 'POST',
+        headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ aadhaar: clean }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (payload && typeof payload.valid === 'boolean') {
+        return payload.valid ? payload : { ...payload, status: payload.status || 'invalid' }
+      }
+    } catch {
+      /* fall back to the local checksum */
+    }
+
+    return localChecksumResult(clean)
+  } catch (error) {
+    console.error('Aadhaar checksum check error:', error)
+    return {
+      valid: false,
+      status: 'error',
+      error: 'Could not check the Aadhaar number right now. Please try again.',
+    }
+  }
+}

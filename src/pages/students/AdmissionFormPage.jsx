@@ -62,7 +62,7 @@ const AdmissionFormPage = () => {
             <p className="admin-kicker">Student Management</p>
             <h2>New Admission</h2>
             <p>
-              Premium intake with UIDAI Aadhaar verification, PIN auto-address, age sync, smart fee slabs and
+              Premium intake with Aadhaar checksum validation, PIN auto-address, age sync, smart fee slabs and
               document-ready student registration.
             </p>
           </div>

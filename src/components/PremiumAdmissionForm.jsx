@@ -8,9 +8,8 @@ import {
 import { lookupIndianPincode } from '../services/pincode'
 import { lookupSchools } from '../services/schools'
 import {
-  verifyAadharWithUIDI,
+  checkAadhaar,
   formatAadharNumber,
-  DEMO_AADHAAR,
   getMaskedAadhar,
 } from '../services/aadhar'
 import { createInviteKey, generateLocalInviteKey } from '../services/inviteKeys'
@@ -228,7 +227,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
       formData.dateOfBirth,
       formData.gender,
       formData.bloodGroup,
-      formData.studentAadhar && aadharVerification.studentAadhar.status === 'verified',
+      formData.studentAadhar && aadharVerification.studentAadhar.status === 'valid',
       formData.email,
       formData.phone,
       formData.currentAddress,
@@ -236,7 +235,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
       formData.state,
       formData.applyingForClass,
       formData.fatherName,
-      formData.fatherAadhar && aadharVerification.fatherAadhar.status === 'verified',
+      formData.fatherAadhar && aadharVerification.fatherAadhar.status === 'valid',
       formData.termsAccepted,
       formData.dataConsent,
     ]
@@ -253,7 +252,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     if (!formData.gender) newErrors.gender = 'Gender is required'
     if (!formData.bloodGroup) newErrors.bloodGroup = 'Blood group is required'
     if (!formData.studentAadhar.trim()) newErrors.studentAadhar = 'Student Aadhaar is required'
-    else if (aadharVerification.studentAadhar.status !== 'verified') newErrors.studentAadhar = 'Student Aadhaar must be UIDAI verified'
+    else if (aadharVerification.studentAadhar.status !== 'valid') newErrors.studentAadhar = 'Student Aadhaar checksum failed — check the number'
 
     // Contact Information
     if (!formData.email.trim()) newErrors.email = 'Email is required'
@@ -278,7 +277,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     // Parent Information
     if (!formData.fatherName.trim()) newErrors.fatherName = 'Father name is required'
     if (!formData.fatherAadhar.trim()) newErrors.fatherAadhar = 'Father Aadhaar is required'
-    else if (aadharVerification.fatherAadhar.status !== 'verified') newErrors.fatherAadhar = 'Father Aadhaar must be UIDAI verified'
+    else if (aadharVerification.fatherAadhar.status !== 'valid') newErrors.fatherAadhar = 'Father Aadhaar checksum failed — check the number'
     if (!formData.fatherPhone.trim()) newErrors.fatherPhone = 'Father phone is required'
 
     // Terms
@@ -460,53 +459,6 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     }
   }
 
-  const applyAadhaarProfile = (field, profile) => {
-    if (!profile) return
-    setFormData((prev) => {
-      if (field === 'studentAadhar') {
-        return {
-          ...prev,
-          firstName: profile.firstName || prev.firstName,
-          lastName: profile.lastName || prev.lastName,
-          gender: profile.gender || prev.gender,
-          dateOfBirth: profile.dateOfBirth || prev.dateOfBirth,
-          bloodGroup: profile.bloodGroup || prev.bloodGroup,
-          nationality: prev.nationality || 'Indian',
-        }
-      }
-      if (field === 'fatherAadhar') {
-        return {
-          ...prev,
-          fatherName: profile.fullName || prev.fatherName,
-          fatherPhone: profile.phone || prev.fatherPhone,
-          fatherEmail: profile.email || prev.fatherEmail,
-          phone: prev.phone || profile.phone || '',
-          emergencyContact: prev.emergencyContact || profile.phone || '',
-          emergencyRelation: prev.emergencyRelation || 'Father',
-        }
-      }
-      if (field === 'motherAadhar') {
-        return {
-          ...prev,
-          motherName: profile.fullName || prev.motherName,
-          motherPhone: profile.phone || prev.motherPhone,
-          motherEmail: profile.email || prev.motherEmail,
-          email: prev.email || profile.email || '',
-        }
-      }
-      if (field === 'guardianAadhar') {
-        return {
-          ...prev,
-          guardianName: profile.fullName || prev.guardianName,
-          guardianPhone: profile.phone || prev.guardianPhone,
-          guardianEmail: profile.email || prev.guardianEmail,
-          guardianRelation: profile.relation || prev.guardianRelation || 'Guardian',
-        }
-      }
-      return prev
-    })
-  }
-
   const handleAadharChange = async (field, value) => {
     const formatted = formatAadharNumber(value)
     handleInputChange(field, formatted)
@@ -520,44 +472,35 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     if (cleanValue.length < 12) {
       setAadharVerification((prev) => ({
         ...prev,
-        [field]: { status: 'typing', message: 'Enter complete 12-digit Aadhaar for UIDAI verify' },
+        [field]: { status: 'typing', message: 'Enter the complete 12-digit Aadhaar number' },
       }))
       return
     }
 
     setAadharVerification((prev) => ({
       ...prev,
-      [field]: { status: 'verifying', message: 'Verifying with UIDAI...' },
+      [field]: { status: 'checking', message: 'Checking Aadhaar checksum...' },
     }))
 
     aadharTimerRef.current[field] = setTimeout(async () => {
       try {
-        const result = await verifyAadharWithUIDI(cleanValue, field)
+        const result = await checkAadhaar(cleanValue)
 
         setAadharVerification((prev) => ({
           ...prev,
           [field]: {
-            status: result.verified ? 'verified' : 'failed',
+            status: result.valid ? 'valid' : 'failed',
             message: result.message || result.error,
             maskedAadhar: result.maskedAadhar,
-            uidaiRef: result.uidaiRef,
           },
         }))
-
-        if (result.verified) {
-          applyAadhaarProfile(field, result.profile)
-        }
       } catch {
         setAadharVerification((prev) => ({
           ...prev,
-          [field]: { status: 'error', message: 'Verification failed. Try again.' },
+          [field]: { status: 'error', message: 'Checksum check failed. Try again.' },
         }))
       }
     }, 450)
-  }
-
-  const fillDemoAadhaar = (field, demo) => {
-    handleAadharChange(field, demo.number)
   }
 
   const copyFatherToGuardian = () => {
@@ -644,31 +587,15 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     Number(formData.hostelFee || 0)
 
   const renderAadhaarExtras = (field) => (
-    <>
-      {formData[field] ? (
-        <span className={`aadhar-hint aadhar-hint--${aadharVerification[field].status}`}>
-          {aadharVerification[field].message}
-          {aadharVerification[field].status === 'verified'
-            ? ` · ${aadharVerification[field].maskedAadhar || getMaskedAadhar(formData[field])}`
-            : ''}
-          {aadharVerification[field].uidaiRef ? ` · Ref ${aadharVerification[field].uidaiRef}` : ''}
-          {aadharVerification[field].status === 'verified' ? ' ✓' : ''}
-        </span>
-      ) : null}
-      <div className="aadhaar-demo-row">
-        <span>UIDAI demo:</span>
-        {(DEMO_AADHAAR[field] || []).map((demo) => (
-          <button
-            key={demo.number}
-            type="button"
-            className="aadhaar-demo-chip"
-            onClick={() => fillDemoAadhaar(field, demo)}
-          >
-            {formatAadharNumber(demo.number)}
-          </button>
-        ))}
-      </div>
-    </>
+    formData[field] ? (
+      <span className={`aadhar-hint aadhar-hint--${aadharVerification[field].status}`}>
+        {aadharVerification[field].message}
+        {aadharVerification[field].status === 'valid'
+          ? ` · ${aadharVerification[field].maskedAadhar || getMaskedAadhar(formData[field])}`
+          : ''}
+        {aadharVerification[field].status === 'valid' ? ' ✓' : ''}
+      </span>
+    ) : null
   )
 
   return (
@@ -678,8 +605,8 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
           <p className="admin-kicker">Premium intake</p>
           <h3>Smart Admission Workspace</h3>
           <p>
-            Application <strong>{formData.applicationId}</strong> · UIDAI Aadhaar verify · PIN auto-address · fee
-            calculator
+            Application <strong>{formData.applicationId}</strong> · Aadhaar checksum check · PIN auto-address ·
+            fee calculator
           </p>
         </div>
         <div className="admission-progress-wrap">
@@ -695,8 +622,8 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
 
       <div className="admission-auto-features">
         <article>
-          <strong>UIDAI Aadhaar</strong>
-          <p>Verhoeff checksum + KYC autofill for student and parents</p>
+          <strong>Aadhaar checksum</strong>
+          <p>Verhoeff checksum catches typos in student and parent Aadhaar numbers</p>
         </article>
         <article>
           <strong>PIN Intelligence</strong>
@@ -721,7 +648,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             <div className="section-icon">👤</div>
             <div>
               <h3>Personal Information</h3>
-              <p>Student identity with UIDAI-linked Aadhaar autofill</p>
+              <p>Student identity with Aadhaar checksum validation</p>
             </div>
           </div>
           <div className="form-grid">
@@ -888,7 +815,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                   className="aadhaar-verify-btn"
                   onClick={() => handleAadharChange('studentAadhar', formData.studentAadhar)}
                 >
-                  UIDAI Verify
+                  Check checksum
                 </button>
               </div>
               {errors.studentAadhar && <span className="error-message">{errors.studentAadhar}</span>}
@@ -1219,7 +1146,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                     className="aadhaar-verify-btn"
                     onClick={() => handleAadharChange('fatherAadhar', formData.fatherAadhar)}
                   >
-                    UIDAI Verify
+                    Check checksum
                   </button>
                 </div>
                 {errors.fatherAadhar && <span className="error-message">{errors.fatherAadhar}</span>}
@@ -1289,7 +1216,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                     className="aadhaar-verify-btn"
                     onClick={() => handleAadharChange('motherAadhar', formData.motherAadhar)}
                   >
-                    UIDAI Verify
+                    Check checksum
                   </button>
                 </div>
                 {renderAadhaarExtras('motherAadhar')}
@@ -1361,7 +1288,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                     className="aadhaar-verify-btn"
                     onClick={() => handleAadharChange('guardianAadhar', formData.guardianAadhar)}
                   >
-                    UIDAI Verify
+                    Check checksum
                   </button>
                 </div>
                 {renderAadhaarExtras('guardianAadhar')}

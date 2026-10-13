@@ -33,6 +33,7 @@ import {
   savePending,
   sendAdminLoginKeyEmail,
   sendOtpEmail,
+  sendParentAttendanceEmail,
   verifyOtpHash,
 } from './emailOtp.js'
 import {
@@ -327,20 +328,20 @@ app.get('/api/schools', (req, res) => {
   })
 })
 
-app.post('/api/aadhaar/verify', (req, res) => {
+app.post('/api/aadhaar/verify', requireRoles('admin', 'super_admin', 'teacher'), (req, res) => {
   const aadhaar = String(req.body?.aadhaar || '').replace(/\D/g, '')
-  const personField = req.body?.personField || null
 
   if (!/^\d{12}$/.test(aadhaar)) {
     res.status(400).json({
-      verified: false,
+      valid: false,
       status: 'invalid',
       error: 'Enter a complete 12-digit Aadhaar number.',
     })
     return
   }
 
-  // Verhoeff check (UIDAI checksum)
+  // Verhoeff check (the UIDAI checksum). This is a typo check only —
+  // the app has no UIDAI connection, so it must never claim "verified".
   const d = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
@@ -370,25 +371,48 @@ app.post('/api/aadhaar/verify', (req, res) => {
   }
   if (c !== 0) {
     res.json({
-      verified: false,
+      valid: false,
       status: 'invalid',
-      error: 'UIDAI checksum failed. This Aadhaar number is invalid.',
-      message: 'UIDAI Verhoeff validation failed.',
+      error: 'Aadhaar checksum failed. Check the number for typos.',
     })
     return
   }
 
   res.json({
-    verified: true,
-    status: 'verified',
-    aadharNumber: aadhaar,
+    valid: true,
+    status: 'checksum-valid',
     maskedAadhar: `XXXX XXXX ${aadhaar.slice(-4)}`,
-    message: 'Aadhaar verified through UIDAI checksum service.',
-    verifiedAt: new Date().toISOString(),
-    uidaiRef: `UIDAI-${aadhaar.slice(-6)}-${Date.now().toString().slice(-4)}`,
-    personField,
-    profile: null,
+    message:
+      'Aadhaar format and checksum are valid. This is a typo check only — the app does not verify Aadhaar with UIDAI.',
   })
+})
+
+// Attendance alert to a parent/guardian, sent from the school's SMTP account.
+// Message text is built here (never taken from the request body) so the email
+// content can't be tampered with.
+app.post('/api/notify/parent', requireRoles('admin', 'super_admin', 'teacher'), async (req, res) => {
+  const to = String(req.body?.to || '').trim()
+  const studentName = String(req.body?.studentName || 'Student').slice(0, 120)
+  const status = String(req.body?.status || 'Updated').slice(0, 20)
+  const className = String(req.body?.className || '').slice(0, 40)
+  const date = String(req.body?.date || '').slice(0, 40)
+  const period = String(req.body?.period || '').slice(0, 40)
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    res.status(400).json({ sent: false, error: 'A valid parent email address is required.' })
+    return
+  }
+  if (!isSmtpConfigured()) {
+    res.status(503).json({ sent: false, error: 'Email is not configured on the server (SMTP missing).' })
+    return
+  }
+
+  const result = await sendParentAttendanceEmail({ to, studentName, status, className, date, period })
+  if (!result.sent) {
+    res.status(502).json({ sent: false, error: result.error || 'The email could not be delivered.' })
+    return
+  }
+  res.json({ sent: true, delivery: result.delivery })
 })
 
 // Students live in the shared records store (data/records/sms_students.json) —

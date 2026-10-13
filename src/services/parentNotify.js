@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../utils/constants'
+import { getApiAuthHeaders } from './apiAuth'
 
 const PARENT_DETAILS_KEY = 'sms_mod__students_parent_details'
 const ALERT_LOG_KEY = 'sms_parent_attendance_alerts'
@@ -238,21 +239,59 @@ export async function notifyParentAttendance({
 
   if (channels.email) {
     if (contact.email) {
-      let launched = false
-      if (openExternal) {
-        // Delay email slightly so SMS app launch is not cancelled on desktop
+      // Preferred path: the school's SMTP account sends the email server-side.
+      let serverError = ''
+      let serverSent = false
+      try {
+        const response = await fetch('/api/notify/parent', {
+          method: 'POST',
+          headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            to: contact.email,
+            studentName: contact.studentName || studentName,
+            status,
+            className: className || '',
+            date: date || '',
+            period: period || '',
+          }),
+        })
+        const body = await response.json().catch(() => null)
+        if (response.ok && body?.sent) {
+          serverSent = true
+        } else {
+          serverError = body?.error || `The server could not send the email (${response.status}).`
+        }
+      } catch {
+        serverError = '' // offline or unauthenticated — try the device mail app below
+      }
+
+      if (serverSent) {
+        delivery.push({ channel: 'Email', to: contact.email, ok: true, method: 'server-smtp' })
+      } else if (openExternal) {
+        // Fallback: open the user's own mail app so a real email still goes out
+        // (sent from their account, not the school's).
+        // Delay slightly so SMS app launch is not cancelled on desktop.
         await new Promise((resolve) => setTimeout(resolve, channels.sms ? 450 : 0))
         const mailUrl = `mailto:${contact.email}?subject=${encodeURIComponent(
           `Attendance update · ${contact.studentName || studentName}`,
         )}&body=${encodeURIComponent(message)}`
-        launched = launchUri(mailUrl)
+        const launched = launchUri(mailUrl)
+        delivery.push({
+          channel: 'Email',
+          to: contact.email,
+          ok: launched,
+          method: 'device-mail-app',
+          launched,
+          error: serverError || undefined,
+        })
+      } else {
+        delivery.push({
+          channel: 'Email',
+          to: contact.email,
+          ok: false,
+          error: serverError || 'Email could not be sent.',
+        })
       }
-      delivery.push({
-        channel: 'Email',
-        to: contact.email,
-        ok: true,
-        launched,
-      })
     } else {
       delivery.push({ channel: 'Email', to: '—', ok: false, error: 'No email on file' })
     }
