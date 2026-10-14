@@ -1,5 +1,99 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { getApiAuthHeaders } from '../services/apiAuth'
 import './SmartTimetable.css'
+
+// Starter period structures per grade (times + subject suggestions only).
+// Teachers and rooms are never invented — the school fills them in and saves.
+const GRADE_TEMPLATES = {
+  'pre-primary': [
+    { time: '9:00-9:30', subject: 'Morning Assembly', duration: 30 },
+    { time: '9:30-10:00', subject: 'Rhymes & Songs', duration: 30 },
+    { time: '10:00-10:30', subject: 'Story Time', duration: 30 },
+    { time: '10:30-11:00', subject: 'Snack Break', duration: 30 },
+    { time: '11:00-11:30', subject: 'Art & Craft', duration: 30 },
+    { time: '11:30-12:00', subject: 'Play Time', duration: 30 },
+    { time: '12:00-12:30', subject: 'Nap Time', duration: 30 },
+    { time: '12:30-1:00', subject: 'Lunch', duration: 30 },
+  ],
+  primary: [
+    { time: '8:00-8:40', subject: 'English', duration: 40 },
+    { time: '8:40-9:20', subject: 'Mathematics', duration: 40 },
+    { time: '9:20-10:00', subject: 'Science', duration: 40 },
+    { time: '10:00-10:20', subject: 'Short Break', duration: 20 },
+    { time: '10:20-11:00', subject: 'Social Studies', duration: 40 },
+    { time: '11:00-11:40', subject: 'Computer', duration: 40 },
+    { time: '11:40-12:20', subject: 'Physical Education', duration: 40 },
+    { time: '12:20-1:00', subject: 'Lunch', duration: 40 },
+    { time: '1:00-1:40', subject: 'Art & Music', duration: 40 },
+  ],
+  middle: [
+    { time: '7:30-8:15', subject: 'English', duration: 45 },
+    { time: '8:15-9:00', subject: 'Mathematics', duration: 45 },
+    { time: '9:00-9:45', subject: 'Science', duration: 45 },
+    { time: '9:45-10:00', subject: 'Short Break', duration: 15 },
+    { time: '10:00-10:45', subject: 'Social Studies', duration: 45 },
+    { time: '10:45-11:30', subject: 'Computer Science', duration: 45 },
+    { time: '11:30-12:15', subject: 'Second Language', duration: 45 },
+    { time: '12:15-1:00', subject: 'Lunch', duration: 45 },
+    { time: '1:00-1:45', subject: 'Physical Education', duration: 45 },
+    { time: '1:45-2:30', subject: 'Art/Music', duration: 45 },
+  ],
+  secondary: [
+    { time: '7:00-7:45', subject: 'English', duration: 45 },
+    { time: '7:45-8:30', subject: 'Mathematics', duration: 45 },
+    { time: '8:30-9:15', subject: 'Physics', duration: 45 },
+    { time: '9:15-10:00', subject: 'Chemistry', duration: 45 },
+    { time: '10:00-10:15', subject: 'Short Break', duration: 15 },
+    { time: '10:15-11:00', subject: 'Biology', duration: 45 },
+    { time: '11:00-11:45', subject: 'Computer Science', duration: 45 },
+    { time: '11:45-12:30', subject: 'History', duration: 45 },
+    { time: '12:30-1:15', subject: 'Geography', duration: 45 },
+    { time: '1:15-2:00', subject: 'Lunch', duration: 45 },
+    { time: '2:00-2:45', subject: 'Physical Education', duration: 45 },
+    { time: '2:45-3:30', subject: 'Economics/Commerce', duration: 45 },
+  ],
+  senior: [
+    { time: '6:45-7:30', subject: 'English', duration: 45 },
+    { time: '7:30-8:15', subject: 'Mathematics', duration: 45 },
+    { time: '8:15-9:00', subject: 'Physics', duration: 45 },
+    { time: '9:00-9:45', subject: 'Chemistry', duration: 45 },
+    { time: '9:45-10:00', subject: 'Short Break', duration: 15 },
+    { time: '10:00-10:45', subject: 'Biology/Computer Science', duration: 45 },
+    { time: '10:45-11:30', subject: 'History/Political Science', duration: 45 },
+    { time: '11:30-12:15', subject: 'Geography/Economics', duration: 45 },
+    { time: '12:15-1:00', subject: 'Lunch', duration: 45 },
+    { time: '1:00-1:45', subject: 'Physical Education', duration: 45 },
+    { time: '1:45-2:30', subject: 'Optional Subject', duration: 45 },
+    { time: '2:30-3:15', subject: 'Library/Study Period', duration: 45 },
+  ],
+}
+
+const SUBJECT_SUGGESTIONS = {
+  'pre-primary': ['Morning Assembly', 'Rhymes & Songs', 'Story Time', 'Art & Craft', 'Play Time', 'Nap Time', 'Snack Break', 'Lunch'],
+  primary: ['English', 'Mathematics', 'Science', 'Social Studies', 'Computer', 'Physical Education', 'Art & Music', 'Short Break', 'Lunch'],
+  middle: ['English', 'Mathematics', 'Science', 'Social Studies', 'Computer Science', 'Second Language', 'Physical Education', 'Art/Music', 'Short Break', 'Lunch'],
+  secondary: ['English', 'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'History', 'Geography', 'Physical Education', 'Economics/Commerce', 'Short Break', 'Lunch'],
+  senior: ['English', 'Mathematics', 'Physics', 'Chemistry', 'Biology/Computer Science', 'History/Political Science', 'Geography/Economics', 'Physical Education', 'Optional Subject', 'Library/Study Period', 'Short Break', 'Lunch'],
+}
+
+const weekDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+function buildTemplate(grade) {
+  const periods = (GRADE_TEMPLATES[grade] || []).map((period) => ({
+    ...period,
+    teacher: '',
+    room: '',
+  }))
+  const map = {}
+  weekDays.forEach((day) => {
+    map[day] = periods.map((period) => ({ ...period }))
+  })
+  return map
+}
+
+function timetableKey(grade, section) {
+  return `sms_timetable_${grade}_${section}`
+}
 
 const SmartTimetable = () => {
   const [selectedGrade, setSelectedGrade] = useState('')
@@ -8,193 +102,76 @@ const SmartTimetable = () => {
   const [customTimetable, setCustomTimetable] = useState([])
   const [isEditing, setIsEditing] = useState(false)
   const [activeDay, setActiveDay] = useState('monday')
-
-  const gradePresets = {
-    'pre-primary': {
-      sections: ['A', 'B', 'C'],
-      periods: [
-        { time: '9:00-9:30', subject: 'Morning Assembly', duration: 30 },
-        { time: '9:30-10:00', subject: 'Rhymes & Songs', duration: 30 },
-        { time: '10:00-10:30', subject: 'Story Time', duration: 30 },
-        { time: '10:30-11:00', subject: 'Snack Break', duration: 30 },
-        { time: '11:00-11:30', subject: 'Art & Craft', duration: 30 },
-        { time: '11:30-12:00', subject: 'Play Time', duration: 30 },
-        { time: '12:00-12:30', subject: 'Nap Time', duration: 30 },
-        { time: '12:30-1:00', subject: 'Lunch', duration: 30 },
-      ]
-    },
-    'primary': {
-      sections: ['A', 'B', 'C', 'D'],
-      periods: [
-        { time: '8:00-8:40', subject: 'English', duration: 40 },
-        { time: '8:40-9:20', subject: 'Mathematics', duration: 40 },
-        { time: '9:20-10:00', subject: 'Science', duration: 40 },
-        { time: '10:00-10:20', subject: 'Short Break', duration: 20 },
-        { time: '10:20-11:00', subject: 'Social Studies', duration: 40 },
-        { time: '11:00-11:40', subject: 'Computer', duration: 40 },
-        { time: '11:40-12:20', subject: 'Physical Education', duration: 40 },
-        { time: '12:20-1:00', subject: 'Lunch', duration: 40 },
-        { time: '1:00-1:40', subject: 'Art & Music', duration: 40 },
-      ]
-    },
-    'middle': {
-      sections: ['A', 'B', 'C', 'D', 'E'],
-      periods: [
-        { time: '7:30-8:15', subject: 'English', duration: 45 },
-        { time: '8:15-9:00', subject: 'Mathematics', duration: 45 },
-        { time: '9:00-9:45', subject: 'Science', duration: 45 },
-        { time: '9:45-10:00', subject: 'Short Break', duration: 15 },
-        { time: '10:00-10:45', subject: 'Social Studies', duration: 45 },
-        { time: '10:45-11:30', subject: 'Computer Science', duration: 45 },
-        { time: '11:30-12:15', subject: 'Second Language', duration: 45 },
-        { time: '12:15-1:00', subject: 'Lunch', duration: 45 },
-        { time: '1:00-1:45', subject: 'Physical Education', duration: 45 },
-        { time: '1:45-2:30', subject: 'Art/Music', duration: 45 },
-      ]
-    },
-    'secondary': {
-      sections: ['A', 'B', 'C', 'D', 'E', 'F'],
-      periods: [
-        { time: '7:00-7:45', subject: 'English', duration: 45 },
-        { time: '7:45-8:30', subject: 'Mathematics', duration: 45 },
-        { time: '8:30-9:15', subject: 'Physics', duration: 45 },
-        { time: '9:15-10:00', subject: 'Chemistry', duration: 45 },
-        { time: '10:00-10:15', subject: 'Short Break', duration: 15 },
-        { time: '10:15-11:00', subject: 'Biology', duration: 45 },
-        { time: '11:00-11:45', subject: 'Computer Science', duration: 45 },
-        { time: '11:45-12:30', subject: 'History', duration: 45 },
-        { time: '12:30-1:15', subject: 'Geography', duration: 45 },
-        { time: '1:15-2:00', subject: 'Lunch', duration: 45 },
-        { time: '2:00-2:45', subject: 'Physical Education', duration: 45 },
-        { time: '2:45-3:30', subject: 'Economics/Commerce', duration: 45 },
-      ]
-    },
-    'senior': {
-      sections: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
-      periods: [
-        { time: '6:45-7:30', subject: 'English', duration: 45 },
-        { time: '7:30-8:15', subject: 'Mathematics', duration: 45 },
-        { time: '8:15-9:00', subject: 'Physics', duration: 45 },
-        { time: '9:00-9:45', subject: 'Chemistry', duration: 45 },
-        { time: '9:45-10:00', subject: 'Short Break', duration: 15 },
-        { time: '10:00-10:45', subject: 'Biology/Computer Science', duration: 45 },
-        { time: '10:45-11:30', subject: 'History/Political Science', duration: 45 },
-        { time: '11:30-12:15', subject: 'Geography/Economics', duration: 45 },
-        { time: '12:15-1:00', subject: 'Lunch', duration: 45 },
-        { time: '1:00-1:45', subject: 'Physical Education', duration: 45 },
-        { time: '1:45-2:30', subject: 'Optional Subject', duration: 45 },
-        { time: '2:30-3:15', subject: 'Library/Study Period', duration: 45 },
-      ]
-    }
-  }
-
-  const weekDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-
-  const subjects = {
-    'pre-primary': ['Morning Assembly', 'Rhymes & Songs', 'Story Time', 'Art & Craft', 'Play Time', 'Nap Time', 'Snack Break', 'Lunch'],
-    'primary': ['English', 'Mathematics', 'Science', 'Social Studies', 'Computer', 'Physical Education', 'Art & Music', 'Short Break', 'Lunch'],
-    'middle': ['English', 'Mathematics', 'Science', 'Social Studies', 'Computer Science', 'Second Language', 'Physical Education', 'Art/Music', 'Short Break', 'Lunch'],
-    'secondary': ['English', 'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'History', 'Geography', 'Physical Education', 'Economics/Commerce', 'Short Break', 'Lunch'],
-    'senior': ['English', 'Mathematics', 'Physics', 'Chemistry', 'Biology/Computer Science', 'History/Political Science', 'Geography/Economics', 'Physical Education', 'Optional Subject', 'Library/Study Period', 'Short Break', 'Lunch']
-  }
+  const [statusMessage, setStatusMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [teacherOptions, setTeacherOptions] = useState([])
 
   useEffect(() => {
-    if (selectedGrade && selectedSection) {
-      generateTimetable()
+    let cancelled = false
+    fetch('/api/records/sms_mod__teachers', { headers: getApiAuthHeaders() })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => {
+        if (cancelled || !Array.isArray(rows)) return
+        setTeacherOptions(rows.map((row) => row?.title || row?.name).filter(Boolean))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedGrade || !selectedSection) return
+    let cancelled = false
+    fetch(`/api/records/${timetableKey(selectedGrade, selectedSection)}`, { headers: getApiAuthHeaders() })
+      .then((response) => (response.ok ? response.json().catch(() => null) : null))
+      .then((body) => {
+        if (cancelled) return
+        const rows = Array.isArray(body) ? body : []
+        if (rows.length) {
+          const map = {}
+          rows.forEach((dayRow) => {
+            if (dayRow?.day) map[dayRow.day] = Array.isArray(dayRow.periods) ? dayRow.periods : []
+          })
+          weekDays.forEach((day) => {
+            if (!map[day]) map[day] = []
+          })
+          setTimetableData(map)
+          setCustomTimetable(map[activeDay] || [])
+          setStatusMessage('Loaded your saved timetable for this grade and section.')
+        } else {
+          const template = buildTemplate(selectedGrade)
+          setTimetableData(template)
+          setCustomTimetable(template[activeDay] || [])
+          setStatusMessage('No saved timetable yet — this is a starter template. Set teachers and rooms, then save.')
+        }
+      })
+      .catch(() => {
+        if (cancelled) return
+        const template = buildTemplate(selectedGrade)
+        setTimetableData(template)
+        setCustomTimetable(template[activeDay] || [])
+        setStatusMessage('Could not reach the server — showing the starter template.')
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGrade, selectedSection])
-
-  const generateTimetable = () => {
-    const preset = gradePresets[selectedGrade]
-    const newTimetable = {}
-    
-    weekDays.forEach(day => {
-      newTimetable[day] = preset.periods.map(period => ({
-        ...period,
-        teacher: assignTeacher(period.subject, selectedGrade),
-        room: assignRoom(period.subject, selectedGrade)
-      }))
-    })
-    
-    setTimetableData(newTimetable)
-    setCustomTimetable(newTimetable[activeDay] || [])
-  }
-
-  const assignTeacher = (subject, grade) => {
-    const teachers = {
-      'English': ['Ms. Johnson', 'Mr. Smith', 'Ms. Davis'],
-      'Mathematics': ['Mr. Brown', 'Ms. Wilson', 'Mr. Taylor'],
-      'Science': ['Ms. Anderson', 'Mr. Thomas', 'Ms. Martinez'],
-      'Physics': ['Mr. Garcia', 'Ms. Rodriguez', 'Mr. Lee'],
-      'Chemistry': ['Ms. White', 'Mr. Harris', 'Ms. Clark'],
-      'Biology': ['Mr. Lewis', 'Ms. Walker', 'Mr. Hall'],
-      'Social Studies': ['Ms. Young', 'Mr. King', 'Ms. Wright'],
-      'History': ['Mr. Scott', 'Ms. Green', 'Mr. Baker'],
-      'Geography': ['Ms. Adams', 'Mr. Nelson', 'Ms. Carter'],
-      'Computer Science': ['Mr. Mitchell', 'Ms. Perez', 'Mr. Roberts'],
-      'Second Language': ['Ms. Turner', 'Mr. Phillips', 'Ms. Campbell'],
-      'Physical Education': ['Mr. Evans', 'Ms. Collins', 'Mr. Edwards'],
-      'Art & Music': ['Ms. Stewart', 'Mr. Sanchez', 'Ms. Morris'],
-      'Art/Music': ['Ms. Rogers', 'Mr. Reed', 'Ms. Cook'],
-      'Optional Subject': ['Mr. Morgan', 'Ms. Bailey', 'Mr. Cooper'],
-      'Library/Study Period': ['Ms. Bell', 'Mr. Murphy', 'Ms. Rivera'],
-      'Morning Assembly': ['All Teachers'],
-      'Rhymes & Songs': ['Ms. Fisher', 'Ms. Peterson'],
-      'Story Time': ['Ms. Gray', 'Ms. Ramirez'],
-      'Art & Craft': ['Ms. James', 'Ms. Reyes'],
-      'Play Time': ['Ms. Cruz', 'Ms. Hughes'],
-      'Nap Time': ['Ms. Ward', 'Ms. Torres'],
-      'Snack Break': ['Class Teacher'],
-      'Lunch': ['All Teachers'],
-      'Short Break': ['All Teachers']
-    }
-    
-    const subjectTeachers = teachers[subject] || ['TBA']
-    return subjectTeachers[Math.floor(Math.random() * subjectTeachers.length)]
-  }
-
-  const assignRoom = (subject, grade) => {
-    const rooms = {
-      'English': ['Room 101', 'Room 102', 'Room 103'],
-      'Mathematics': ['Room 201', 'Room 202', 'Room 203'],
-      'Science': ['Lab 301', 'Lab 302'],
-      'Physics': ['Physics Lab 401', 'Physics Lab 402'],
-      'Chemistry': ['Chemistry Lab 501', 'Chemistry Lab 502'],
-      'Biology': ['Biology Lab 601', 'Biology Lab 602'],
-      'Social Studies': ['Room 104', 'Room 105'],
-      'History': ['Room 106', 'Room 107'],
-      'Geography': ['Room 108', 'Room 109'],
-      'Computer Science': ['Computer Lab 701', 'Computer Lab 702'],
-      'Second Language': ['Room 110', 'Room 111'],
-      'Physical Education': ['Playground', 'Sports Hall'],
-      'Art & Music': ['Art Room 801', 'Music Room 802'],
-      'Art/Music': ['Art Room 801', 'Music Room 802'],
-      'Optional Subject': ['Room 112', 'Room 113'],
-      'Library/Study Period': ['Library', 'Study Hall'],
-      'Morning Assembly': ['Assembly Hall'],
-      'Rhymes & Songs': ['Activity Room 901'],
-      'Story Time': ['Activity Room 902'],
-      'Art & Craft': ['Art Room 903'],
-      'Play Time': ['Playground'],
-      'Nap Time': ['Nap Room 904'],
-      'Snack Break': ['Cafeteria'],
-      'Lunch': ['Cafeteria'],
-      'Short Break': ['Playground']
-    }
-    
-    const subjectRooms = rooms[subject] || ['TBA']
-    return subjectRooms[Math.floor(Math.random() * subjectRooms.length)]
-  }
 
   const handleGradeChange = (grade) => {
     setSelectedGrade(grade)
     setSelectedSection('')
     setTimetableData({})
     setCustomTimetable([])
+    setIsEditing(false)
+    setStatusMessage('')
   }
 
-  const handleSectionChange = (section) => {
-    setSelectedSection(section)
+  const handleSectionChange = (value) => {
+    const next = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 4)
+    setSelectedSection(next)
+    if (!next) setStatusMessage('')
   }
 
   const handleDayChange = (day) => {
@@ -206,29 +183,42 @@ const SmartTimetable = () => {
     const updatedTimetable = [...customTimetable]
     updatedTimetable[index] = { ...updatedTimetable[index], [field]: value }
     setCustomTimetable(updatedTimetable)
-    
+
     const updatedFullTimetable = { ...timetableData }
     updatedFullTimetable[activeDay] = updatedTimetable
     setTimetableData(updatedFullTimetable)
   }
 
-  const saveTimetable = () => {
-    // Save to localStorage or API
-    localStorage.setItem('timetable', JSON.stringify({
-      grade: selectedGrade,
-      section: selectedSection,
-      data: timetableData
-    }))
-    setIsEditing(false)
-    alert('Timetable saved successfully!')
+  const saveTimetable = async () => {
+    setIsSaving(true)
+    try {
+      const rows = weekDays
+        .filter((day) => (timetableData[day] || []).length)
+        .map((day) => ({ day, periods: timetableData[day] }))
+      const response = await fetch(`/api/records/${timetableKey(selectedGrade, selectedSection)}`, {
+        method: 'PUT',
+        headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(rows),
+      })
+      const body = await response.json().catch(() => null)
+      if (!response.ok) {
+        setStatusMessage(body?.error || 'Could not save the timetable.')
+        return
+      }
+      setStatusMessage(`Timetable saved to the system for ${selectedGrade} · Section ${selectedSection}.`)
+    } catch {
+      setStatusMessage('Could not save the timetable — the server is unreachable.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const exportTimetable = () => {
     const dataStr = JSON.stringify(timetableData, null, 2)
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr)
-    
+
     const exportFileDefaultName = `timetable_${selectedGrade}_${selectedSection}.json`
-    
+
     const linkElement = document.createElement('a')
     linkElement.setAttribute('href', dataUri)
     linkElement.setAttribute('download', exportFileDefaultName)
@@ -238,8 +228,8 @@ const SmartTimetable = () => {
   return (
     <div className="smart-timetable">
       <div className="timetable-header">
-        <h2>Smart Timetable Presets</h2>
-        <p>Pre-configured timetable structures for different grade levels (pre-primary to 12th grade)</p>
+        <h2>Timetable Builder</h2>
+        <p>Pick a grade for a starter period structure, set your own teachers and rooms, then save it to the system. Nothing is filled in for you.</p>
       </div>
 
       <div className="timetable-controls">
@@ -257,13 +247,14 @@ const SmartTimetable = () => {
 
         {selectedGrade && (
           <div className="control-group">
-            <label>Select Section:</label>
-            <select value={selectedSection} onChange={(e) => handleSectionChange(e.target.value)}>
-              <option value="">Choose Section</option>
-              {gradePresets[selectedGrade].sections.map(section => (
-                <option key={section} value={section}>Section {section}</option>
-              ))}
-            </select>
+            <label>Section (letters/numbers):</label>
+            <input
+              type="text"
+              value={selectedSection}
+              onChange={(e) => handleSectionChange(e.target.value)}
+              placeholder="e.g. A"
+              maxLength="4"
+            />
           </div>
         )}
 
@@ -287,17 +278,17 @@ const SmartTimetable = () => {
 
       {selectedGrade && selectedSection && (
         <div className="timetable-actions">
-          <button 
+          <button
             className={`btn-edit ${isEditing ? 'active' : ''}`}
             onClick={() => setIsEditing(!isEditing)}
           >
-            {isEditing ? 'Save Changes' : 'Edit Timetable'}
+            {isEditing ? 'Done Editing' : 'Edit Timetable'}
           </button>
           <button className="btn-export" onClick={exportTimetable}>
             Export Timetable
           </button>
-          <button className="btn-save" onClick={saveTimetable}>
-            Save to System
+          <button className="btn-save" onClick={saveTimetable} disabled={isSaving}>
+            {isSaving ? 'Saving…' : 'Save to System'}
           </button>
         </div>
       )}
@@ -306,13 +297,15 @@ const SmartTimetable = () => {
         <div className="timetable-container">
           <div className="timetable-info">
             <h3>
-              {selectedGrade.charAt(0).toUpperCase() + selectedGrade.slice(1)} - 
-              Section {selectedSection} - 
+              {selectedGrade.charAt(0).toUpperCase() + selectedGrade.slice(1)} -
+              Section {selectedSection} -
               {activeDay.charAt(0).toUpperCase() + activeDay.slice(1)}
             </h3>
             <p>Total Periods: {customTimetable.length}</p>
+            {statusMessage ? <p className="timetable-status">{statusMessage}</p> : null}
           </div>
 
+          {customTimetable.length ? (
           <div className="timetable-grid">
             <div className="timetable-header-row">
               <div className="period-header">Period</div>
@@ -338,7 +331,7 @@ const SmartTimetable = () => {
                     <span className="period-number">Period {index + 1}</span>
                   )}
                 </div>
-                
+
                 <div className="time-cell">
                   {isEditing ? (
                     <input
@@ -348,36 +341,50 @@ const SmartTimetable = () => {
                       className="time-input"
                     />
                   ) : (
-                    <span className="time-display">{period.time}</span>
+                    <span className="time-display">{period.time || '—'}</span>
                   )}
                 </div>
 
                 <div className="subject-cell">
                   {isEditing ? (
-                    <select
-                      value={period.subject}
-                      onChange={(e) => handlePeriodEdit(index, 'subject', e.target.value)}
-                      className="subject-select"
-                    >
-                      {subjects[selectedGrade].map(subject => (
-                        <option key={subject} value={subject}>{subject}</option>
-                      ))}
-                    </select>
+                    <>
+                      <input
+                        type="text"
+                        list={`subject-options-${selectedGrade}`}
+                        value={period.subject}
+                        onChange={(e) => handlePeriodEdit(index, 'subject', e.target.value)}
+                        className="subject-select"
+                      />
+                      <datalist id={`subject-options-${selectedGrade}`}>
+                        {(SUBJECT_SUGGESTIONS[selectedGrade] || []).map(subject => (
+                          <option key={subject} value={subject} />
+                        ))}
+                      </datalist>
+                    </>
                   ) : (
-                    <span className="subject-display">{period.subject}</span>
+                    <span className="subject-display">{period.subject || '—'}</span>
                   )}
                 </div>
 
                 <div className="teacher-cell">
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={period.teacher}
-                      onChange={(e) => handlePeriodEdit(index, 'teacher', e.target.value)}
-                      className="teacher-input"
-                    />
+                    <>
+                      <input
+                        type="text"
+                        list="timetable-teacher-options"
+                        value={period.teacher}
+                        onChange={(e) => handlePeriodEdit(index, 'teacher', e.target.value)}
+                        className="teacher-input"
+                        placeholder="Set teacher"
+                      />
+                      <datalist id="timetable-teacher-options">
+                        {teacherOptions.map(name => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
+                    </>
                   ) : (
-                    <span className="teacher-display">{period.teacher}</span>
+                    <span className="teacher-display">{period.teacher || '—'}</span>
                   )}
                 </div>
 
@@ -388,9 +395,10 @@ const SmartTimetable = () => {
                       value={period.room}
                       onChange={(e) => handlePeriodEdit(index, 'room', e.target.value)}
                       className="room-input"
+                      placeholder="Set room"
                     />
                   ) : (
-                    <span className="room-display">{period.room}</span>
+                    <span className="room-display">{period.room || '—'}</span>
                   )}
                 </div>
 
@@ -406,13 +414,13 @@ const SmartTimetable = () => {
                       step="5"
                     />
                   ) : (
-                    <span className="duration-display">{period.duration} min</span>
+                    <span className="duration-display">{period.duration ? `${period.duration} min` : '—'}</span>
                   )}
                 </div>
 
                 {isEditing && (
                   <div className="actions-cell">
-                    <button 
+                    <button
                       className="btn-delete-period"
                       onClick={() => {
                         const updatedTimetable = customTimetable.filter((_, i) => i !== index)
@@ -429,17 +437,24 @@ const SmartTimetable = () => {
               </div>
             ))}
           </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">🗓️</div>
+              <h3>No periods for {activeDay.charAt(0).toUpperCase() + activeDay.slice(1)}</h3>
+              <p>Edit the timetable and add periods, or pick another day.</p>
+            </div>
+          )}
 
           {isEditing && (
             <div className="add-period-section">
-              <button 
+              <button
                 className="btn-add-period"
                 onClick={() => {
                   const newPeriod = {
-                    time: 'New Time',
-                    subject: subjects[selectedGrade][0],
-                    teacher: 'TBA',
-                    room: 'TBA',
+                    time: '',
+                    subject: '',
+                    teacher: '',
+                    room: '',
                     duration: 40
                   }
                   const updatedTimetable = [...customTimetable, newPeriod]
@@ -460,15 +475,15 @@ const SmartTimetable = () => {
         <div className="empty-state">
           <div className="empty-icon">📅</div>
           <h3>Select Grade Level to Begin</h3>
-          <p>Choose a grade level to generate a smart timetable preset</p>
+          <p>Choose a grade level to start from its starter period template</p>
         </div>
       )}
 
       {selectedGrade && !selectedSection && (
         <div className="empty-state">
           <div className="empty-icon">🏫</div>
-          <h3>Select Section to Continue</h3>
-          <p>Choose a section to generate the timetable</p>
+          <h3>Enter a Section to Continue</h3>
+          <p>Type the section name (for example A) to load or build its timetable</p>
         </div>
       )}
     </div>
