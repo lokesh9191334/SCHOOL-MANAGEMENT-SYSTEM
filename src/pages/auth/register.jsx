@@ -149,9 +149,7 @@ const RegisterPage = () => {
         pendingToken,
       })
       if (res.pendingApproval) {
-        setOtpStep(false)
-        setInfo(res.message)
-        setError('')
+        navigate('/auth/login', { state: { info: res.message } })
         return
       }
       auth.saveSession(res)

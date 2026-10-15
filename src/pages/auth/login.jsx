@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthShell from '../../components/auth/AuthShell'
 import OtpInput from '../../components/auth/OtpInput'
 import FaceCapturePanel from '../../components/face/FaceCapturePanel'
@@ -48,12 +48,13 @@ async function reverseGeocode(lat, lon) {
 
 const LoginPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
-  const [info, setInfo] = useState('')
+  const [info, setInfo] = useState(location.state?.info || '')
   const [loading, setLoading] = useState(false)
 
   const [otpStep, setOtpStep] = useState(false)
