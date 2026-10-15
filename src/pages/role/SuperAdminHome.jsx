@@ -1,32 +1,38 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getModuleConfig } from '../../data/moduleRegistry'
-import { usePersistentState } from '../../hooks/usePersistentState'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import './RoleHome.css'
 
 const cards = [
-  { to: '/super-admin/schools', label: 'Add schools', note: 'Onboard campuses & plans', tone: 'a' },
-  { to: '/super-admin/schools/suspend', label: 'Suspend schools', note: 'Compliance & billing holds', tone: 'b' },
-  { to: '/super-admin/subscriptions', label: 'Subscriptions', note: 'MRR, seats, renewals', tone: 'c' },
-  { to: '/super-admin/plans', label: 'Manage plans', note: 'Starter · Growth · Enterprise', tone: 'a' },
-  { to: '/super-admin/plans/monitor', label: 'Monitor plans', note: 'Upgrades & churn radar', tone: 'b' },
-  { to: '/super-admin/analytics', label: 'Analytics', note: 'Platform KPIs', tone: 'c' },
-  { to: '/super-admin/tickets', label: 'Support tickets', note: 'SLA triage desk', tone: 'a' },
+  { to: '/super-admin/school-requests', label: 'Approval requests', note: 'Verify school admin accounts & assign plans', tone: 'a' },
+  { to: '/security/login-tracks', label: 'Login tracks', note: 'Device, GPS & sign-in security audit', tone: 'b' },
+  { to: '/fees/online-payments', label: 'Payment verification', note: 'Review parent UTR submissions', tone: 'c' },
+  { to: '/ai-assistant', label: 'AI assistant', note: 'Ask questions across your live data', tone: 'a' },
 ]
 
 export default function SuperAdminHome() {
-  const schoolsConfig = getModuleConfig('/super-admin/schools')
-  const subscriptionsConfig = getModuleConfig('/super-admin/subscriptions')
-  const ticketsConfig = getModuleConfig('/super-admin/tickets')
-  const [schools] = usePersistentState(schoolsConfig.storageKey, schoolsConfig.seed)
-  const [subscriptions] = usePersistentState(subscriptionsConfig.storageKey, subscriptionsConfig.seed)
-  const [tickets] = usePersistentState(ticketsConfig.storageKey, ticketsConfig.seed)
-  const liveSchools = schools.filter((school) => ['Live', 'Trial'].includes(school.status)).length
-  const recurringRevenue = useMemo(
-    () => subscriptions.reduce((total, subscription) => total + Number(String(subscription.amount || subscription.mrr || 0).replace(/[^0-9.-]/g, '')), 0),
-    [subscriptions],
-  )
-  const openTickets = tickets.filter((ticket) => !['Resolved', 'Closed'].includes(ticket.status)).length
+  const [requests, setRequests] = useState([])
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/school-requests', { headers: getApiAuthHeaders() })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled) return
+        setRequests(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLoadError('Could not load approval stats.')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const pending = requests.filter((request) => request.status === 'Pending').length
+  const approved = requests.filter((request) => request.status === 'Approved').length
 
   return (
     <div className="role-home">
@@ -34,15 +40,12 @@ export default function SuperAdminHome() {
         <div>
           <p className="admin-kicker">Super Admin</p>
           <h2>Platform command center</h2>
-          <p>Schools, subscriptions, plans, analytics and support — no campus ERP noise.</p>
+          <p>Approve school signups, audit sign-ins and verify payments — every number below reads live data.</p>
         </div>
         <div className="role-home__metrics">
-          <article><strong>{schools.length ? liveSchools : '—'}</strong><span>Live schools</span></article>
-          <article>
-            <strong>{subscriptions.length && recurringRevenue ? `₹${recurringRevenue.toLocaleString('en-IN')}` : '—'}</strong>
-            <span>MRR tracked</span>
-          </article>
-          <article><strong>{tickets.length ? openTickets : '—'}</strong><span>Open tickets</span></article>
+          <article><strong>{loadError ? '—' : pending}</strong><span>Pending approvals</span></article>
+          <article><strong>{loadError ? '—' : approved}</strong><span>Approved schools</span></article>
+          <article><strong>{loadError ? '—' : requests.length}</strong><span>Total requests</span></article>
         </div>
       </header>
 

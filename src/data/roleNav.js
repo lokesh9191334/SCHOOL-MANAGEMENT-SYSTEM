@@ -9,24 +9,11 @@ export const SUPER_ADMIN_NAV = [
   section('Platform', 'gauge', [
     item('/super-admin', 'Command Center', 'diamond', true),
   ]),
-  section('Schools', 'school', [
-    item('/super-admin/schools', 'Add / Manage Schools', 'plus'),
-    item('/super-admin/school-requests', 'Approval Requests', 'check'),
-    item('/super-admin/schools/suspend', 'Suspend Schools', 'ban'),
-  ]),
-  section('Subscriptions', 'card', [
-    item('/super-admin/subscriptions', 'View Subscriptions', 'list'),
-    item('/super-admin/plans', 'Manage Plans', 'layers'),
-    item('/super-admin/plans/monitor', 'Monitor Plans', 'target'),
-  ]),
-  section('Intelligence', 'chart', [
-    item('/super-admin/analytics', 'View Analytics', 'grid'),
+  section('Approvals', 'school', [
+    item('/super-admin/school-requests', 'School Approval Requests', 'check'),
   ]),
   section('Security', 'shield', [
     item('/security/login-tracks', 'Login Tracks', 'pin'),
-  ]),
-  section('Support', 'headset', [
-    item('/super-admin/tickets', 'Support Tickets', 'inbox'),
   ]),
   section('Finance', 'rupee', [item('/fees/online-payments', 'Payment Verification', 'check')]),
   section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
@@ -220,8 +207,8 @@ export function quickActionsForRole(role) {
   const normalized = String(role || 'admin').toLowerCase()
   if (normalized === ROLES.SUPER_ADMIN) {
     return [
-      { to: '/super-admin/schools', label: 'Add school' },
-      { to: '/super-admin/tickets', label: 'Tickets' },
+      { to: '/super-admin/school-requests', label: 'Approval requests' },
+      { to: '/security/login-tracks', label: 'Login tracks' },
     ]
   }
   if (normalized === ROLES.TEACHER) {

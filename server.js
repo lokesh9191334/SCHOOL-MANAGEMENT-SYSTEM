@@ -1491,13 +1491,13 @@ app.post('/api/auth/2fa/setup', async (req, res) => {
 })
 
 app.post('/api/auth/2fa/verify', (req, res) => {
-  const { email, token: loginToken, code, setup } = req.body
+  const { email, code, setup } = req.body
   if (!email || !code) return res.status(400).json({ error: 'Email and code required' })
   const users = readJsonFile(join('data', 'users.json'), [])
   const user = users.find((u) => u.email === email)
   if (!user) return res.status(404).json({ error: 'User not found' })
 
-  // If setup flow: verify against tempSecret then persist
+  // Setup flow: verify against tempSecret then persist
   if (setup) {
     const tempSecret = user.twoFactor && user.twoFactor.tempSecret
     if (!tempSecret) return res.status(400).json({ error: 'No 2FA setup in progress' })
@@ -1508,18 +1508,8 @@ app.post('/api/auth/2fa/verify', (req, res) => {
     return res.json({ success: true })
   }
 
-  // Legacy authenticator login verification
-  if (!loginToken) return res.status(400).json({ error: 'Login token required' })
-  if (user.loginToken !== loginToken || (user.loginTokenExpiry || 0) < Date.now()) return res.status(401).json({ error: 'Invalid or expired login token' })
-  const secret = user.twoFactor && user.twoFactor.secret
-  if (!secret) return res.status(400).json({ error: 'Authenticator 2FA not configured' })
-  const verified = speakeasy.totp.verify({ secret, encoding: 'base32', token: String(code), window: 1 })
-  if (!verified) return res.status(401).json({ error: 'Invalid code' })
-
-  const token = `demo-token-${Date.now()}`
-  const cleared = users.map((u) => (u.email === email ? { ...u, loginToken: null, loginTokenExpiry: null } : u))
-  writeJsonFile(join('data', 'users.json'), cleared)
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name } })
+  // Legacy demo-token login issuance removed — sessions are only minted by the real login endpoints
+  return res.status(400).json({ error: 'Authenticator login is not supported. Log in with email OTP.' })
 })
 
 app.post('/api/auth/2fa/disable', (req, res) => {
