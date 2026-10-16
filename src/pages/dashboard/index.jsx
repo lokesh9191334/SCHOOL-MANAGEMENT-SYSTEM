@@ -39,6 +39,53 @@ function lastMonthWindow(count) {
 
 const sumBy = (rows, pick) => rows.reduce((sum, row) => sum + pick(row), 0)
 
+const IconGraduation = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M22 10 12 5 2 10l10 5 10-5Z" />
+    <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" />
+  </svg>
+)
+
+const IconAttendance = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </svg>
+)
+
+const IconRupee = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M6 3h12" />
+    <path d="M6 8h12" />
+    <path d="M6 13l8.5 8" />
+    <path d="M6 13h3c4 0 7-2.2 7-5s-3-5-7-5" />
+  </svg>
+)
+
+const IconAlert = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M12 9v4" />
+    <path d="M12 17h.01" />
+    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+  </svg>
+)
+
+const IconClock = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+)
+
+const IconUsers = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+    <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+  </svg>
+)
+
 const DashboardPage = () => {
   const [students, setStudents] = usePersistentState(STORAGE_KEYS.students, [])
   const [admissions, setAdmissions] = usePersistentState(STORAGE_KEYS.admissions, [])
@@ -192,8 +239,19 @@ const DashboardPage = () => {
 
   const recentIntake = useMemo(() => [...admissions].slice(-4).reverse(), [admissions])
 
+  const now = new Date()
+  const hour = now.getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const todayLong = new Intl.DateTimeFormat('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(now)
+
   const kpis = [
     {
+      key: 'students',
+      icon: <IconGraduation />,
       label: 'Students on roll',
       value: students.length,
       note: newThisWeek > 0 ? `+${newThisWeek} admitted this week` : 'No new admissions this week',
@@ -202,6 +260,8 @@ const DashboardPage = () => {
       to: '/students',
     },
     {
+      key: 'attendance',
+      icon: <IconAttendance />,
       label: 'Attendance',
       value: latestRows.length ? `${latestRate}%` : '—',
       note: latestRows.length
@@ -212,6 +272,8 @@ const DashboardPage = () => {
       to: '/students/attendance',
     },
     {
+      key: 'fees',
+      icon: <IconRupee />,
       label: 'Fee collected',
       value: feeRows.length ? `₹${Math.round(paidRevenue).toLocaleString('en-IN')}` : '—',
       note: feeRows.length ? `${collectionRate}% of billed` : 'No fee records yet',
@@ -220,26 +282,30 @@ const DashboardPage = () => {
       to: '/fees/payments',
     },
     {
+      key: 'exceptions',
+      icon: <IconAlert />,
       label: 'Open exceptions',
       value: latestLate + latestAbsent + pendingFees,
       note: `${pendingFees} fee · ${latestLate + latestAbsent} attendance`,
       tone: 'amber',
       spark: null,
-      to: '/fees/payments',
+      to: '/fees/pending',
     },
   ]
 
   const priorityAlerts = [
     {
+      icon: <IconRupee />,
       title: 'Fee follow-up',
       detail:
         pendingFees > 0
           ? `${pendingFees} invoice${pendingFees === 1 ? '' : 's'} still open before cycle close.`
           : 'No open fee invoices right now.',
       tone: pendingFees > 0 ? 'warning' : 'success',
-      to: '/fees/payments',
+      to: '/fees/pending',
     },
     {
+      icon: <IconAttendance />,
       title: 'Attendance exceptions',
       detail:
         latestLate + latestAbsent > 0
@@ -249,6 +315,7 @@ const DashboardPage = () => {
       to: '/students/attendance',
     },
     {
+      icon: <IconUsers />,
       title: 'Admissions queue',
       detail:
         admissions.length > 0
@@ -264,40 +331,46 @@ const DashboardPage = () => {
       title: 'Attendance trend',
       subtitle: 'Present % vs absent count · recent recorded days',
       ready: attendanceTrend.ready,
-      emptyMessage: 'No dated attendance records yet — the chart fills as attendance is marked.',
+      emptyTitle: 'No attendance history yet',
+      emptyMessage: 'The trend builds itself as attendance is marked day by day.',
+      emptyCta: { label: 'Open attendance', to: '/students/attendance' },
       seriesA: attendanceTrend.present,
       seriesB: attendanceTrend.absent,
       labels: attendanceTrend.labels,
       labelA: 'Present %',
       labelB: 'Absent count',
-      colorA: '#2f46d8',
+      colorA: '#4157ff',
       colorB: '#e08a2c',
     },
     finance: {
       title: 'Fee collection trend',
       subtitle: 'Collected vs billed · last 6 months',
       ready: feeTrend.ready,
-      emptyMessage: 'No dated fee records yet — record payments with dates to build the trend.',
+      emptyTitle: 'No fee history yet',
+      emptyMessage: 'Record payments with dates and this trend fills up.',
+      emptyCta: { label: 'Open fee desk', to: '/fees/payments' },
       seriesA: feeTrend.collected,
       seriesB: feeTrend.billed,
       labels: feeTrend.labels,
       labelA: 'Collected (₹)',
       labelB: 'Billed (₹)',
       colorA: '#17b398',
-      colorB: '#2f46d8',
+      colorB: '#4157ff',
     },
     admissions: {
       title: 'Admissions pipeline',
       subtitle: 'Applications vs enrolled · last 6 months',
       ready: admissionTrend.ready,
-      emptyMessage: 'No dated intake records yet — new drafts and admissions build this chart.',
+      emptyTitle: 'No intake history yet',
+      emptyMessage: 'New drafts and admissions appear here month by month.',
+      emptyCta: { label: 'Launch intake', action: true },
       seriesA: admissionTrend.applications,
       seriesB: admissionTrend.enrolled,
       labels: admissionTrend.labels,
       labelA: 'Applications',
       labelB: 'Enrolled',
       colorA: '#1b2a55',
-      colorB: '#2f46d8',
+      colorB: '#4157ff',
     },
   }
 
@@ -328,14 +401,21 @@ const DashboardPage = () => {
   return (
     <div className="exec-dash">
       <Slide>
-        <header className="exec-top">
-          <div>
-            <p className="exec-kicker">Executive Dashboard</p>
-            <h2>Campus command · {firstName}</h2>
-            <p>Live enrolment, attendance, fee health and leadership priorities — with analytics.</p>
+        <header className="exec-hero">
+          <div className="exec-hero__glow" aria-hidden />
+          <div className="exec-hero__text">
+            <p className="exec-hero__kicker">
+              Executive Dashboard
+              <span className="exec-hero__date">{todayLong}</span>
+            </p>
+            <h2>{greeting}, {firstName}</h2>
+            <p>
+              Live enrolment, attendance and fee health — every number on this page is read
+              straight from your school records.
+            </p>
           </div>
           <div className="exec-top__actions">
-            <Link className="exec-btn exec-btn--solid" to="/students/add">
+            <Link className="exec-btn exec-btn--primary" to="/students/add">
               New admission
             </Link>
             <Link className="exec-btn" to="/students/attendance">
@@ -353,19 +433,20 @@ const DashboardPage = () => {
 
       <div className="exec-kpi-row">
         {kpis.map((kpi) => (
-          <Slide key={kpi.label}>
+          <Slide key={kpi.key}>
             <Link to={kpi.to} className={`exec-kpi tone-${kpi.tone}`}>
-              <div className="exec-kpi__head">
-                <span>{kpi.label}</span>
+              <div className="exec-kpi__top">
+                <span className="exec-kpi__icon">{kpi.icon}</span>
                 {kpi.spark && kpi.spark.length > 1 ? (
                   <Sparkline
                     values={kpi.spark}
                     color={
-                      kpi.tone === 'teal' ? '#17b398' : kpi.tone === 'amber' ? '#e08a2c' : kpi.tone === 'navy' ? '#1b2a55' : '#2f46d8'
+                      kpi.tone === 'teal' ? '#17b398' : kpi.tone === 'amber' ? '#e08a2c' : kpi.tone === 'navy' ? '#1b2a55' : '#4157ff'
                     }
                   />
                 ) : null}
               </div>
+              <span className="exec-kpi__label">{kpi.label}</span>
               <strong>{kpi.value}</strong>
               <p>{kpi.note}</p>
             </Link>
@@ -412,7 +493,20 @@ const DashboardPage = () => {
                 colorB={activeChart.colorB}
               />
             ) : (
-              <p className="exec-chart-empty">{activeChart.emptyMessage}</p>
+              <div className="exec-empty">
+                <IconClock />
+                <strong>{activeChart.emptyTitle}</strong>
+                <p>{activeChart.emptyMessage}</p>
+                {activeChart.emptyCta.action ? (
+                  <button type="button" className="exec-empty__cta" onClick={openAdmission}>
+                    {activeChart.emptyCta.label}
+                  </button>
+                ) : (
+                  <Link className="exec-empty__cta" to={activeChart.emptyCta.to}>
+                    {activeChart.emptyCta.label}
+                  </Link>
+                )}
+              </div>
             )}
           </section>
         </Slide>
@@ -444,7 +538,13 @@ const DashboardPage = () => {
                   </ul>
                 </div>
               ) : (
-                <p className="exec-chart-empty">No attendance recorded yet.</p>
+                <div className="exec-empty exec-empty--slim">
+                  <strong>No attendance today</strong>
+                  <p>Mark today&apos;s roll and the mix appears here.</p>
+                  <Link className="exec-empty__cta" to="/students/attendance">
+                    Mark attendance
+                  </Link>
+                </div>
               )}
             </section>
           </Slide>
@@ -462,10 +562,16 @@ const DashboardPage = () => {
                   labels={['3w ago', '2w ago', 'Last wk', 'This wk']}
                   values={weeklyFees.values}
                   color="#17b398"
-                  formatValue={(v) => `₹${Math.round(v / 1000)}k`}
+                  formatValue={(v) => (v >= 100000 ? `₹${Math.round(v / 100000)}L` : v >= 1000 ? `₹${Math.round(v / 1000)}k` : `₹${Math.round(v)}`)}
                 />
               ) : (
-                <p className="exec-chart-empty">No fee collections in the last 4 weeks.</p>
+                <div className="exec-empty exec-empty--slim">
+                  <strong>No collections in 4 weeks</strong>
+                  <p>Verified payments show up here week by week.</p>
+                  <Link className="exec-empty__cta" to="/fees/payments">
+                    Open fee desk
+                  </Link>
+                </div>
               )}
             </section>
           </Slide>
@@ -488,11 +594,17 @@ const DashboardPage = () => {
               <HorizontalBars
                 items={classStrength.map((row, i) => ({
                   ...row,
-                  color: ['#2f46d8', '#17b398', '#1b2a55', '#e08a2c', '#5c6bff', '#0d8f7a'][i % 6],
+                  color: ['#4157ff', '#17b398', '#1b2a55', '#e08a2c', '#7c8cff', '#0d8f7a'][i % 6],
                 }))}
               />
             ) : (
-              <p className="exec-chart-empty">No students on roll yet.</p>
+              <div className="exec-empty exec-empty--slim">
+                <strong>No students on roll yet</strong>
+                <p>Admit the first student and class-wise strength appears.</p>
+                <Link className="exec-empty__cta" to="/students/add">
+                  New admission
+                </Link>
+              </div>
             )}
             <div className="exec-gender">
               <div>
@@ -522,8 +634,11 @@ const DashboardPage = () => {
             <div className="exec-alert-list">
               {priorityAlerts.map((alert) => (
                 <Link key={alert.title} to={alert.to} className={`exec-alert tone-${alert.tone}`}>
-                  <strong>{alert.title}</strong>
-                  <p>{alert.detail}</p>
+                  <span className="exec-alert__icon">{alert.icon}</span>
+                  <span className="exec-alert__body">
+                    <strong>{alert.title}</strong>
+                    <p>{alert.detail}</p>
+                  </span>
                 </Link>
               ))}
             </div>
@@ -542,6 +657,7 @@ const DashboardPage = () => {
               <div className="exec-timeline">
                 {recentIntake.map((item) => (
                   <article key={item.id} className="exec-timeline__item">
+                    <span className="exec-timeline__dot" aria-hidden />
                     <time>
                       {item.createdAt
                         ? new Date(item.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
@@ -557,7 +673,13 @@ const DashboardPage = () => {
                 ))}
               </div>
             ) : (
-              <p className="exec-chart-empty">No intake drafts yet — use “Launch intake” to start one.</p>
+              <div className="exec-empty exec-empty--slim">
+                <strong>No intake drafts yet</strong>
+                <p>Start an admission from the button below.</p>
+                <button type="button" className="exec-empty__cta" onClick={openAdmission}>
+                  Launch intake
+                </button>
+              </div>
             )}
             <div className="exec-launch-row">
               <Link to="/academics/timetable">Timetable</Link>
