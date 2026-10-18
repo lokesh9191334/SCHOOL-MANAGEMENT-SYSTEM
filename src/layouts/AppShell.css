@@ -389,48 +389,95 @@
   font-size: 1rem;
 }
 
-.sms-notify {
+.sms-notify-toggle {
   position: relative;
-  padding: 10px 16px;
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: #111b33;
-  background: #eef1ff;
-  border: 1px solid rgba(65, 87, 255, 0.12);
+  display: inline-flex;
+  align-items: stretch;
+  padding: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f7f9ff, #e9edff);
+  border: 1px solid rgba(65, 87, 255, 0.16);
+  box-shadow: inset 0 1px 2px rgba(17, 27, 51, 0.08), 0 8px 20px rgba(17, 27, 51, 0.06);
+  user-select: none;
 }
 
-.sms-notify-dot {
+.sms-notify-thumb {
   position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #f35d5d;
-  box-shadow: 0 0 0 3px rgba(243, 93, 93, 0.25);
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6b7793, #55617c);
+  box-shadow: 0 4px 12px rgba(17, 27, 51, 0.24);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), background 240ms ease,
+    box-shadow 240ms ease;
 }
 
-.sms-notify.has-count .sms-notify-dot {
-  display: none;
+.sms-notify-toggle.is-on .sms-notify-thumb {
+  transform: translateX(100%);
+  background: linear-gradient(135deg, #3a4fe0, #6a7dff);
+  box-shadow: 0 6px 18px rgba(65, 87, 255, 0.42);
 }
 
-.sms-notify-count {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+.sms-notify-option {
+  position: relative;
+  z-index: 1;
+  width: 62px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  gap: 5px;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #7f8ba5;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.sms-notify-option svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.sms-notify-option:hover {
+  color: #4157ff;
+}
+
+.sms-notify-option.is-active {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(11, 18, 48, 0.28);
+}
+
+.sms-notify-option:focus-visible {
+  outline: 2px solid rgba(65, 87, 255, 0.55);
+  outline-offset: 2px;
+}
+
+.sms-notify-count {
+  position: absolute;
+  top: -9px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.64rem;
   font-weight: 800;
   color: #fff;
   background: linear-gradient(135deg, #ef4444, #f97316);
-  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.35);
+  box-shadow: 0 5px 12px rgba(239, 68, 68, 0.38);
   pointer-events: none;
 }
 
@@ -700,13 +747,26 @@
   }
 
   .sms-topbar-actions,
-  .sms-notify-label,
   .sms-user-meta {
     display: none;
   }
 
-  .sms-notify {
-    padding: 10px 12px;
+  .sms-notify-option {
+    width: 34px;
+  }
+
+  .sms-notify-option span:not(.sms-notify-count) {
+    display: none;
+  }
+
+  .sms-notify-option svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .sms-notify-count {
+    top: -8px;
+    right: -4px;
   }
 
   .sms-user {

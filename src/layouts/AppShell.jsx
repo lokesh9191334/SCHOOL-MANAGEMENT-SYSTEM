@@ -8,6 +8,7 @@ import './AppShell.css'
 import SlideProvider from '../context/SlideContext'
 
 const SIDEBAR_SCROLL_KEY = 'sms_sidebar_scroll_top'
+const NOTIFY_STORAGE_KEY = 'sms_notify_enabled'
 
 const AppShell = () => {
   const location = useLocation()
@@ -16,6 +17,13 @@ const AppShell = () => {
   const [routeVisible, setRouteVisible] = useState(true)
   const [navOpen, setNavOpen] = useState(false)
   const [securityAlerts, setSecurityAlerts] = useState(0)
+  const [notifyOn, setNotifyOn] = useState(() => {
+    try {
+      return localStorage.getItem(NOTIFY_STORAGE_KEY) !== 'off'
+    } catch {
+      return true
+    }
+  })
   const navScrollRef = useRef(null)
 
   useEffect(() => {
@@ -122,7 +130,7 @@ const AppShell = () => {
   }, [pathname])
 
   useEffect(() => {
-    if (!canSeeSecurity) return undefined
+    if (!canSeeSecurity || !notifyOn) return undefined
     let disposed = false
     const load = async () => {
       try {
@@ -140,7 +148,16 @@ const AppShell = () => {
       disposed = true
       window.clearInterval(timer)
     }
-  }, [canSeeSecurity, pathname])
+  }, [canSeeSecurity, notifyOn, pathname])
+
+  const setNotifications = (next) => {
+    setNotifyOn(next)
+    try {
+      localStorage.setItem(NOTIFY_STORAGE_KEY, next ? 'on' : 'off')
+    } catch {
+      /* ignore */
+    }
+  }
 
   const userInitial = String(user?.name || user?.email || 'U')
     .trim()
@@ -206,7 +223,7 @@ const AppShell = () => {
                         <NavGlyph name={item.icon} size={16} />
                       </span>
                       <span>{item.label}</span>
-                      {item.to === '/security/login-tracks' && securityAlerts > 0 ? (
+                      {item.to === '/security/login-tracks' && notifyOn && securityAlerts > 0 ? (
                         <span className="sms-nav-badge">{securityAlerts}</span>
                       ) : null}
                     </NavLink>
@@ -267,18 +284,62 @@ const AppShell = () => {
                 ))}
               </div>
               <div
-                className={`sms-notify ${canSeeSecurity && securityAlerts > 0 ? 'has-count' : ''}`}
-                title={
-                  canSeeSecurity && securityAlerts > 0
-                    ? `${securityAlerts} unreviewed login alerts`
-                    : 'Notifications'
-                }
+                className={`sms-notify-toggle ${notifyOn ? 'is-on' : 'is-off'}`}
+                role="group"
+                aria-label="Notification alerts"
               >
-                <span className="sms-notify-dot" />
-                <span className="sms-notify-label">Alerts</span>
-                {canSeeSecurity && securityAlerts > 0 ? (
-                  <span className="sms-notify-count">{securityAlerts}</span>
-                ) : null}
+                <span className="sms-notify-thumb" aria-hidden />
+                <button
+                  type="button"
+                  className={`sms-notify-option ${notifyOn ? '' : 'is-active'}`}
+                  aria-pressed={!notifyOn}
+                  title="Turn notifications off"
+                  onClick={() => setNotifications(false)}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5" />
+                    <path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                    <path d="m2 2 20 20" />
+                  </svg>
+                  <span>Off</span>
+                </button>
+                <button
+                  type="button"
+                  className={`sms-notify-option ${notifyOn ? 'is-active' : ''}`}
+                  aria-pressed={notifyOn}
+                  title={
+                    canSeeSecurity && securityAlerts > 0
+                      ? `${securityAlerts} unreviewed login alerts`
+                      : 'Turn notifications on'
+                  }
+                  onClick={() => setNotifications(true)}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                  </svg>
+                  <span>On</span>
+                  {notifyOn && canSeeSecurity && securityAlerts > 0 ? (
+                    <span className="sms-notify-count">{securityAlerts}</span>
+                  ) : null}
+                </button>
               </div>
               <Link to="/settings/profile" className="sms-user" aria-label="Open profile">
                 <div className="sms-user-avatar" aria-hidden>
