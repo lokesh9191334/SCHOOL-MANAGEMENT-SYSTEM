@@ -86,6 +86,13 @@ import {
   TRACK_TRAIL_MAX,
   TRACKING_KEYS_MAX,
 } from './transportLive.js'
+import {
+  buildSnapshot,
+  chunkText,
+  offlineReply,
+  snapshotToContext,
+  systemInstructions,
+} from './aiAssistant.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -2150,26 +2157,89 @@ app.put('/api/records/:key', (req, res) => {
 })
 
 // Provider-agnostic AI proxy. The API key stays on the server and is never sent to the browser.
-app.post('/api/ai/chat', async (req, res) => {
+// API Routes - AI Assistant (real-data context + provider proxy + SSE stream)
+function aiProviderConfig() {
   const apiUrl = String(process.env.AI_API_URL || '').trim()
   const apiKey = String(process.env.AI_API_KEY || '').trim()
   const model = String(process.env.AI_MODEL || 'gpt-4o-mini').trim()
-  const { prompt, role = 'admin', history = [] } = req.body || {}
+  return { apiUrl, apiKey, model, configured: Boolean(apiUrl && apiKey) }
+}
 
-  if (!prompt || String(prompt).trim().length > 2000) {
+function aiSnapshotFor(req) {
+  const role = String(req.authUser.role || 'admin').toLowerCase()
+  const now = istParts()
+  const stores = {
+    role,
+    nowIST: `${now.date} ${now.time} IST`,
+    students: readStudentRecords(),
+    admissions: readJsonFile(join('data', 'records', 'sms_admissions.json'), []),
+    attendanceRows: readJsonFile(join('data', 'records', 'sms_mod__students_attendance.json'), []),
+    payments: readJsonFile(join('data', 'payments.json'), []),
+    users: readJsonFile(USERS_FILE, []),
+    staffAttendanceToday: readStaffAttendance().filter((record) => record.date === now.date),
+    faceProfiles: readFaceProfiles(),
+    notices: readJsonFile(join('data', 'records', 'sms_mod__notices_school.json'), []),
+    exams: readJsonFile(join('data', 'exams.json'), []),
+    teachers: readJsonFile(join('data', 'records', 'sms_mod__teachers.json'), []),
+    security: summarizeTracks(),
+  }
+  if (role === 'super_admin') {
+    stores.schoolRequests = readJsonFile(join('data', 'school_requests.json'), [])
+  }
+  if (role === 'parent') {
+    const user = (Array.isArray(stores.users) ? stores.users : []).find((row) => row.id === req.authUser.id)
+    const linkedId = user?.linkedId
+    if (linkedId) {
+      const child = stores.students.find(
+        (row) => String(row.id) === String(linkedId) || String(row.applicationId) === String(linkedId),
+      ) || null
+      if (child) {
+        const keys = [child.id, child.applicationId, linkedId].filter((v) => v !== undefined && v !== null).map(String)
+        stores.child = {
+          student: child,
+          payments: stores.payments.filter((payment) => keys.includes(String(payment.studentId))),
+          attendanceRows: stores.attendanceRows.filter((row) => row.title === child.title),
+        }
+      }
+    }
+  }
+  return buildSnapshot(stores)
+}
+
+function aiHistoryMessages(history) {
+  return (Array.isArray(history) ? history : []).slice(-16).map((message) => ({
+    role: message?.from === 'user' ? 'user' : 'assistant',
+    content: String(message?.text || '').slice(0, 2000),
+  }))
+}
+
+function aiLanguage(req) {
+  const value = String(req.body?.language || '').toLowerCase()
+  return ['en', 'hi', 'hinglish'].includes(value) ? value : 'en'
+}
+
+app.get('/api/ai/status', requireRoles('admin', 'super_admin', 'teacher', 'parent'), (_req, res) => {
+  const { configured, model } = aiProviderConfig()
+  res.json({ configured, model: configured ? model : null, engine: configured ? 'provider' : 'offline-data' })
+})
+
+app.post('/api/ai/chat', async (req, res) => {
+  const { apiUrl, apiKey, model, configured } = aiProviderConfig()
+  const prompt = String(req.body?.prompt || '').trim()
+  if (!prompt || prompt.length > 2000) {
     return res.status(400).json({ error: 'Enter a question up to 2,000 characters.' })
   }
-  if (!apiUrl || !apiKey) {
-    return res.status(503).json({ error: 'AI provider is not configured. Add AI_API_URL and AI_API_KEY to .env.' })
+
+  const snapshot = aiSnapshotFor(req)
+  if (!configured) {
+    return res.json({
+      reply: offlineReply({ prompt, role: snapshot.role, snapshot, language: aiLanguage(req) }),
+      model: 'offline-data-engine',
+      offline: true,
+    })
   }
 
   try {
-    const safeHistory = Array.isArray(history)
-      ? history.slice(-8).map((message) => ({
-          role: message?.from === 'user' ? 'user' : 'assistant',
-          content: String(message?.text || '').slice(0, 2000),
-        }))
-      : []
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2178,22 +2248,120 @@ app.post('/api/ai/chat', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `You are SchoolSMS Assistant. Help a ${String(role)} user with school-management tasks. Be concise, practical, and never claim to have changed records. Ask for confirmation before destructive or financial actions.`,
+            content: systemInstructions({ role: snapshot.role, language: aiLanguage(req), context: snapshotToContext(snapshot) }),
           },
-          ...safeHistory,
-          { role: 'user', content: String(prompt).trim() },
+          ...aiHistoryMessages(req.body?.history),
+          { role: 'user', content: prompt },
         ],
         temperature: 0.3,
       }),
     })
     const body = await response.json().catch(() => ({}))
-    if (!response.ok) return res.status(502).json({ error: body?.error?.message || 'AI provider request failed.' })
+    if (!response.ok) throw new Error(body?.error?.message || 'AI provider request failed.')
     const reply = body?.choices?.[0]?.message?.content
-    if (!reply) return res.status(502).json({ error: 'AI provider returned an empty response.' })
-    res.json({ reply: String(reply), model })
+    if (!reply) throw new Error('AI provider returned an empty response.')
+    res.json({ reply: String(reply), model, offline: false })
   } catch (err) {
     console.error('AI provider error:', err?.message || err)
-    res.status(502).json({ error: 'Could not reach the AI provider.' })
+    res.json({
+      reply: `${offlineReply({ prompt, role: snapshot.role, snapshot, language: aiLanguage(req) })}\n\n_AI provider was unreachable — this answer comes straight from your live school data._`,
+      model: 'offline-data-engine',
+      offline: true,
+    })
+  }
+})
+
+app.post('/api/ai/chat/stream', async (req, res) => {
+  const prompt = String(req.body?.prompt || '').trim()
+  if (!prompt || prompt.length > 2000) {
+    return res.status(400).json({ error: 'Enter a question up to 2,000 characters.' })
+  }
+  const language = aiLanguage(req)
+  const { apiUrl, apiKey, model, configured } = aiProviderConfig()
+  const snapshot = aiSnapshotFor(req)
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  })
+  let closed = false
+  res.on('close', () => {
+    if (!res.writableEnded) closed = true
+  })
+  const send = (payload) => {
+    if (!closed) res.write(`data: ${JSON.stringify(payload)}\n\n`)
+  }
+
+  const streamOffline = async (note) => {
+    send({ type: 'meta', offline: true, model: 'offline-data-engine' })
+    const reply = `${offlineReply({ prompt, role: snapshot.role, snapshot, language })}${note ? `\n\n${note}` : ''}`
+    for (const part of chunkText(reply)) {
+      if (closed) break
+      send({ type: 'delta', text: part })
+      await new Promise((resolve) => setTimeout(resolve, 18))
+    }
+    send({ type: 'done', reply, model: 'offline-data-engine', offline: true })
+    res.end()
+  }
+
+  if (!configured) return streamOffline()
+
+  try {
+    send({ type: 'meta', offline: false, model })
+    const upstream = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        messages: [
+          {
+            role: 'system',
+            content: systemInstructions({ role: snapshot.role, language, context: snapshotToContext(snapshot) }),
+          },
+          ...aiHistoryMessages(req.body?.history),
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.3,
+      }),
+    })
+    if (!upstream.ok || !upstream.body) throw new Error(`AI provider responded with ${upstream.status}.`)
+
+    let buffer = ''
+    let full = ''
+    for await (const chunk of upstream.body) {
+      if (closed) break
+      buffer += Buffer.from(chunk).toString('utf8')
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) continue
+        const data = trimmed.slice(5).trim()
+        if (!data || data === '[DONE]') continue
+        try {
+          const parsed = JSON.parse(data)
+          const delta = parsed?.choices?.[0]?.delta?.content || ''
+          if (delta) {
+            full += delta
+            send({ type: 'delta', text: delta })
+          }
+        } catch {
+          /* partial SSE payload — wait for the next chunk */
+        }
+      }
+    }
+    if (!full.trim()) throw new Error('AI provider returned an empty response.')
+    send({ type: 'done', reply: full, model, offline: false })
+    res.end()
+  } catch (err) {
+    console.error('AI provider stream error:', err?.message || err)
+    if (!closed) {
+      send({ type: 'error', error: 'AI provider was unreachable — falling back to live school data.' })
+      await streamOffline()
+    }
   }
 })
 

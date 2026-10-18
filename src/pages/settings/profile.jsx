@@ -29,6 +29,18 @@ export default function SettingsProfilePage() {
   const [editing, setEditing] = useState(false)
   const [toast, setToast] = useState('')
   const [tab, setTab] = useState('overview')
+  const [theme, setTheme] = useState(() => (typeof document !== 'undefined' && document.documentElement.classList.contains('sms-dark') ? 'dark' : 'light'))
+
+  const applyTheme = (next) => {
+    setTheme(next)
+    try {
+      localStorage.setItem('sms_theme', next)
+    } catch {
+      /* storage blocked */
+    }
+    if (next === 'dark') document.documentElement.classList.add('sms-dark')
+    else document.documentElement.classList.remove('sms-dark')
+  }
 
   useEffect(() => {
     const current = getAuthUser()
@@ -190,6 +202,7 @@ export default function SettingsProfilePage() {
           { id: 'overview', label: 'Overview' },
           { id: 'personal', label: 'Personal info' },
           { id: 'contact', label: 'Contact & address' },
+          { id: 'appearance', label: 'Appearance' },
           { id: 'security', label: 'Security' },
         ].map((item) => (
           <button
@@ -340,6 +353,33 @@ export default function SettingsProfilePage() {
               <span>Emergency phone</span>
               <input value={form.emergencyPhone} onChange={update('emergencyPhone')} disabled={!editing} />
             </label>
+          </div>
+        ) : null}
+
+        {tab === 'appearance' ? (
+          <div className="profile-appearance">
+            <article>
+              <h3>Website theme</h3>
+              <p>Choose how the whole website looks on this device. The change applies instantly and is remembered for your next visit.</p>
+              <div className="theme-cards">
+                <button type="button" className={`theme-card ${theme === 'light' ? 'active' : ''}`} onClick={() => applyTheme('light')}>
+                  <span className="theme-card__preview theme-card__preview--light" aria-hidden>
+                    <i className="side" />
+                    <span className="rows"><i /><i /><i /></span>
+                  </span>
+                  <strong>Normal (Light)</strong>
+                  <span className="theme-card__hint">Bright white surfaces — best for daylight offices and classrooms.</span>
+                </button>
+                <button type="button" className={`theme-card ${theme === 'dark' ? 'active' : ''}`} onClick={() => applyTheme('dark')}>
+                  <span className="theme-card__preview theme-card__preview--dark" aria-hidden>
+                    <i className="side" />
+                    <span className="rows"><i /><i /><i /></span>
+                  </span>
+                  <strong>Dark</strong>
+                  <span className="theme-card__hint">Charcoal surfaces with blue accents — easy on the eyes at night.</span>
+                </button>
+              </div>
+            </article>
           </div>
         ) : null}
 
