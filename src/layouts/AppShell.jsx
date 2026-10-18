@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { homePathForRole, navForRole, quickActionsForRole, titleFromRoleNav } from '../data/roleNav'
 import { getAuthUser, roleLabel } from '../utils/session'
+import { useI18n } from '../i18n/I18nContext'
 import { fetchTracksSummary } from '../services/loginTracks'
 import NavGlyph from './NavGlyph'
 import './AppShell.css'
@@ -13,6 +14,7 @@ const NOTIFY_STORAGE_KEY = 'sms_notify_enabled'
 const AppShell = () => {
   const location = useLocation()
   const { pathname } = location
+  const { t, locale } = useI18n()
   const [user, setUser] = useState(() => getAuthUser())
   const [routeVisible, setRouteVisible] = useState(true)
   const [navOpen, setNavOpen] = useState(false)
@@ -74,7 +76,7 @@ const AppShell = () => {
 
   const today =
     typeof Intl !== 'undefined'
-      ? new Intl.DateTimeFormat(undefined, {
+      ? new Intl.DateTimeFormat(locale, {
           weekday: 'short',
           month: 'short',
           day: 'numeric',
@@ -159,6 +161,22 @@ const AppShell = () => {
     }
   }
 
+  useEffect(() => {
+    const sync = () => {
+      try {
+        setNotifyOn(localStorage.getItem(NOTIFY_STORAGE_KEY) !== 'off')
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('sms:notify-preference', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener('sms:notify-preference', sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
+
   const userInitial = String(user?.name || user?.email || 'U')
     .trim()
     .charAt(0)
@@ -180,12 +198,12 @@ const AppShell = () => {
         <button
           type="button"
           className={`sms-nav-backdrop ${navOpen ? 'is-open' : ''}`}
-          aria-label="Close navigation"
+          aria-label={t('Close navigation')}
           tabIndex={navOpen ? 0 : -1}
           onClick={() => setNavOpen(false)}
         />
 
-        <aside className={`sms-sidebar ${navOpen ? 'is-open' : ''}`} aria-label="Main navigation">
+        <aside className={`sms-sidebar ${navOpen ? 'is-open' : ''}`} aria-label={t('Main navigation')}>
           <div className="sms-sidebar-top">
             <div className="sms-brand">
               <div className="sms-brand-mark" aria-hidden>
@@ -193,23 +211,23 @@ const AppShell = () => {
               </div>
               <div>
                 <p className="sms-brand-title">SMS</p>
-                <p className="sms-brand-role">{roleLabel(role)}</p>
+                <p className="sms-brand-role">{t(roleLabel(role))}</p>
               </div>
             </div>
-            <button type="button" className="sms-nav-close" aria-label="Close menu" onClick={() => setNavOpen(false)}>
+            <button type="button" className="sms-nav-close" aria-label={t('Close menu')} onClick={() => setNavOpen(false)}>
               ✕
             </button>
           </div>
 
           <div className="sms-nav-scroll" ref={navScrollRef}>
-            <nav className="sms-nav" aria-label="Modules">
+            <nav className="sms-nav" aria-label={t('Modules')}>
               {navSections.map((section) => (
                 <div key={section.title} className="sms-nav-group">
                   <p className="sms-nav-heading">
                     <span className="sms-nav-heading-icon" aria-hidden>
                       <NavGlyph name={section.icon} size={13} />
                     </span>
-                    {section.title}
+                    {t(section.title)}
                   </p>
                   {section.items.map((item) => (
                     <NavLink
@@ -222,7 +240,7 @@ const AppShell = () => {
                       <span className="sms-nav-icon" aria-hidden>
                         <NavGlyph name={item.icon} size={16} />
                       </span>
-                      <span>{item.label}</span>
+                      <span>{t(item.label)}</span>
                       {item.to === '/security/login-tracks' && notifyOn && securityAlerts > 0 ? (
                         <span className="sms-nav-badge">{securityAlerts}</span>
                       ) : null}
@@ -241,7 +259,7 @@ const AppShell = () => {
               <button
                 type="button"
                 className="sms-menu-btn"
-                aria-label="Open navigation"
+                aria-label={t('Open navigation')}
                 aria-expanded={navOpen}
                 onClick={() => setNavOpen(true)}
               >
@@ -250,12 +268,12 @@ const AppShell = () => {
                 <span />
               </button>
               <div className="sms-topbar-titles">
-                <p className="sms-topbar-eyebrow">Today · {today}</p>
-                <h1 className="sms-topbar-title">{subtitle}</h1>
+                <p className="sms-topbar-eyebrow">{t('Today')} · {today}</p>
+                <h1 className="sms-topbar-title">{t(subtitle)}</h1>
                 <div className="sms-topbar-pills">
-                  <span className="sms-topbar-pill-item">{roleLabel(role)}</span>
-                  <span className="sms-topbar-pill-item sms-topbar-pill-item--desktop">Campus online</span>
-                  <span className="sms-topbar-pill-item sms-topbar-pill-item--desktop">Secure session</span>
+                  <span className="sms-topbar-pill-item">{t(roleLabel(role))}</span>
+                  <span className="sms-topbar-pill-item sms-topbar-pill-item--desktop">{t('Campus online')}</span>
+                  <span className="sms-topbar-pill-item sms-topbar-pill-item--desktop">{t('Secure session')}</span>
                 </div>
               </div>
             </div>
@@ -269,31 +287,31 @@ const AppShell = () => {
                   id="global-search"
                   name="globalSearch"
                   type="search"
-                  placeholder="Search records..."
-                  aria-label="Global search"
+                  placeholder={t('Search records...')}
+                  aria-label={t('Global search')}
                   autoComplete="off"
                   inputMode="search"
                 />
               </div>
               <div className="sms-topbar-actions">
-                <span className="sms-sync-badge">Live</span>
+                <span className="sms-sync-badge">{t('Live')}</span>
                 {quickActions.map((action) => (
                   <Link key={action.to} to={action.to} className="sms-topbar-link">
-                    {action.label}
+                    {t(action.label)}
                   </Link>
                 ))}
               </div>
               <div
                 className={`sms-notify-toggle ${notifyOn ? 'is-on' : 'is-off'}`}
                 role="group"
-                aria-label="Notification alerts"
+                aria-label={t('Notification alerts')}
               >
                 <span className="sms-notify-thumb" aria-hidden />
                 <button
                   type="button"
                   className={`sms-notify-option ${notifyOn ? '' : 'is-active'}`}
                   aria-pressed={!notifyOn}
-                  title="Turn notifications off"
+                  title={t('Turn notifications off')}
                   onClick={() => setNotifications(false)}
                 >
                   <svg
@@ -310,7 +328,7 @@ const AppShell = () => {
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                     <path d="m2 2 20 20" />
                   </svg>
-                  <span>Off</span>
+                  <span>{t('Off')}</span>
                 </button>
                 <button
                   type="button"
@@ -318,8 +336,8 @@ const AppShell = () => {
                   aria-pressed={notifyOn}
                   title={
                     canSeeSecurity && securityAlerts > 0
-                      ? `${securityAlerts} unreviewed login alerts`
-                      : 'Turn notifications on'
+                      ? `${securityAlerts} ${t('unreviewed login alerts')}`
+                      : t('Turn notifications on')
                   }
                   onClick={() => setNotifications(true)}
                 >
@@ -335,13 +353,13 @@ const AppShell = () => {
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
-                  <span>On</span>
+                  <span>{t('On')}</span>
                   {notifyOn && canSeeSecurity && securityAlerts > 0 ? (
                     <span className="sms-notify-count">{securityAlerts}</span>
                   ) : null}
                 </button>
               </div>
-              <Link to="/settings/profile" className="sms-user" aria-label="Open profile">
+              <Link to="/settings/profile" className="sms-user" aria-label={t('Open profile')}>
                 <div className="sms-user-avatar" aria-hidden>
                   {user?.photoUrl ? (
                     <img
@@ -354,8 +372,8 @@ const AppShell = () => {
                   )}
                 </div>
                 <div className="sms-user-meta">
-                  <p className="sms-user-name">{user?.name || user?.username || 'User'}</p>
-                  <p className="sms-user-role">{roleLabel(role)}</p>
+                  <p className="sms-user-name">{user?.name || user?.username || t('User')}</p>
+                  <p className="sms-user-role">{t(roleLabel(role))}</p>
                 </div>
               </Link>
             </div>
@@ -367,7 +385,7 @@ const AppShell = () => {
             </div>
           </main>
 
-          <nav className="sms-mobile-dock" aria-label="Quick navigation">
+          <nav className="sms-mobile-dock" aria-label={t('Quick navigation')}>
             {mobileDock.map((item) => (
               <NavLink
                 key={item.to}
@@ -378,14 +396,14 @@ const AppShell = () => {
                 <span aria-hidden>
                   <NavGlyph name={item.icon} size={18} />
                 </span>
-                <em>{item.label}</em>
+                <em>{t(item.label)}</em>
               </NavLink>
             ))}
             <button type="button" className="sms-mobile-dock__item" onClick={() => setNavOpen(true)}>
               <span aria-hidden>
                 <NavGlyph name="rows" size={18} />
               </span>
-              <em>Menu</em>
+              <em>{t('Menu')}</em>
             </button>
           </nav>
         </div>

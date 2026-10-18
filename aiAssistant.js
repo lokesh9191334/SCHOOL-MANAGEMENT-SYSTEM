@@ -6,10 +6,10 @@
 const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
 const PRESENCE_STATUSES = new Set(['Present', 'Late', 'Absent'])
 
-export function rupees(value) {
+export function rupees(value, currency = 'INR') {
   const n = Number(value)
   if (!Number.isFinite(n)) return '—'
-  return `₹${Math.round(n).toLocaleString('en-IN')}`
+  return `${currency === 'USD' ? '$' : '₹'}${Math.round(n).toLocaleString('en-IN')}`
 }
 
 function asArray(list) {
@@ -186,18 +186,18 @@ function attendanceLines(summary) {
   ]
 }
 
-function feesLines(fees) {
+function feesLines(fees, currency = 'INR') {
   if (fees.studentsWithFeePlan === 0) {
     return ['- No fee plans have been set for students yet.']
   }
   const lines = [
-    `- Fee plans set: ${fees.studentsWithFeePlan} students · Billed ${rupees(fees.billed)} · Collected ${rupees(fees.collected)} · Outstanding ${rupees(fees.outstanding)}`,
+    `- Fee plans set: ${fees.studentsWithFeePlan} students · Billed ${rupees(fees.billed, currency)} · Collected ${rupees(fees.collected, currency)} · Outstanding ${rupees(fees.outstanding, currency)}`,
   ]
   if (fees.pendingVerificationCount > 0) {
-    lines.push(`- Payments awaiting verification: ${fees.pendingVerificationCount} (${rupees(fees.pendingVerificationAmount)})`)
+    lines.push(`- Payments awaiting verification: ${fees.pendingVerificationCount} (${rupees(fees.pendingVerificationAmount, currency)})`)
   }
   if (fees.topBalances.length) {
-    lines.push(`- Highest balances: ${fees.topBalances.map((row) => `${row.name} (${row.className}) ${rupees(row.balance)}`).join('; ')}`)
+    lines.push(`- Highest balances: ${fees.topBalances.map((row) => `${row.name} (${row.className}) ${rupees(row.balance, currency)}`).join('; ')}`)
   }
   return lines
 }
@@ -215,7 +215,7 @@ function noticesLines(notices) {
   return [`- Notices published: ${notices.total}.${recent}`]
 }
 
-export function snapshotToContext(snapshot) {
+export function snapshotToContext(snapshot, currency = 'INR') {
   const school = snapshot.school
   const parts = [`LIVE SCHOOL DATA — as of ${snapshot.nowIST}. This is the ONLY source of truth for numbers. Never invent or estimate values; if a line says nothing is recorded yet, state that plainly.`]
 
@@ -229,9 +229,9 @@ export function snapshotToContext(snapshot) {
       if (child.fees.totalFee === null) {
         parts.push('- No fee plan has been set for this child yet.')
       } else {
-        parts.push(`- Total fee ${rupees(child.fees.totalFee)} · Paid ${rupees(child.fees.paid)} · Balance ${rupees(child.fees.balance)} · Awaiting verification ${rupees(child.fees.pending)}`)
+        parts.push(`- Total fee ${rupees(child.fees.totalFee, currency)} · Paid ${rupees(child.fees.paid, currency)} · Balance ${rupees(child.fees.balance, currency)} · Awaiting verification ${rupees(child.fees.pending, currency)}`)
         if (child.fees.lastPayment) {
-          parts.push(`- Last verified payment: ${rupees(child.fees.lastPayment.amount)} on ${child.fees.lastPayment.createdAt}`)
+          parts.push(`- Last verified payment: ${rupees(child.fees.lastPayment.amount, currency)} on ${child.fees.lastPayment.createdAt}`)
         }
       }
       parts.push('## Child attendance')
@@ -257,7 +257,7 @@ export function snapshotToContext(snapshot) {
     parts.push('## Student attendance')
     parts.push(...attendanceLines(school.attendance))
     parts.push('## Fees')
-    parts.push(...feesLines(school.fees))
+    parts.push(...feesLines(school.fees, currency))
     parts.push('## Staff')
     parts.push(`- Staff accounts: ${school.staff.staffAccounts} · Face enrolled: ${school.staff.faceEnrolled} · Checked in today: ${school.staff.checkedInToday}`)
     parts.push(`- Teacher records: ${school.teachers}`)
@@ -323,11 +323,11 @@ function nextStepsFor(role, kind) {
   return table[kind] || table.default
 }
 
-function offlineSection(snapshot, kind) {
+function offlineSection(snapshot, kind, currency = 'INR') {
   const school = snapshot.school
   switch (kind) {
     case 'fees':
-      return ['### Fees', ...feesLines(school.fees)]
+      return ['### Fees', ...feesLines(school.fees, currency)]
     case 'attendance':
       return ['### Attendance', ...attendanceLines(school.attendance)]
     case 'students':
@@ -511,11 +511,11 @@ function localizeReply(markdown, language) {
 
 /** Offline answers come ONLY from the live snapshot — the same data the
     connected model would see — so every number stays real. */
-export function offlineReply({ prompt, role, snapshot, language = 'en' }) {
-  return localizeReply(offlineReplyEnglish({ prompt, role, snapshot }), language)
+export function offlineReply({ prompt, role, snapshot, language = 'en', currency = 'INR' }) {
+  return localizeReply(offlineReplyEnglish({ prompt, role, snapshot, currency }), language)
 }
 
-function offlineReplyEnglish({ prompt, role, snapshot }) {
+function offlineReplyEnglish({ prompt, role, snapshot, currency = 'INR' }) {
   const intent = detectIntent(prompt)
 
   if (role === 'parent') {
@@ -532,9 +532,9 @@ function offlineReplyEnglish({ prompt, role, snapshot }) {
         `### Fees for ${child.name}`,
         child.fees.totalFee === null
           ? '- No fee plan has been set for this child yet — the school admin sets it under Students → Fee setup.'
-          : `- Total fee **${rupees(child.fees.totalFee)}** · Paid **${rupees(child.fees.paid)}** · Balance **${rupees(child.fees.balance)}**`,
-        ...(child.fees.pending > 0 ? [`- Awaiting verification: **${rupees(child.fees.pending)}**`] : []),
-        ...(child.fees.lastPayment ? [`- Last verified payment: **${rupees(child.fees.lastPayment.amount)}** on ${child.fees.lastPayment.createdAt}`] : []),
+          : `- Total fee **${rupees(child.fees.totalFee, currency)}** · Paid **${rupees(child.fees.paid, currency)}** · Balance **${rupees(child.fees.balance, currency)}**`,
+        ...(child.fees.pending > 0 ? [`- Awaiting verification: **${rupees(child.fees.pending, currency)}**`] : []),
+        ...(child.fees.lastPayment ? [`- Last verified payment: **${rupees(child.fees.lastPayment.amount, currency)}** on ${child.fees.lastPayment.createdAt}`] : []),
         '',
         nextStepsFor('parent', 'fees'),
       ].join('\n')
@@ -556,7 +556,7 @@ function offlineReplyEnglish({ prompt, role, snapshot }) {
       '**Fees**',
       child.fees.totalFee === null
         ? '- No fee plan set yet.'
-        : `- Total **${rupees(child.fees.totalFee)}** · Paid **${rupees(child.fees.paid)}** · Balance **${rupees(child.fees.balance)}**`,
+        : `- Total **${rupees(child.fees.totalFee, currency)}** · Paid **${rupees(child.fees.paid, currency)}** · Balance **${rupees(child.fees.balance, currency)}**`,
       '**Attendance**',
       ...attendanceLines(child.attendance),
       '**School notices**',
@@ -580,7 +580,7 @@ function offlineReplyEnglish({ prompt, role, snapshot }) {
   }
 
   if (intent !== 'summary') {
-    return [...offlineSection(snapshot, intent), '', nextStepsFor(role, intent)].join('\n')
+    return [...offlineSection(snapshot, intent, currency), '', nextStepsFor(role, intent)].join('\n')
   }
 
   const school = snapshot.school
@@ -591,7 +591,7 @@ function offlineReplyEnglish({ prompt, role, snapshot }) {
     '**Attendance**',
     ...attendanceLines(school.attendance),
     '**Fees**',
-    ...feesLines(school.fees),
+    ...feesLines(school.fees, currency),
     '**Staff**',
     `- Staff accounts: **${school.staff.staffAccounts}** · Face enrolled: **${school.staff.faceEnrolled}** · Checked in today: **${school.staff.checkedInToday}**`,
     '**Security**',

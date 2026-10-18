@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { currencySymbol } from '../../utils/currency'
 
 /** Lightweight SVG charts for Executive Dashboard — no external chart lib */
 
@@ -170,7 +171,7 @@ export function BarClusterChart({
             <strong>{formatValue(value)}</strong>
             <div
               className="exec-bars__track"
-              title={`${label}: ₹${Math.round(value).toLocaleString('en-IN')}`}
+              title={`${label}: ${currencySymbol()}${Math.round(value).toLocaleString('en-IN')}`}
             >
               <div className="exec-bars__fill" style={{ height: `${pct}%`, background: `linear-gradient(180deg, ${color}, ${color}b3)` }} />
             </div>

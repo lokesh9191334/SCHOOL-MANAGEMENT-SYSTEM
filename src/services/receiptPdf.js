@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf'
+import { currentCurrency } from '../utils/currency'
 
 /* Compact A5 fee receipt. The Mukta font covers the ₹ glyph, which the
    built-in Helvetica cannot — it is fetched lazily on first download and the
-   amount falls back to "Rs." if the font is unavailable. */
+   amount falls back to "Rs." if the font is unavailable. The $ symbol always
+   uses the base font. */
 
 const FONT_URL = '/fonts/Mukta-Regular.ttf'
 const FONT_FILE = 'Mukta-Regular.ttf'
@@ -49,9 +51,9 @@ function under1000(value) {
   return under100(rest)
 }
 
-export function amountInWords(amount) {
+export function amountInWords(amount, currencyWord = 'Rupees') {
   const value = Math.floor(Math.abs(Number(amount) || 0))
-  if (value <= 0) return 'Zero Rupees Only'
+  if (value <= 0) return `Zero ${currencyWord} Only`
   const crore = Math.floor(value / 10000000)
   const lakh = Math.floor((value % 10000000) / 100000)
   const thousand = Math.floor((value % 100000) / 1000)
@@ -61,7 +63,7 @@ export function amountInWords(amount) {
   if (lakh) parts.push(`${under100(lakh)} Lakh`)
   if (thousand) parts.push(`${under100(thousand)} Thousand`)
   if (rest) parts.push(under1000(rest))
-  return `${parts.join(' ')} Rupees Only`
+  return `${parts.join(' ')} ${currencyWord} Only`
 }
 
 function formatIndian(amount) {
@@ -82,7 +84,8 @@ export async function buildReceipt(payment, config = {}) {
     doc.addFont(FONT_FILE, FONT_FAMILY, 'normal')
     doc.setFont(FONT_FAMILY)
   }
-  const rupee = fontBase64 ? '\u20B9' : 'Rs.'
+  const currency = currentCurrency()
+  const rupee = currency.value === 'USD' ? '$' : fontBase64 ? '\u20B9' : 'Rs.'
   const pageWidth = 148
   const left = 12
   const right = pageWidth - 12
@@ -137,7 +140,7 @@ export async function buildReceipt(payment, config = {}) {
   doc.text(`${rupee}${formatIndian(payment.amount)}`, pageWidth / 2, y + 15, { align: 'center' })
   doc.setFontSize(7.5)
   doc.setTextColor(100, 116, 139)
-  doc.text(doc.splitTextToSize(amountInWords(payment.amount), right - left - 8)[0], pageWidth / 2, y + 20.5, { align: 'center' })
+  doc.text(doc.splitTextToSize(amountInWords(payment.amount, currency.word), right - left - 8)[0], pageWidth / 2, y + 20.5, { align: 'center' })
 
   y = 126
   const pairs = [

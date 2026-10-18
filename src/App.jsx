@@ -24,6 +24,7 @@ import TimetablePage from './pages/academics/timetable'
 import DatesheetPage from './pages/academics/datesheet'
 import AcademicDocumentsPage from './pages/academics/documents'
 import SettingsProfilePage from './pages/settings/profile'
+import SettingsPage from './pages/settings'
 import LogoutPage from './pages/settings/logout'
 import NotFoundPage from './pages/notFound'
 import LoginTracksPage from './pages/security/LoginTracks'
@@ -51,8 +52,13 @@ const SPECIAL_PATHS = new Set([
   '/academics/documents',
   '/parent/academics',
   '/super-admin/academics',
+  '/settings',
   '/settings/profile',
   '/settings/logout',
+  '/settings/security',
+  '/settings/password',
+  '/settings/theme',
+  '/settings/language',
   '/super-admin',
   '/teacher',
   '/parent',
@@ -118,8 +124,13 @@ function App() {
             <Route path="/parent/academics" element={<AcademicDocumentsPage />} />
             <Route path="/super-admin/academics" element={<AcademicDocumentsPage />} />
 
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/profile" element={<SettingsProfilePage />} />
             <Route path="/settings/logout" element={<LogoutPage />} />
+            <Route path="/settings/security" element={<Navigate replace to="/settings" />} />
+            <Route path="/settings/password" element={<Navigate replace to="/settings" />} />
+            <Route path="/settings/theme" element={<Navigate replace to="/settings" />} />
+            <Route path="/settings/language" element={<Navigate replace to="/settings" />} />
 
             <Route path="/security/login-tracks" element={<LoginTracksPage />} />
             <Route path="/attendance/staff-face" element={<StaffFaceAttendancePage />} />

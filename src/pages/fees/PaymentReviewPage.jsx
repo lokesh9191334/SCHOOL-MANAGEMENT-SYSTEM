@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getApiAuthHeaders } from '../../services/apiAuth'
+import { currencySymbol } from '../../utils/currency'
 import './PaymentReviewPage.css'
 
 function formatRupees(value) {
   if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—'
-  return `₹${Number(value).toLocaleString('en-IN')}`
+  return `${currencySymbol()}${Number(value).toLocaleString('en-IN')}`
 }
 
 export default function PaymentReviewPage() {
@@ -108,7 +109,7 @@ export default function PaymentReviewPage() {
       {feeMessage ? <p className="payment-review-message">{feeMessage}</p> : null}
       <div className="fee-setup-table">
         <table>
-          <thead><tr><th>Student</th><th>Class / Roll</th><th>Total fee (₹)</th><th>Paid</th><th>Pending</th><th>Balance</th><th></th></tr></thead>
+          <thead><tr><th>Student</th><th>Class / Roll</th><th>Total fee ({currencySymbol()})</th><th>Paid</th><th>Pending</th><th>Balance</th><th></th></tr></thead>
           <tbody>
             {visibleStudents.map((student) => {
               const entry = summaryFor(student)
@@ -133,7 +134,7 @@ export default function PaymentReviewPage() {
     <article className="payment-review-table-card">
       <p className="admin-kicker">UTR submissions</p>
       {message ? <p className="payment-review-message">{message}</p> : null}
-      <div className="payment-review-table"><table><thead><tr><th>Receipt</th><th>Student</th><th>Parent</th><th>Amount</th><th>UTR / Reference</th><th>Status</th><th>Actions</th></tr></thead><tbody>{payments.map((payment) => <tr key={payment.id}><td><strong>{payment.receiptNo || payment.id}</strong><small>{new Date(payment.createdAt).toLocaleString()}</small></td><td>{payment.studentName || '—'}<small>{payment.className || '—'} · Roll {payment.rollNo || '—'}</small></td><td>{payment.parentName || '—'}</td><td>₹{Number(payment.amount).toLocaleString('en-IN')}</td><td><code>{payment.reference}</code></td><td><span className={`payment-status payment-status--${String(payment.status).toLowerCase().replaceAll(' ', '-')}`}>{payment.status}</span></td><td><div className="payment-review-actions"><button type="button" onClick={() => review(payment, 'Verified')} disabled={payment.status === 'Verified'}>Verify</button><button type="button" onClick={() => review(payment, 'Rejected')} disabled={payment.status === 'Rejected'}>Reject</button></div></td></tr>)}</tbody></table>{!payments.length && !message ? <p className="payment-review-empty">No payment submissions yet.</p> : null}</div>
+      <div className="payment-review-table"><table><thead><tr><th>Receipt</th><th>Student</th><th>Parent</th><th>Amount</th><th>UTR / Reference</th><th>Status</th><th>Actions</th></tr></thead><tbody>{payments.map((payment) => <tr key={payment.id}><td><strong>{payment.receiptNo || payment.id}</strong><small>{new Date(payment.createdAt).toLocaleString()}</small></td><td>{payment.studentName || '—'}<small>{payment.className || '—'} · Roll {payment.rollNo || '—'}</small></td><td>{payment.parentName || '—'}</td><td>{currencySymbol()}{Number(payment.amount).toLocaleString('en-IN')}</td><td><code>{payment.reference}</code></td><td><span className={`payment-status payment-status--${String(payment.status).toLowerCase().replaceAll(' ', '-')}`}>{payment.status}</span></td><td><div className="payment-review-actions"><button type="button" onClick={() => review(payment, 'Verified')} disabled={payment.status === 'Verified'}>Verify</button><button type="button" onClick={() => review(payment, 'Rejected')} disabled={payment.status === 'Rejected'}>Reject</button></div></td></tr>)}</tbody></table>{!payments.length && !message ? <p className="payment-review-empty">No payment submissions yet.</p> : null}</div>
     </article>
   </section>
 }

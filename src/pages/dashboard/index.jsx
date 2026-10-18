@@ -6,6 +6,7 @@ import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { buildAdmissionRecord, buildStudentRecord } from '../../utils/recordBuilders'
 import { getAuthUser } from '../../utils/session'
+import { currencySymbol } from '../../utils/currency'
 import { AreaTrendChart, BarClusterChart, DonutChart, HorizontalBars, Sparkline } from './ExecCharts'
 import './ExecutiveDashboard.css'
 
@@ -275,7 +276,7 @@ const DashboardPage = () => {
       key: 'fees',
       icon: <IconRupee />,
       label: 'Fee collected',
-      value: feeRows.length ? `₹${Math.round(paidRevenue).toLocaleString('en-IN')}` : '—',
+      value: feeRows.length ? `${currencySymbol()}${Math.round(paidRevenue).toLocaleString('en-IN')}` : '—',
       note: feeRows.length ? `${collectionRate}% of billed` : 'No fee records yet',
       tone: 'navy',
       spark: feeTrend.ready ? feeTrend.collected : null,
@@ -352,8 +353,8 @@ const DashboardPage = () => {
       seriesA: feeTrend.collected,
       seriesB: feeTrend.billed,
       labels: feeTrend.labels,
-      labelA: 'Collected (₹)',
-      labelB: 'Billed (₹)',
+      labelA: `Collected (${currencySymbol()})`,
+      labelB: `Billed (${currencySymbol()})`,
       colorA: '#17b398',
       colorB: '#4157ff',
     },
@@ -562,7 +563,7 @@ const DashboardPage = () => {
                   labels={['3w ago', '2w ago', 'Last wk', 'This wk']}
                   values={weeklyFees.values}
                   color="#17b398"
-                  formatValue={(v) => (v >= 100000 ? `₹${Math.round(v / 100000)}L` : v >= 1000 ? `₹${Math.round(v / 1000)}k` : `₹${Math.round(v)}`)}
+                  formatValue={(v) => (v >= 100000 ? `${currencySymbol()}${Math.round(v / 100000)}L` : v >= 1000 ? `${currencySymbol()}${Math.round(v / 1000)}k` : `${currencySymbol()}${Math.round(v)}`)}
                 />
               ) : (
                 <div className="exec-empty exec-empty--slim">

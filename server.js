@@ -2487,6 +2487,10 @@ function aiLanguage(req) {
   return ['en', 'hi', 'hinglish'].includes(value) ? value : 'en'
 }
 
+function aiCurrency(req) {
+  return String(req.body?.currency || '').toUpperCase() === 'USD' ? 'USD' : 'INR'
+}
+
 app.get('/api/ai/status', requireRoles('admin', 'super_admin', 'teacher', 'parent'), (_req, res) => {
   const { configured, model } = aiProviderConfig()
   res.json({ configured, model: configured ? model : null, engine: configured ? 'provider' : 'offline-data' })
@@ -2500,9 +2504,10 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 
   const snapshot = aiSnapshotFor(req)
+  const currency = aiCurrency(req)
   if (!configured) {
     return res.json({
-      reply: offlineReply({ prompt, role: snapshot.role, snapshot, language: aiLanguage(req) }),
+      reply: offlineReply({ prompt, role: snapshot.role, snapshot, language: aiLanguage(req), currency }),
       model: 'offline-data-engine',
       offline: true,
     })
@@ -2517,7 +2522,7 @@ app.post('/api/ai/chat', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: systemInstructions({ role: snapshot.role, language: aiLanguage(req), context: snapshotToContext(snapshot) }),
+            content: systemInstructions({ role: snapshot.role, language: aiLanguage(req), context: snapshotToContext(snapshot, currency) }),
           },
           ...aiHistoryMessages(req.body?.history),
           { role: 'user', content: prompt },
@@ -2533,7 +2538,7 @@ app.post('/api/ai/chat', async (req, res) => {
   } catch (err) {
     console.error('AI provider error:', err?.message || err)
     res.json({
-      reply: `${offlineReply({ prompt, role: snapshot.role, snapshot, language: aiLanguage(req) })}\n\n_AI provider was unreachable — this answer comes straight from your live school data._`,
+      reply: `${offlineReply({ prompt, role: snapshot.role, snapshot, language: aiLanguage(req), currency })}\n\n_AI provider was unreachable — this answer comes straight from your live school data._`,
       model: 'offline-data-engine',
       offline: true,
     })
@@ -2546,6 +2551,7 @@ app.post('/api/ai/chat/stream', async (req, res) => {
     return res.status(400).json({ error: 'Enter a question up to 2,000 characters.' })
   }
   const language = aiLanguage(req)
+  const currency = aiCurrency(req)
   const { apiUrl, apiKey, model, configured } = aiProviderConfig()
   const snapshot = aiSnapshotFor(req)
 
@@ -2565,7 +2571,7 @@ app.post('/api/ai/chat/stream', async (req, res) => {
 
   const streamOffline = async (note) => {
     send({ type: 'meta', offline: true, model: 'offline-data-engine' })
-    const reply = `${offlineReply({ prompt, role: snapshot.role, snapshot, language })}${note ? `\n\n${note}` : ''}`
+    const reply = `${offlineReply({ prompt, role: snapshot.role, snapshot, language, currency })}${note ? `\n\n${note}` : ''}`
     for (const part of chunkText(reply)) {
       if (closed) break
       send({ type: 'delta', text: part })
@@ -2588,7 +2594,7 @@ app.post('/api/ai/chat/stream', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: systemInstructions({ role: snapshot.role, language, context: snapshotToContext(snapshot) }),
+            content: systemInstructions({ role: snapshot.role, language, context: snapshotToContext(snapshot, currency) }),
           },
           ...aiHistoryMessages(req.body?.history),
           { role: 'user', content: prompt },

@@ -20,7 +20,8 @@ export const SUPER_ADMIN_NAV = [
   ]),
   section('Finance', 'rupee', [item('/fees/online-payments', 'Payment Verification', 'check')]),
   section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
-  section('Account', 'gear', [
+  section('Settings', 'gear', [
+    item('/settings', 'Settings', 'gear', true),
     item('/settings/profile', 'Profile', 'user'),
     item('/settings/logout', 'Logout', 'logout'),
   ]),
@@ -95,6 +96,7 @@ export const ADMIN_NAV = [
     item('/security/login-tracks', 'Login Tracks', 'pin'),
   ]),
   section('Settings', 'gear', [
+    item('/settings', 'Settings', 'gear', true),
     item('/settings/profile', 'Profile', 'user'),
     item('/settings/logout', 'Logout', 'logout'),
   ]),
@@ -133,7 +135,8 @@ export const TEACHER_NAV = [
     item('/teacher/exams/report-cards', 'Premium Report Cards', 'idcard'),
   ]),
   section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
-  section('Account', 'gear', [
+  section('Settings', 'gear', [
+    item('/settings', 'Settings', 'gear', true),
     item('/settings/profile', 'Profile', 'user'),
     item('/settings/logout', 'Logout', 'logout'),
   ]),
@@ -170,7 +173,8 @@ export const PARENT_NAV = [
     item('/parent/transport/allocation', 'Student Allocation', 'swap'),
   ]),
   section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
-  section('Account', 'gear', [
+  section('Settings', 'gear', [
+    item('/settings', 'Settings', 'gear', true),
     item('/settings/profile', 'Profile', 'user'),
     item('/settings/logout', 'Logout', 'logout'),
   ]),

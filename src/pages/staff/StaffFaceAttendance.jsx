@@ -80,7 +80,13 @@ const StaffFaceAttendance = () => {
   const role = String(user?.role || '').toLowerCase()
   const isAdmin = role === 'admin' || role === 'super_admin'
 
-  const [tab, setTab] = useState('scan')
+  const [tab, setTab] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('tab') === 'myface' ? 'myface' : 'scan'
+    } catch {
+      return 'scan'
+    }
+  })
   const [clock, setClock] = useState(() => istClock())
   const [isFull, setIsFull] = useState(false)
 

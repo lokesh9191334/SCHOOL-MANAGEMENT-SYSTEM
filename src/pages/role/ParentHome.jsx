@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { getAuthUser } from '../../utils/session'
+import { currencySymbol } from '../../utils/currency'
 import { getApiAuthHeaders } from '../../services/apiAuth'
 import './RoleHome.css'
 
@@ -44,7 +45,7 @@ export default function ParentHome() {
   const feeDueText = feeEntry === undefined
     ? '…'
     : feeEntry && feeEntry.balance !== null
-      ? `₹${Math.round(feeEntry.balance).toLocaleString('en-IN')}`
+      ? `${currencySymbol()}${Math.round(feeEntry.balance).toLocaleString('en-IN')}`
       : '—'
 
   return (

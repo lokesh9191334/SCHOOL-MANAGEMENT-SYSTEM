@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { currencySymbol } from '../../utils/currency'
 import './StudentProfilePremium.css'
 
 const maskId = (value) => {
@@ -11,7 +12,7 @@ const maskId = (value) => {
 const inr = (value) => {
   const amount = Number(value)
   if (!Number.isFinite(amount) || amount <= 0) return ''
-  return `₹${amount.toLocaleString('en-IN')}`
+  return `${currencySymbol()}${amount.toLocaleString('en-IN')}`
 }
 
 const normalize = (raw) => {

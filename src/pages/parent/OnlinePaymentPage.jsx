@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { getAuthUser } from '../../utils/session'
 import { getApiAuthHeaders } from '../../services/apiAuth'
 import { downloadPaymentReceipt } from '../../services/receiptPdf'
+import { currencySymbol } from '../../utils/currency'
 import './OnlinePaymentPage.css'
 
 const defaultSettings = { holderName: '', upiId: '', mobile: '', bankName: '', bankAccount: '', bankIfsc: '' }
@@ -16,7 +17,7 @@ const STATUS_CLASS = {
 
 function formatRupees(value) {
   if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—'
-  return `₹${Number(value).toLocaleString('en-IN')}`
+  return `${currencySymbol()}${Number(value).toLocaleString('en-IN')}`
 }
 
 function formatDateTime(value) {
@@ -233,7 +234,7 @@ export default function ParentOnlinePaymentPage() {
             {settings.mobile ? <span>Mobile: {settings.mobile}</span> : null}
             {settings.bankName || settings.bankAccount ? <span>Bank: {[settings.bankName, settings.bankAccount ? `A/C ${settings.bankAccount}` : '', settings.bankIfsc ? `IFSC ${settings.bankIfsc}` : ''].filter(Boolean).join(' · ')}</span> : null}
           </div>
-          <label className="form-field"><span>Amount (₹)</span><input type="number" min="1" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
+          <label className="form-field"><span>Amount ({currencySymbol()})</span><input type="number" min="1" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
           <button type="button" className="header-action primary" onClick={startQr}>Show QR for 2 minutes</button>
           {qr ? <div className="payment-qr"><img src={secondsLeft ? qr : ''} alt="UPI payment QR" />{secondsLeft ? <strong>Expires in {secondsLeft}s</strong> : <strong>QR expired. Generate a new QR.</strong>}</div> : null}
         </article>
@@ -260,7 +261,7 @@ export default function ParentOnlinePaymentPage() {
               {history.map((payment) => <tr key={payment.id}>
                 <td><strong>{payment.receiptNo || payment.id}</strong></td>
                 <td>{formatDateTime(payment.createdAt)}</td>
-                <td>₹{Number(payment.amount || 0).toLocaleString('en-IN')}</td>
+                <td>{currencySymbol()}{Number(payment.amount || 0).toLocaleString('en-IN')}</td>
                 <td>{payment.reference || '—'}</td>
                 <td>{payment.method || 'UPI'}</td>
                 <td><span className={`payment-status ${STATUS_CLASS[payment.status] || ''}`}>{payment.status || '—'}</span></td>

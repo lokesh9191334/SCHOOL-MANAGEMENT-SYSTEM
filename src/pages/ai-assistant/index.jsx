@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { getAuthUser, roleLabel } from '../../utils/session'
 import { getApiAuthHeaders } from '../../services/apiAuth'
+import { getCurrency } from '../../utils/currency'
 import './styles.css'
 
 const LANGUAGES = [
@@ -197,7 +198,7 @@ const AIAssistantPage = () => {
       const response = await fetch('/api/ai/chat/stream', {
         method: 'POST',
         headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ prompt, role, history, language }),
+        body: JSON.stringify({ prompt, role, history, language, currency: getCurrency() }),
       })
       if (!response.ok || !response.body) throw new Error('stream unavailable')
       const reader = response.body.getReader()
@@ -224,7 +225,7 @@ const AIAssistantPage = () => {
         const response = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ prompt, role, history, language }),
+          body: JSON.stringify({ prompt, role, history, language, currency: getCurrency() }),
         })
         const body = await response.json().catch(() => null)
         if (!response.ok || !body?.reply) throw new Error(body?.error || 'AI service unavailable')

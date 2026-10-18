@@ -13,6 +13,7 @@ import {
   getMaskedAadhar,
 } from '../services/aadhar'
 import { createInviteKey, generateLocalInviteKey } from '../services/inviteKeys'
+import { currencySymbol } from '../utils/currency'
 import './PremiumAdmissionForm.css'
 
 const FEE_BY_CLASS = {
@@ -1456,7 +1457,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             <div className="fee-summary-card">
               <div>
                 <p className="fee-summary-label">Estimated Total</p>
-                <h4>₹{totalFees.toLocaleString()}</h4>
+                <h4>{currencySymbol()}{totalFees.toLocaleString()}</h4>
               </div>
               <div className="fee-summary-note">
                 <p>Payment mode: {formData.paymentMode}</p>
