@@ -41,8 +41,8 @@
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
+  font-size: 1.2rem;
+  letter-spacing: 0.01em;
   color: #16181b;
   background: linear-gradient(135deg, #f8f9fa 0%, #d3d6da 42%, #8f9398 100%);
   box-shadow:

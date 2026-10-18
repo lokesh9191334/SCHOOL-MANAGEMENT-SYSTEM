@@ -189,7 +189,7 @@ const AppShell = () => {
           <div className="sms-sidebar-top">
             <div className="sms-brand">
               <div className="sms-brand-mark" aria-hidden>
-                SMS
+                {userInitial}
               </div>
               <div>
                 <p className="sms-brand-title">SMS</p>
