@@ -1,0 +1,241 @@
+.datesheet-page .panel-card {
+  background: #fff;
+}
+
+.ds-count {
+  align-self: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(65, 87, 255, 0.1);
+  color: #3246c7;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.ds-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ds-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.ds-papers-wrap {
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(65, 87, 255, 0.1);
+}
+
+.ds-papers {
+  min-width: 760px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-paper {
+  display: grid;
+  grid-template-columns: 38px 150px minmax(170px, 1fr) 140px 100px 86px;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(65, 87, 255, 0.07);
+}
+
+.ds-paper:last-child {
+  border-bottom: 0;
+}
+
+.ds-paper--head {
+  background: #f3f5ff;
+  color: #5c6b8c;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-block: 11px;
+}
+
+.ds-paper__index {
+  color: #8b97b3;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ds-paper input {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(65, 87, 255, 0.14);
+  background: #fbfcff;
+  color: #111b33;
+  font: inherit;
+  font-size: 0.86rem;
+  outline: none;
+}
+
+.ds-paper input:focus {
+  border-color: rgba(65, 87, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(65, 87, 255, 0.08);
+}
+
+.ds-remove {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 99, 99, 0.24);
+  background: rgba(255, 99, 99, 0.08);
+  color: #b52a2a;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ds-remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ds-add {
+  align-self: flex-start;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(65, 87, 255, 0.4);
+  background: rgba(65, 87, 255, 0.05);
+  color: #3246c7;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ds-add:hover {
+  background: rgba(65, 87, 255, 0.1);
+}
+
+.ds-alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.ds-alert--error {
+  background: rgba(255, 99, 99, 0.1);
+  border: 1px solid rgba(255, 99, 99, 0.24);
+  color: #b52a2a;
+}
+
+.ds-alert--success {
+  background: rgba(35, 168, 104, 0.1);
+  border: 1px solid rgba(35, 168, 104, 0.24);
+  color: #157a4a;
+}
+
+.ds-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.ds-publish {
+  padding: 12px 22px;
+  border-radius: 13px;
+  border: 0;
+  background: linear-gradient(135deg, #4157ff 0%, #7c8cff 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(65, 87, 255, 0.24);
+}
+
+.ds-publish:disabled {
+  opacity: 0.65;
+  cursor: default;
+  box-shadow: none;
+}
+
+.ds-note {
+  flex: 1;
+  min-width: 260px;
+  margin: 0;
+  color: #7f8ba5;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+html.sms-dark .datesheet-page .panel-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(124, 140, 255, 0.16);
+}
+
+html.sms-dark .ds-count {
+  background: rgba(124, 140, 255, 0.16);
+  color: #c3cdff;
+}
+
+html.sms-dark .datesheet-page .form-field {
+  color: #9aa6c2;
+}
+
+html.sms-dark .datesheet-page .form-field input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(124, 140, 255, 0.2);
+  color: #e8ecff;
+}
+
+html.sms-dark .ds-papers-wrap {
+  border-color: rgba(124, 140, 255, 0.16);
+}
+
+html.sms-dark .ds-paper {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+html.sms-dark .ds-paper--head {
+  background: rgba(124, 140, 255, 0.12);
+  color: #9aa6c2;
+}
+
+html.sms-dark .ds-paper input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(124, 140, 255, 0.2);
+  color: #e8ecff;
+}
+
+html.sms-dark .ds-remove {
+  background: rgba(255, 99, 99, 0.14);
+  border-color: rgba(255, 99, 99, 0.3);
+  color: #ff9b9b;
+}
+
+html.sms-dark .ds-add {
+  background: rgba(124, 140, 255, 0.1);
+  border-color: rgba(124, 140, 255, 0.36);
+  color: #c3cdff;
+}
+
+html.sms-dark .ds-note {
+  color: #9aa6c2;
+}
+
+@media (max-width: 640px) {
+  .ds-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ds-publish {
+    width: 100%;
+  }
+}

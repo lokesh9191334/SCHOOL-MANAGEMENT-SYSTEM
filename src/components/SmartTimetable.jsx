@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getApiAuthHeaders } from '../services/apiAuth'
+import { publishResultMessage, publishTimetable } from '../services/academicDocuments'
+import { getAuthUser } from '../utils/session'
 import './SmartTimetable.css'
 
 // Starter period structures per grade (times + subject suggestions only).
@@ -95,7 +97,7 @@ function timetableKey(grade, section) {
   return `sms_timetable_${grade}_${section}`
 }
 
-const SmartTimetable = () => {
+const SmartTimetable = ({ onPublished }) => {
   const [selectedGrade, setSelectedGrade] = useState('')
   const [selectedSection, setSelectedSection] = useState('')
   const [timetableData, setTimetableData] = useState({})
@@ -104,6 +106,7 @@ const SmartTimetable = () => {
   const [activeDay, setActiveDay] = useState('monday')
   const [statusMessage, setStatusMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [teacherOptions, setTeacherOptions] = useState([])
 
   useEffect(() => {
@@ -205,10 +208,26 @@ const SmartTimetable = () => {
         setStatusMessage(body?.error || 'Could not save the timetable.')
         return
       }
-      setStatusMessage(`Timetable saved to the system for ${selectedGrade} · Section ${selectedSection}.`)
+      const role = String(getAuthUser()?.role || '').toLowerCase()
+      if (!['admin', 'super_admin'].includes(role)) {
+        setStatusMessage(`Timetable saved to the system for ${selectedGrade} · Section ${selectedSection}.`)
+        return
+      }
+      setIsPublishing(true)
+      setStatusMessage('Timetable saved. Publishing it to parents and super admins…')
+      try {
+        const publishBody = await publishTimetable({ grade: selectedGrade, section: selectedSection })
+        setStatusMessage(publishResultMessage(publishBody, 'Timetable'))
+        if (typeof onPublished === 'function') onPublished(publishBody)
+      } catch (publishError) {
+        setStatusMessage(
+          `Timetable saved, but it could not be published: ${publishError?.message || 'the server is unreachable.'}`,
+        )
+      }
     } catch {
       setStatusMessage('Could not save the timetable — the server is unreachable.')
     } finally {
+      setIsPublishing(false)
       setIsSaving(false)
     }
   }
@@ -287,8 +306,8 @@ const SmartTimetable = () => {
           <button className="btn-export" onClick={exportTimetable}>
             Export Timetable
           </button>
-          <button className="btn-save" onClick={saveTimetable} disabled={isSaving}>
-            {isSaving ? 'Saving…' : 'Save to System'}
+          <button className="btn-save" onClick={saveTimetable} disabled={isSaving || isPublishing}>
+            {isPublishing ? 'Publishing…' : isSaving ? 'Saving…' : 'Save to System'}
           </button>
         </div>
       )}

@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import SmartTimetable from '../../components/SmartTimetable'
+import PublishedDocuments from '../../components/PublishedDocuments'
 
 const TimetablePage = () => {
+  const [publishedToken, setPublishedToken] = useState(0)
+
   return (
     <div className="sms-page-stack">
       <div className="page-card">
@@ -12,8 +16,11 @@ const TimetablePage = () => {
           <Link className="link-pill" to="/attendance">
             Attendance
           </Link>
-          <Link className="link-pill" to="/teachers">
-            Staffing
+          <Link className="link-pill" to="/academics/datesheet">
+            Exam datesheet
+          </Link>
+          <Link className="link-pill" to="/academics/documents">
+            Published documents
           </Link>
         </div>
       </div>
@@ -24,7 +31,17 @@ const TimetablePage = () => {
             <h3>Weekly structure</h3>
           </div>
         </div>
-        <SmartTimetable />
+        <SmartTimetable onPublished={() => setPublishedToken((token) => token + 1)} />
+      </article>
+      <article className="panel-card data-panel">
+        <PublishedDocuments
+          type="timetable"
+          title="Published timetables"
+          description="Saving a timetable publishes it to the parent portal and emails the PDF to every parent and super admin."
+          emptyHint="No timetable has been published yet. Save a timetable above to deliver it to parents."
+          showEmailStatus
+          reloadToken={publishedToken}
+        />
       </article>
     </div>
   )

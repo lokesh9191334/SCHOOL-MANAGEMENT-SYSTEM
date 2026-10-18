@@ -1,0 +1,473 @@
+.acad-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.acad-docs__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.acad-docs__label {
+  margin: 0 0 6px;
+  color: #4157ff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.acad-docs__head h3 {
+  margin: 0;
+  color: #111b33;
+  font-size: 1.28rem;
+  font-weight: 800;
+}
+
+.acad-docs__intro {
+  margin: 8px 0 0;
+  color: #7f8ba5;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.acad-docs__refresh {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(65, 87, 255, 0.18);
+  background: #fff;
+  color: #3246c7;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.acad-docs__refresh:hover {
+  background: rgba(65, 87, 255, 0.08);
+}
+
+.acad-docs__error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 99, 99, 0.1);
+  border: 1px solid rgba(255, 99, 99, 0.24);
+  color: #b52a2a;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.acad-docs__empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 26px 22px;
+  border-radius: 18px;
+  border: 1px dashed rgba(65, 87, 255, 0.24);
+  background: #f8f9ff;
+  color: #7f8ba5;
+  font-size: 0.9rem;
+}
+
+.acad-docs__empty strong {
+  color: #1b2a55;
+  font-size: 0.98rem;
+}
+
+.acad-docs__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.acad-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(65, 87, 255, 0.12);
+  background: linear-gradient(160deg, #ffffff 0%, #f7f9ff 100%);
+  box-shadow: 0 14px 32px rgba(24, 40, 90, 0.07);
+}
+
+.acad-doc__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.acad-doc__type {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.acad-doc__type--timetable {
+  background: rgba(65, 87, 255, 0.12);
+  color: #3246c7;
+}
+
+.acad-doc__type--datesheet {
+  background: rgba(247, 148, 30, 0.14);
+  color: #b1601a;
+}
+
+.acad-doc__date {
+  color: #8b97b3;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.acad-doc h4 {
+  margin: 0;
+  color: #111b33;
+  font-size: 1.02rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.acad-doc__subtitle {
+  margin: 0;
+  color: #5c6b8c;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.acad-doc__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acad-doc__meta span {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(17, 27, 51, 0.05);
+  color: #657493;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.acad-doc__email {
+  align-self: flex-start;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: help;
+}
+
+.acad-doc__email--success {
+  background: rgba(35, 168, 104, 0.12);
+  color: #157a4a;
+}
+
+.acad-doc__email--info {
+  background: rgba(65, 87, 255, 0.12);
+  color: #3246c7;
+}
+
+.acad-doc__email--warning {
+  background: rgba(247, 148, 30, 0.16);
+  color: #a35a12;
+}
+
+.acad-doc__email--danger {
+  background: rgba(255, 99, 99, 0.14);
+  color: #b52a2a;
+}
+
+.acad-doc__email--muted {
+  background: rgba(17, 27, 51, 0.06);
+  color: #7f8ba5;
+}
+
+.acad-doc__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.acad-doc__actions button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 0;
+  background: linear-gradient(135deg, #4157ff 0%, #7c8cff 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(65, 87, 255, 0.2);
+}
+
+.acad-doc__actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+}
+
+.acad-doc__actions .acad-doc__download {
+  flex: 0 0 auto;
+  padding-inline: 15px;
+  background: #fff;
+  color: #3246c7;
+  border: 1px solid rgba(65, 87, 255, 0.22);
+  box-shadow: none;
+}
+
+.acad-doc__actions .acad-doc__download:hover:not(:disabled) {
+  background: rgba(65, 87, 255, 0.07);
+}
+
+.acad-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 16, 34, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.acad-preview__sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(1040px, 100%);
+  height: min(92vh, 900px);
+  padding: 18px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 30px 80px rgba(8, 14, 36, 0.45);
+}
+
+.acad-preview__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.acad-preview__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.acad-preview__title strong {
+  color: #111b33;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.acad-preview__title span {
+  color: #7f8ba5;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.acad-preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.acad-preview__actions a,
+.acad-preview__actions button {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(65, 87, 255, 0.2);
+  background: #fff;
+  color: #3246c7;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.acad-preview__actions a:hover,
+.acad-preview__actions button:hover {
+  background: rgba(65, 87, 255, 0.08);
+}
+
+.acad-preview__actions .acad-preview__close {
+  border-color: transparent;
+  background: #111b33;
+  color: #fff;
+}
+
+.acad-preview__actions .acad-preview__close:hover {
+  background: #1b2a55;
+}
+
+.acad-preview__frame {
+  flex: 1;
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 27, 51, 0.1);
+  background: #eef1fa;
+}
+
+.acad-preview__frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.acad-preview__hint {
+  margin: 0;
+  color: #7f8ba5;
+  font-size: 0.76rem;
+}
+
+html.sms-dark .acad-docs__head h3,
+html.sms-dark .acad-doc h4,
+html.sms-dark .acad-docs__empty strong {
+  color: #e8ecff;
+}
+
+html.sms-dark .acad-docs__intro {
+  color: #9aa6c2;
+}
+
+html.sms-dark .acad-docs__refresh {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(124, 140, 255, 0.28);
+  color: #c3cdff;
+}
+
+html.sms-dark .acad-docs__refresh:hover {
+  background: rgba(124, 140, 255, 0.14);
+}
+
+html.sms-dark .acad-docs__empty {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(124, 140, 255, 0.26);
+  color: #9aa6c2;
+}
+
+html.sms-dark .acad-doc {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-color: rgba(124, 140, 255, 0.16);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+}
+
+html.sms-dark .acad-doc__subtitle {
+  color: #9aa6c2;
+}
+
+html.sms-dark .acad-doc__meta span {
+  background: rgba(255, 255, 255, 0.07);
+  color: #9aa6c2;
+}
+
+html.sms-dark .acad-doc__date {
+  color: #8592b3;
+}
+
+html.sms-dark .acad-doc__actions .acad-doc__download {
+  background: transparent;
+  color: #c3cdff;
+  border-color: rgba(124, 140, 255, 0.3);
+}
+
+html.sms-dark .acad-preview__sheet {
+  background: #161e3a;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+html.sms-dark .acad-preview__title strong {
+  color: #f4f6ff;
+}
+
+html.sms-dark .acad-preview__title span,
+html.sms-dark .acad-preview__hint {
+  color: #9aa6c2;
+}
+
+html.sms-dark .acad-preview__actions a,
+html.sms-dark .acad-preview__actions button {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(124, 140, 255, 0.28);
+  color: #c3cdff;
+}
+
+html.sms-dark .acad-preview__actions a:hover,
+html.sms-dark .acad-preview__actions button:hover {
+  background: rgba(124, 140, 255, 0.14);
+}
+
+html.sms-dark .acad-preview__actions .acad-preview__close {
+  background: #4157ff;
+  border-color: transparent;
+  color: #fff;
+}
+
+html.sms-dark .acad-preview__actions .acad-preview__close:hover {
+  background: #5a6bff;
+}
+
+html.sms-dark .acad-preview__frame {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #0b1020;
+}
+
+@media (max-width: 640px) {
+  .acad-preview {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .acad-preview__sheet {
+    height: 100%;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .acad-preview__head {
+    flex-direction: column;
+  }
+
+  .acad-preview__actions {
+    width: 100%;
+  }
+
+  .acad-preview__actions a,
+  .acad-preview__actions button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .acad-docs__head {
+    flex-direction: column;
+  }
+
+  .acad-docs__grid {
+    grid-template-columns: 1fr;
+  }
+}

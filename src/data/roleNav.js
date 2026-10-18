@@ -12,6 +12,9 @@ export const SUPER_ADMIN_NAV = [
   section('Approvals', 'school', [
     item('/super-admin/school-requests', 'School Approval Requests', 'check'),
   ]),
+  section('Academics', 'bookOpen', [
+    item('/super-admin/academics', 'Timetable & Datesheets', 'calendar'),
+  ]),
   section('Security', 'shield', [
     item('/security/login-tracks', 'Login Tracks', 'pin'),
   ]),
@@ -49,6 +52,8 @@ export const ADMIN_NAV = [
     item('/academics/subjects/add', 'Subjects', 'book'),
     item('/academics/subject-assignment', 'Subject Assignment', 'swap'),
     item('/academics/timetable', 'Timetable', 'table'),
+    item('/academics/datesheet', 'Exam Datesheet', 'calendar'),
+    item('/academics/documents', 'Published Documents', 'fileText'),
     item('/examination/create', 'Exams', 'plus'),
     item('/examination/results', 'Results', 'award'),
     item('/examination/report-cards', 'Report Cards', 'idcard'),
@@ -139,6 +144,7 @@ export const PARENT_NAV = [
   section('Home', 'gauge', [item('/parent', 'Parent Home', 'diamond', true)]),
   section('My Child', 'graduation', [
     item('/parent/profile', 'Parent Profile', 'user'),
+    item('/parent/academics', 'Timetable & Datesheet', 'calendar'),
     item('/parent/attendance', 'Attendance', 'checkSquare'),
     item('/parent/homework', 'Homework', 'pencil'),
     item('/parent/assignments', 'Assignments', 'list'),

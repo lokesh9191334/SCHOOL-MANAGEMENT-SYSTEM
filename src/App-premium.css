@@ -69,8 +69,31 @@ html.sms-dark .pw-panel-header h3,
 html.sms-dark .sl-hero h2,
 html.sms-dark .sms-topbar-title,
 html.sms-dark .pw-primary-cell h4,
-html.sms-dark .pw-detail-top h3 {
+html.sms-dark .pw-detail-top h3,
+html.sms-dark .page-card h2,
+html.sms-dark .panel-card h3,
+html.sms-dark .panel-header h3,
+html.sms-dark .summary-panel h3 {
   color: #f4f6ff !important;
+}
+
+html.sms-dark .panel-card {
+  background: rgba(22, 30, 58, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e8ecff;
+}
+
+html.sms-dark .page-card > p,
+html.sms-dark .summary-panel > p,
+html.sms-dark .panel-kicker,
+html.sms-dark .admin-kicker {
+  color: #9aa6c2 !important;
+}
+
+html.sms-dark .link-pill {
+  background: rgba(124, 140, 255, 0.14);
+  color: #c3cdff;
+  border-color: rgba(124, 140, 255, 0.28);
 }
 
 html.sms-dark .pw-search,

@@ -93,6 +93,8 @@ import {
   snapshotToContext,
   systemInstructions,
 } from './aiAssistant.js'
+import { academicPdfFilename, buildAcademicPdf } from './academicDocs.js'
+import { collectAcademicRecipients, sendAcademicDocumentEmails } from './academicMailer.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -2154,6 +2156,273 @@ app.put('/api/records/:key', (req, res) => {
   if (JSON.stringify(req.body).length > 2_000_000) return res.status(413).json({ error: 'Record store is too large.' })
   writeJsonFile(join('data', 'records', `${key}.json`), req.body)
   res.json({ saved: true, count: req.body.length })
+})
+
+// Published academic documents (timetable + datesheet). The server builds the
+// PDF, stores the document for every role, and emails it to all parents and
+// super admins. On Netlify the mail fan-out runs in a background function
+// because a sync function would hit the ~10s limit with many recipients.
+const ACADEMIC_DOCS_FILE = join('data', 'records', 'sms_academic_documents.json')
+const ACADEMIC_EMAIL_JOB_DIR = join('data', 'records', 'sms_academic_email_jobs')
+const TIMETABLE_GRADE_LABELS = {
+  'pre-primary': 'Pre-Primary',
+  primary: 'Primary',
+  middle: 'Middle',
+  secondary: 'Secondary',
+  senior: 'Senior',
+}
+const TIMETABLE_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+function readAcademicDocuments() {
+  const rows = readJsonFile(ACADEMIC_DOCS_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeAcademicDocuments(rows) {
+  writeJsonFile(ACADEMIC_DOCS_FILE, Array.isArray(rows) ? rows : [])
+}
+
+function validAcademicDocId(id) {
+  return /^[A-Za-z0-9_-]{1,120}$/.test(String(id || ''))
+}
+
+function readAcademicEmailJob(docId) {
+  if (!validAcademicDocId(docId)) return null
+  try {
+    const full = dataFilePath(join(ACADEMIC_EMAIL_JOB_DIR, `${docId}.json`))
+    if (!fs.existsSync(full)) return null
+    const parsed = JSON.parse(fs.readFileSync(full, 'utf8'))
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function academicDocWithEmail(doc) {
+  const job = readAcademicEmailJob(doc?.id)
+  if (!job) return doc
+  if (job.publishedAt && doc.publishedAt && job.publishedAt !== doc.publishedAt) return doc
+  return { ...doc, email: job }
+}
+
+function academicEmailStatus({ status, recipients = 0, sent = 0, failed = 0, errors = [] }) {
+  return { status, recipients, sent, failed, errors, updatedAt: new Date().toISOString() }
+}
+
+function academicRecipients() {
+  return collectAcademicRecipients({
+    users: readJsonFile(USERS_FILE, []),
+    students: readStudentRecords(),
+  })
+}
+
+async function queueAcademicEmailJob(doc, recipients) {
+  const secret = authTokenSecret()
+  const base = String(process.env.URL || process.env.DEPLOY_PRIME_URL || '').replace(/\/+$/, '')
+  if (!secret || !base) {
+    throw new Error('Email job could not be queued because the deployment URL or auth secret is missing.')
+  }
+  const body = JSON.stringify({
+    docId: doc.id,
+    docModel: {
+      type: doc.type,
+      title: doc.title,
+      subtitle: doc.subtitle,
+      publishedAt: doc.publishedAt,
+      payload: doc.payload,
+    },
+    recipients,
+    attachmentName: academicPdfFilename(doc),
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  })
+  const signature = createHmac('sha256', secret).update(body).digest('base64url')
+  const response = await fetch(`${base}/.netlify/functions/academic-email-background`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-academic-signature': signature },
+    body,
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!response.ok) {
+    throw new Error(`The background email job was rejected (HTTP ${response.status}).`)
+  }
+}
+
+async function deliverAcademicDocument(doc) {
+  const recipients = academicRecipients()
+  if (String(process.env.ACADEMIC_MAIL_DISABLED || '') === 'true') {
+    return {
+      ...doc,
+      email: academicEmailStatus({
+        status: 'disabled',
+        recipients: recipients.length,
+        errors: ['Email delivery is disabled on this server.'],
+      }),
+    }
+  }
+  if (!recipients.length) {
+    return { ...doc, email: academicEmailStatus({ status: 'sent' }) }
+  }
+  if (isNetlifyRuntime) {
+    try {
+      await queueAcademicEmailJob(doc, recipients)
+      return { ...doc, email: academicEmailStatus({ status: 'queued', recipients: recipients.length }) }
+    } catch (error) {
+      console.error('Academic email queue failed:', error?.message || error)
+      return {
+        ...doc,
+        email: academicEmailStatus({
+          status: 'failed',
+          recipients: recipients.length,
+          errors: [error?.message || 'Email job could not be queued.'],
+        }),
+      }
+    }
+  }
+  const result = await sendAcademicDocumentEmails({
+    docModel: doc,
+    recipients,
+    pdfBuffer: buildAcademicPdf(doc),
+    attachmentName: academicPdfFilename(doc),
+  })
+  return { ...doc, email: result }
+}
+
+function storeAcademicDocument(doc) {
+  const docs = readAcademicDocuments().filter((entry) => entry?.id !== doc.id)
+  writeAcademicDocuments([doc, ...docs].slice(0, 100))
+}
+
+function normalizedTimetableRows(rows) {
+  if (!Array.isArray(rows)) return []
+  return rows
+    .filter((row) => row && TIMETABLE_DAYS.includes(String(row.day || '').toLowerCase()))
+    .map((row) => ({
+      day: String(row.day).toLowerCase(),
+      periods: (Array.isArray(row.periods) ? row.periods : [])
+        .map((period) => ({
+          time: String(period?.time || '').trim().slice(0, 60),
+          subject: String(period?.subject || '').trim().slice(0, 120),
+          teacher: String(period?.teacher || '').trim().slice(0, 120),
+          room: String(period?.room || '').trim().slice(0, 60),
+          duration: Number(period?.duration) || 0,
+        }))
+        .filter((period) => period.subject || period.time),
+    }))
+    .filter((row) => row.periods.length)
+}
+
+app.get('/api/academic-documents', requireRoles('admin', 'super_admin', 'teacher', 'parent'), (req, res) => {
+  const type = String(req.query.type || '').toLowerCase()
+  const canSeeEmail = ['admin', 'super_admin'].includes(req.authUser.role)
+  const docs = readAcademicDocuments()
+    .filter((doc) => doc && doc.id && (type ? doc.type === type : true))
+    .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))
+    .slice(0, 60)
+    .map((doc) => {
+      if (canSeeEmail) return academicDocWithEmail(doc)
+      const publicDoc = { ...doc }
+      delete publicDoc.email
+      return publicDoc
+    })
+  res.json(docs)
+})
+
+app.get('/api/academic-documents/:id/pdf', requireRoles('admin', 'super_admin', 'teacher', 'parent'), (req, res) => {
+  const id = String(req.params.id || '')
+  if (!validAcademicDocId(id)) return res.status(400).json({ error: 'Invalid document id.' })
+  const doc = readAcademicDocuments().find((entry) => entry?.id === id)
+  if (!doc) return res.status(404).json({ error: 'This academic document was not found.' })
+  try {
+    const pdf = buildAcademicPdf(doc)
+    const filename = academicPdfFilename(doc).replace(/"/g, '')
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`)
+    res.setHeader('Cache-Control', 'no-store')
+    res.send(pdf)
+  } catch (error) {
+    console.error('Academic PDF build failed:', error?.message || error)
+    res.status(500).json({ error: 'The PDF could not be generated right now.' })
+  }
+})
+
+app.post('/api/academic-documents/timetable/publish', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const grade = String(req.body?.grade || '').trim().toLowerCase()
+  const section = String(req.body?.section || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (!TIMETABLE_GRADE_LABELS[grade]) return res.status(400).json({ error: 'Choose a valid grade level.' })
+  if (!section || section.length > 4) return res.status(400).json({ error: 'Enter a valid section (up to 4 letters or numbers).' })
+
+  const storedRows = readJsonFile(join('data', 'records', `sms_timetable_${grade}_${section}.json`), [])
+  const rows = normalizedTimetableRows(storedRows)
+  const totalPeriods = rows.reduce((sum, row) => sum + row.periods.length, 0)
+  if (!totalPeriods) {
+    return res.status(400).json({ error: 'Add at least one period to the timetable before publishing.' })
+  }
+
+  const id = `TT-${grade}-${section}`
+  const docs = readAcademicDocuments()
+  const previous = docs.find((entry) => entry?.id === id) || null
+  const previousEmail = previous ? readAcademicEmailJob(id) || previous.email : null
+  const unchanged =
+    previous &&
+    JSON.stringify(previous.payload?.rows || []) === JSON.stringify(rows) &&
+    ['sent', 'partial'].includes(String(previousEmail?.status || ''))
+  if (unchanged) {
+    return res.json({ doc: previous, email: previousEmail, unchanged: true })
+  }
+
+  const doc = {
+    id,
+    type: 'timetable',
+    title: 'Weekly Timetable',
+    subtitle: `${TIMETABLE_GRADE_LABELS[grade]} · Section ${section}`,
+    publishedAt: new Date().toISOString(),
+    version: Number(previous?.version || 0) + 1,
+    payload: { grade, section, rows },
+  }
+  const delivered = await deliverAcademicDocument(doc)
+  storeAcademicDocument(delivered)
+  res.json({ doc: delivered, email: delivered.email, unchanged: false })
+})
+
+app.post('/api/academic-documents/datesheet', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const examName = String(req.body?.examName || '').trim().slice(0, 120)
+  const className = String(req.body?.className || '').trim().slice(0, 80)
+  const rawRows = Array.isArray(req.body?.rows) ? req.body.rows : []
+  if (!examName) return res.status(400).json({ error: 'Enter the examination name.' })
+  if (!className) return res.status(400).json({ error: 'Enter the class or grade this datesheet is for.' })
+  if (!rawRows.length) return res.status(400).json({ error: 'Add at least one exam paper to the datesheet.' })
+  if (rawRows.length > 80) return res.status(400).json({ error: 'A datesheet can contain up to 80 papers.' })
+
+  const rows = []
+  for (let index = 0; index < rawRows.length; index += 1) {
+    const row = rawRows[index] || {}
+    const date = String(row.date || '').trim()
+    const subject = String(row.subject || '').trim().slice(0, 120)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(new Date(`${date}T00:00:00`).getTime())) {
+      return res.status(400).json({ error: `Paper ${index + 1}: choose a valid exam date.` })
+    }
+    if (!subject) return res.status(400).json({ error: `Paper ${index + 1}: enter the subject.` })
+    rows.push({
+      date,
+      subject,
+      time: String(row.time || '').trim().slice(0, 60),
+      room: String(row.room || '').trim().slice(0, 60),
+    })
+  }
+  rows.sort((a, b) => a.date.localeCompare(b.date))
+
+  const doc = {
+    id: `DS-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    type: 'datesheet',
+    title: `${examName} Datesheet`,
+    subtitle: className,
+    publishedAt: new Date().toISOString(),
+    version: 1,
+    payload: { examName, className, rows },
+  }
+  const delivered = await deliverAcademicDocument(doc)
+  storeAcademicDocument(delivered)
+  res.status(201).json({ doc: delivered, email: delivered.email, unchanged: false })
 })
 
 // Provider-agnostic AI proxy. The API key stays on the server and is never sent to the browser.

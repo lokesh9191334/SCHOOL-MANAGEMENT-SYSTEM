@@ -21,6 +21,8 @@ import StudentsPage from './pages/students/index'
 import AdmissionFormPage from './pages/students/AdmissionFormPage'
 
 import TimetablePage from './pages/academics/timetable'
+import DatesheetPage from './pages/academics/datesheet'
+import AcademicDocumentsPage from './pages/academics/documents'
 import SettingsProfilePage from './pages/settings/profile'
 import LogoutPage from './pages/settings/logout'
 import NotFoundPage from './pages/notFound'
@@ -45,6 +47,10 @@ const SPECIAL_PATHS = new Set([
   '/students/list',
   '/students/add',
   '/academics/timetable',
+  '/academics/datesheet',
+  '/academics/documents',
+  '/parent/academics',
+  '/super-admin/academics',
   '/settings/profile',
   '/settings/logout',
   '/super-admin',
@@ -107,6 +113,10 @@ function App() {
             <Route path="/students/add" element={<AdmissionFormPage />} />
 
             <Route path="/academics/timetable" element={<TimetablePage />} />
+            <Route path="/academics/datesheet" element={<DatesheetPage />} />
+            <Route path="/academics/documents" element={<AcademicDocumentsPage />} />
+            <Route path="/parent/academics" element={<AcademicDocumentsPage />} />
+            <Route path="/super-admin/academics" element={<AcademicDocumentsPage />} />
 
             <Route path="/settings/profile" element={<SettingsProfilePage />} />
             <Route path="/settings/logout" element={<LogoutPage />} />
