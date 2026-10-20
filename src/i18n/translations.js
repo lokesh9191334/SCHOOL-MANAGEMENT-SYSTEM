@@ -201,6 +201,14 @@ export const translations = {
     'Not enrolled': 'पंजीकृत नहीं',
     'Enrol your face from the My Face tab to use face sign-in and staff attendance.':
       'फेस साइन-इन और स्टाफ उपस्थिति के लिए My Face टैब से अपना फेस पंजीकृत करें.',
+    'Enrol your face to sign in with your face — no password needed.':
+      'फेस से साइन-इन के लिए अपना फेस पंजीकृत करें — पासवर्ड की ज़रूरत नहीं.',
+    'Enrol face': 'फेस पंजीकृत करें',
+    'Re-take face': 'फेस दोबारा लें',
+    'Close camera': 'कैमरा बंद करें',
+    'Remove face': 'फेस हटाएँ',
+    'Face profile saved': 'फेस प्रोफ़ाइल सेव हो गई',
+    'Face profile removed': 'फेस प्रोफ़ाइल हटा दी गई',
     'Manage my face': 'मेरा फेस प्रबंधित करें',
     Session: 'सत्र',
     'Signed in as': 'इस रूप में साइन इन',

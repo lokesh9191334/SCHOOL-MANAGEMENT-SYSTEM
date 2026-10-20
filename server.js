@@ -60,7 +60,9 @@ import {
 } from './loginTracks.js'
 import {
   ATTENDANCE_COOLDOWN_MS,
+  assertLiveFrames,
   FACE_LOGIN_FRAMES,
+  enrollmentConflict,
   findBestMatch,
   isLate,
   isValidDescriptor,
@@ -301,7 +303,7 @@ app.use('/api/records', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/students', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/teachers', requireRoles('admin', 'super_admin'))
 app.use('/api/attendance', requireRoles('admin', 'super_admin', 'teacher'))
-app.use('/api/face', requireRoles('admin', 'super_admin', 'teacher'))
+app.use('/api/face', requireRoles('admin', 'super_admin', 'teacher', 'parent'))
 app.use('/api/fees', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/exams', requireRoles('admin', 'super_admin', 'teacher'))
 app.use('/api/school-requests', requireRoles('super_admin'))
@@ -709,8 +711,11 @@ app.post('/api/auth/register/verify', async (req, res) => {
 
     clearPending(key)
 
+    const payload = issueAuthToken({ ...user, emailVerified: true })
+    /* Server truth: face enrollment is mandatory before first entry. */
+    if (!selfProfileFor(user.email)) payload.faceSetupRequired = true
     res.json({
-      ...issueAuthToken(user),
+      ...payload,
       message: 'Account created and email verified successfully.',
     })
   } catch (err) {
@@ -1038,9 +1043,16 @@ app.post('/api/auth/face-login', async (req, res) => {
       })
     }
 
+    const attemptIp = getClientIp(req)
+    if (faceLoginBlocked(attemptIp)) {
+      return res.status(429).json({
+        error: 'Too many failed face attempts. Wait 10 minutes or sign in with your password.',
+      })
+    }
+
     const profiles = readFaceProfiles().filter(
       (profile) =>
-        STAFF_ROLES.has(String(profile.role || '').toLowerCase()) &&
+        FACE_CAPABLE_ROLES.has(String(profile.role || '').toLowerCase()) &&
         Array.isArray(profile.descriptors) &&
         profile.descriptors.length,
     )
@@ -1052,6 +1064,7 @@ app.post('/api/auth/face-login', async (req, res) => {
 
     const match = strictMatchFrames(descriptors, profiles)
     if (!match.ok) {
+      recordFaceLoginFailure(attemptIp)
       await trackLogin(req, {
         stage: 'login-failed',
         method: 'face',
@@ -1059,6 +1072,7 @@ app.post('/api/auth/face-login', async (req, res) => {
       })
       return res.status(401).json({ error: match.message, reason: match.reason })
     }
+    clearFaceLoginFailures(attemptIp)
 
     const matchedEmail = normalizeEmail(match.profile.email)
     const users = ensureBootstrapSuperAdmin(readJsonFile(join('data', 'users.json'), []))
@@ -1077,8 +1091,8 @@ app.post('/api/auth/face-login', async (req, res) => {
     }
 
     const role = String(user.role || '').toLowerCase()
-    if (!STAFF_ROLES.has(role)) {
-      return res.status(403).json({ error: 'Face sign-in is only for staff accounts. Use password sign-in instead.' })
+    if (!FACE_CAPABLE_ROLES.has(role)) {
+      return res.status(403).json({ error: 'Face sign-in is not available for this account role. Use password sign-in instead.' })
     }
 
     const isAdminLogin = role === 'admin' || role === 'super_admin'
@@ -1378,6 +1392,8 @@ app.post('/api/auth/login/verify', async (req, res) => {
     })
 
     const payload = issueAuthToken({ ...user, emailVerified: true })
+    /* Server truth: every role must finish face enrollment before entering. */
+    if (!selfProfileFor(normalizedEmail)) payload.faceSetupRequired = true
     if (attendance) {
       payload.faceLogin = true
       payload.attendance = attendance
@@ -1641,6 +1657,31 @@ const STAFF_LATE_AFTER = /^\d{2}:\d{2}$/.test(process.env.STAFF_LATE_AFTER || ''
   ? process.env.STAFF_LATE_AFTER
   : '09:30'
 const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
+/* Every account role enrolls a face at signup and may sign in with it. */
+const FACE_CAPABLE_ROLES = new Set(['admin', 'super_admin', 'teacher', 'parent'])
+
+/* Best-effort brute-force brake for face sign-in (per IP, in-memory). */
+const FACE_LOGIN_ATTEMPT_LIMIT = 8
+const FACE_LOGIN_WINDOW_MS = 10 * 60 * 1000
+const faceLoginFailures = new Map()
+
+function faceLoginBlocked(ip) {
+  const now = Date.now()
+  const list = (faceLoginFailures.get(ip) || []).filter((ts) => now - ts < FACE_LOGIN_WINDOW_MS)
+  faceLoginFailures.set(ip, list)
+  return list.length >= FACE_LOGIN_ATTEMPT_LIMIT
+}
+
+function recordFaceLoginFailure(ip) {
+  const now = Date.now()
+  const list = (faceLoginFailures.get(ip) || []).filter((ts) => now - ts < FACE_LOGIN_WINDOW_MS)
+  list.push(now)
+  faceLoginFailures.set(ip, list)
+}
+
+function clearFaceLoginFailures(ip) {
+  faceLoginFailures.delete(ip)
+}
 
 function readFaceProfiles() {
   const list = readJsonFile(FACE_PROFILES_FILE, [])
@@ -1691,8 +1732,19 @@ app.post('/api/face/me', (req, res) => {
   if (!descriptors.length) {
     return res.status(400).json({ error: 'No valid face samples were received. Look straight at the camera in good light and try again.' })
   }
+  const live = assertLiveFrames(descriptors)
+  if (!live.ok) {
+    return res.status(400).json({ error: live.message, reason: live.reason })
+  }
   const photoThumb = isValidPhotoThumb(req.body?.photoThumb) ? req.body.photoThumb : null
   const email = normalizeEmail(req.authUser.email)
+  const conflict = enrollmentConflict(descriptors, readFaceProfiles(), email)
+  if (conflict.conflict) {
+    return res.status(409).json({
+      error: 'This face is already enrolled on another account. One face protects one account only — sign in with that account or use a different face.',
+      reason: 'face-already-enrolled',
+    })
+  }
   const users = readJsonFile(USERS_FILE, [])
   const self = (Array.isArray(users) ? users : []).find((user) => normalizeEmail(user.email) === email)
   const name = self?.name || self?.username || email.split('@')[0]
@@ -1799,7 +1851,9 @@ app.post('/api/face/attendance', (req, res) => {
   if (!descriptor) {
     return res.status(400).json({ matched: false, error: 'Camera scan was incomplete. Hold still and try again.' })
   }
-  const profiles = readFaceProfiles()
+  const profiles = readFaceProfiles().filter(
+    (profile) => STAFF_ROLES.has(String(profile.role || '').toLowerCase()),
+  )
   if (!profiles.length) {
     return res.status(409).json({ matched: false, error: 'No staff faces are enrolled yet. Open “My Face” and enroll first.' })
   }

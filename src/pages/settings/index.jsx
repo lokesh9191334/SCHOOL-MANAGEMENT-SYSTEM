@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import NavGlyph from '../../layouts/NavGlyph'
 import { completePasswordReset, requestPasswordReset } from '../../services/auth'
-import { fetchMyFace } from '../../services/faceAttendance'
+import { enrollMyFace, fetchMyFace, removeMyFace } from '../../services/faceAttendance'
+import FaceCapturePanel from '../../components/face/FaceCapturePanel'
 import { getAuthUser, roleLabel } from '../../utils/session'
 import { CURRENCIES, getCurrency, setCurrency as saveCurrency } from '../../utils/currency'
 import { LANGUAGES, useI18n } from '../../i18n/I18nContext'
+import '../../styles/auth-face.css'
 import './Settings.css'
 
 const THEME_STORAGE_KEY = 'sms_theme'
@@ -52,6 +54,8 @@ export default function SettingsPage() {
   const [notifyOn, setNotifyOn] = useState(storedNotifications)
   const [currency, setCurrencyState] = useState(getCurrency)
   const [face, setFace] = useState({ state: 'loading', data: null, error: '' })
+  const [faceEnrollOpen, setFaceEnrollOpen] = useState(false)
+  const [faceEnrollError, setFaceEnrollError] = useState('')
   const [toast, setToast] = useState('')
 
   const [pwOpen, setPwOpen] = useState(false)
@@ -84,7 +88,6 @@ export default function SettingsPage() {
   }, [])
 
   useEffect(() => {
-    if (!isStaff) return undefined
     let active = true
     setFace({ state: 'loading', data: null, error: '' })
     fetchMyFace()
@@ -97,7 +100,7 @@ export default function SettingsPage() {
     return () => {
       active = false
     }
-  }, [isStaff])
+  }, [])
 
   const applyTheme = (next) => {
     setTheme(next)
@@ -511,55 +514,109 @@ export default function SettingsPage() {
           ) : null}
         </article>
 
-        {isStaff ? (
-          <article className="st-card">
-            <header className="st-card__head">
-              <span className="st-card__icon" aria-hidden>
-                <NavGlyph name="faceScan" size={16} />
-              </span>
-              <h3>{t('Face profile')}</h3>
-            </header>
-            {face.state === 'loading' ? <p className="st-copy">{t('Checking your face profile…')}</p> : null}
-            {face.state === 'error' ? (
-              <>
-                <div className="st-alert error">{face.error}</div>
-                <button type="button" className="st-btn ghost" onClick={loadFace}>
-                  {t('Try again')}
-                </button>
-              </>
-            ) : null}
-            {face.state === 'ready' ? (
-              face.data?.enrolled ? (
-                <div className="st-face">
-                  {face.data.photoThumb ? <img className="st-face__thumb" src={face.data.photoThumb} alt="" /> : null}
-                  <div>
-                    <span className="st-badge ok">{t('Face enrolled')}</span>
-                    <dl className="st-meta st-meta--compact">
-                      <div>
-                        <dt>{t('Samples')}</dt>
-                        <dd>{face.data.descriptorCount || 0}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('Updated')}</dt>
-                        <dd>{formatWhen(face.data.updatedAt, locale)}</dd>
-                      </div>
-                    </dl>
-                  </div>
+        <article className="st-card">
+          <header className="st-card__head">
+            <span className="st-card__icon" aria-hidden>
+              <NavGlyph name="faceScan" size={16} />
+            </span>
+            <h3>{t('Face profile')}</h3>
+          </header>
+          {face.state === 'loading' ? <p className="st-copy">{t('Checking your face profile…')}</p> : null}
+          {face.state === 'error' ? (
+            <>
+              <div className="st-alert error">{face.error}</div>
+              <button type="button" className="st-btn ghost" onClick={loadFace}>
+                {t('Try again')}
+              </button>
+            </>
+          ) : null}
+          {face.state === 'ready' ? (
+            face.data?.enrolled ? (
+              <div className="st-face">
+                {face.data.photoThumb ? <img className="st-face__thumb" src={face.data.photoThumb} alt="" /> : null}
+                <div>
+                  <span className="st-badge ok">{t('Face enrolled')}</span>
+                  <dl className="st-meta st-meta--compact">
+                    <div>
+                      <dt>{t('Samples')}</dt>
+                      <dd>{face.data.descriptorCount || 0}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('Updated')}</dt>
+                      <dd>{formatWhen(face.data.updatedAt, locale)}</dd>
+                    </div>
+                  </dl>
                 </div>
-              ) : (
-                <>
-                  <span className="st-badge warn">{t('Not enrolled')}</span>
-                  <p className="st-copy">
-                    {t('Enrol your face from the My Face tab to use face sign-in and staff attendance.')}
-                  </p>
-                </>
-              )
-            ) : null}
+              </div>
+            ) : (
+              <>
+                <span className="st-badge warn">{t('Not enrolled')}</span>
+                <p className="st-copy">
+                  {isStaff
+                    ? t('Enrol your face from the My Face tab to use face sign-in and staff attendance.')
+                    : t('Enrol your face to sign in with your face — no password needed.')}
+                </p>
+              </>
+            )
+          ) : null}
+
+          {isStaff ? (
             <Link className="st-link" to={FACE_MANAGE_PATH}>
               {t('Manage my face')} →
             </Link>
-          </article>
-        ) : null}
+          ) : (
+            <div className="st-row">
+              <button
+                type="button"
+                className="st-btn secondary"
+                onClick={() => {
+                  setFaceEnrollOpen((v) => !v)
+                  setFaceEnrollError('')
+                }}
+              >
+                {face.data?.enrolled ? (faceEnrollOpen ? t('Close camera') : t('Re-take face')) : t('Enrol face')}
+              </button>
+              {face.data?.enrolled ? (
+                <button
+                  type="button"
+                  className="st-btn ghost"
+                  onClick={async () => {
+                    try {
+                      await removeMyFace()
+                      setToast(t('Face profile removed'))
+                      loadFace()
+                    } catch (error) {
+                      setToast(error?.message || 'Could not remove the face profile.')
+                    }
+                  }}
+                >
+                  {t('Remove face')}
+                </button>
+              ) : null}
+            </div>
+          )}
+
+          {!isStaff && faceEnrollOpen ? (
+            <div className="af-setup">
+              <FaceCapturePanel
+                mode="enroll"
+                error={faceEnrollError}
+                onSubmit={async ({ descriptors, photoThumb }) => {
+                  setFaceEnrollError('')
+                  try {
+                    await enrollMyFace({ descriptors, photoThumb })
+                    setFaceEnrollOpen(false)
+                    setToast(t('Face profile saved'))
+                    loadFace()
+                  } catch (err) {
+                    setFaceEnrollError(err.message || String(err))
+                    throw err
+                  }
+                }}
+              />
+            </div>
+          ) : null}
+        </article>
 
         <article className="st-card">
           <header className="st-card__head">

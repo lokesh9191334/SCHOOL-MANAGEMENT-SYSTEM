@@ -13,8 +13,6 @@ import '../../styles/auth-face.css'
 const isAdminDualMethod = (method) =>
   method === 'admin-dual' || method === 'admin-special-key'
 
-const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
-
 function geoDotTitle(state, place, accuracy) {
   if (state === 'granted') {
     const acc = accuracy != null ? ` ±${accuracy} m` : ''
@@ -318,17 +316,22 @@ const LoginPage = () => {
         return
       }
 
-      const role = String(res?.user?.role || '').toLowerCase()
-      if (res.faceLogin !== true && STAFF_ROLES.has(role)) {
-        try {
-          const face = await fetchMyFace()
-          if (!face.enrolled) {
-            setPendingHome(home)
-            setFaceSetup(true)
-            return
+      /* Every role must finish face enrollment before entering (server flags
+         it; fetch is only a fallback for older responses). */
+      if (res.faceLogin !== true && res.faceSetupRequired !== false) {
+        let needsFace = res.faceSetupRequired === true
+        if (!needsFace) {
+          try {
+            const face = await fetchMyFace()
+            needsFace = !face.enrolled
+          } catch {
+            /* enrollment check failed — do not lock the user out */
           }
-        } catch {
-          /* enrollment check failed — do not lock the user out */
+        }
+        if (needsFace) {
+          setPendingHome(home)
+          setFaceSetup(true)
+          return
         }
       }
       navigate(home)
@@ -386,7 +389,7 @@ const LoginPage = () => {
         attendance
           ? attendance.message
           : faceSetup
-            ? 'Staff accounts need a face profile before entering. It is saved once and marks your attendance on every face sign-in.'
+            ? 'Your account needs a face profile before entering. It is saved once and lets you sign in with your face.'
             : otpStep
               ? isAdminDual
                 ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
@@ -515,7 +518,7 @@ const LoginPage = () => {
               setInfo('')
             }}
           >
-            Sign in with face (staff &amp; admin)
+            Sign in with face
           </button>
         </form>
         )

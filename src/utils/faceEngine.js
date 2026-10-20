@@ -15,7 +15,7 @@ export function loadFaceEngine(onProgress) {
         onProgress?.('Preparing compute backend…')
         // WebGL is fastest; CPU is the universal fallback (the bundled wasm
         // backend has no reachable binary path, so skip it).
-        let ready = false
+        let ready
         try {
           ready = await tf.setBackend('webgl')
         } catch {
@@ -47,6 +47,16 @@ export function loadFaceEngine(onProgress) {
 }
 
 const DETECTOR_OPTIONS = { inputSize: 320, scoreThreshold: 0.5 }
+
+/** Euclidean distance between two 128-number face descriptors. */
+export function descriptorDistance(a, b) {
+  let sum = 0
+  for (let i = 0; i < a.length && i < b.length; i += 1) {
+    const diff = a[i] - b[i]
+    sum += diff * diff
+  }
+  return Math.sqrt(sum)
+}
 
 /** Detect the single best face in a <video> element and return its descriptor. */
 export async function detectFaceDescriptor(videoEl) {

@@ -11,8 +11,6 @@ import { homePathForRole } from '../../data/roleNav'
 import '../../styles/auth-premium.css'
 import '../../styles/auth-face.css'
 
-const STAFF_ROLES = new Set(['admin', 'super_admin', 'teacher'])
-
 function passwordScore(password) {
   let score = 0
   if (password.length >= 8) score += 1
@@ -153,13 +151,9 @@ const RegisterPage = () => {
         return
       }
       auth.saveSession(res)
-      const role = String(res?.user?.role || '').toLowerCase()
-      if (STAFF_ROLES.has(role)) {
-        setPendingHome(homePathForRole(res?.user?.role))
-        setFaceStep(true)
-        return
-      }
-      navigate(homePathForRole(res?.user?.role))
+      /* Face enrollment is mandatory for every role (admin, teacher, parent). */
+      setPendingHome(homePathForRole(res?.user?.role))
+      setFaceStep(true)
     } catch (err) {
       setError(err.message || String(err))
     } finally {
@@ -196,7 +190,7 @@ const RegisterPage = () => {
       title={faceStep ? 'Enroll your face' : otpStep ? 'Verify email OTP' : 'Create your SMS account'}
       subtitle={
         faceStep
-          ? 'One-time face setup. It is saved as your profile, and every face sign-in after this marks your attendance automatically.'
+          ? 'One-time face setup — required for every account. It is saved as your profile and lets you sign in with your face.'
           : otpStep
             ? `We emailed a 6-digit code to ${maskedEmail}. Account is created only after successful OTP verification.`
             : 'Create your school account. Teachers and parents need an admin-issued key.'

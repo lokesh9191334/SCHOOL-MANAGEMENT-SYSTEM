@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   loadFaceEngine,
   detectFaceDescriptor,
+  descriptorDistance,
   captureThumb,
   startCamera,
   stopCamera,
@@ -12,6 +13,11 @@ import {
 const SAMPLE_COUNT = 3
 const SAMPLE_MIN_GAP_MS = 900
 const MIN_SCORE = 0.55
+/* Quality gates: the face must fill enough of the frame, and the three frames
+   must look like a live capture (slight natural variation, same subject). */
+const MIN_BOX_RATIO = 0.22
+const MIN_INTER_FRAME = 0.008
+const MAX_INTER_FRAME = 0.6
 
 const DEFAULT_HINTS = {
   verify:
@@ -34,6 +40,7 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
   const [camError, setCamError] = useState('')
   const [box, setBox] = useState(null)
   const [count, setCount] = useState(0)
+  const [softNote, setSoftNote] = useState('')
 
   useEffect(() => {
     aliveRef.current = true
@@ -95,11 +102,40 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
         if (cancelled) return
         setBox(hit ? scaleBox(hit, video) : null)
         if (!hit || hit.score < MIN_SCORE) return
+        const boxRatio = hit.box.height / (hit.videoHeight || 1)
+        if (boxRatio < MIN_BOX_RATIO) {
+          setSoftNote('Come closer — your face should fill more of the frame.')
+          return
+        }
         if (Date.now() - lastSampleAtRef.current < SAMPLE_MIN_GAP_MS) return
         lastSampleAtRef.current = Date.now()
-        samplesRef.current = [...samplesRef.current, hit.descriptor]
-        setCount(samplesRef.current.length)
-        if (samplesRef.current.length >= SAMPLE_COUNT) {
+        const next = [...samplesRef.current, hit.descriptor]
+        samplesRef.current = next
+        setCount(next.length)
+        setSoftNote('')
+        if (next.length >= SAMPLE_COUNT) {
+          // Live-capture pre-check before anything is sent to the server.
+          let minPair = Infinity
+          let maxPair = 0
+          for (let i = 0; i < next.length; i += 1) {
+            for (let j = i + 1; j < next.length; j += 1) {
+              const distance = descriptorDistance(next[i], next[j])
+              if (distance < minPair) minPair = distance
+              if (distance > maxPair) maxPair = distance
+            }
+          }
+          if (maxPair > MAX_INTER_FRAME) {
+            samplesRef.current = []
+            setCount(0)
+            setSoftNote('Frames look inconsistent — stay steady, alone in the frame, and keep looking at the camera.')
+            return
+          }
+          if (minPair < MIN_INTER_FRAME) {
+            samplesRef.current = []
+            setCount(0)
+            setSoftNote('Capture looks static — move naturally (blink, smile slightly) while it re-captures.')
+            return
+          }
           submitRef.current = true
           setPhase('submitting')
           const payload = { descriptors: samplesRef.current }
@@ -164,7 +200,10 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
       </div>
 
       <p className="af-hint">{hint || DEFAULT_HINTS[mode]}</p>
-      {phase === 'scanning' && !box ? (
+      {phase === 'scanning' && softNote ? (
+        <p className="af-hint af-hint--soft">{softNote}</p>
+      ) : null}
+      {phase === 'scanning' && !box && !softNote ? (
         <p className="af-hint af-hint--soft">No face in frame — come closer and face the light.</p>
       ) : null}
       {camError && engineState === 'ready' ? <div className="auth-error">{camError}</div> : null}

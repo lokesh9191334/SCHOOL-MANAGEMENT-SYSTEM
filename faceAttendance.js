@@ -8,6 +8,14 @@ export const FACE_LOGIN_MARGIN = 0.1
 export const FACE_LOGIN_FRAMES = 3
 export const DESCRIPTOR_LENGTH = 128
 export const MAX_DESCRIPTORS_PER_PROFILE = 3
+/* Live-capture guard: frames from a real camera always differ a little (sensor
+   noise + micro movement). Three identical or near-identical descriptors mean
+   the vectors were replayed rather than captured live. */
+export const MIN_INTER_FRAME_DISTANCE = 0.008
+export const MAX_INTER_FRAME_DISTANCE = 0.6
+/* One face may belong to only one account: a new enrollment this close to an
+   existing other account's profile is rejected up front. */
+export const FACE_ENROLL_UNIQUENESS_THRESHOLD = 0.45
 export const ATTENDANCE_COOLDOWN_MS = 45 * 1000
 export const MAX_PHOTO_THUMB_CHARS = 220_000
 
@@ -94,9 +102,70 @@ function bestDistanceExcluding(descriptor, profiles, excludedEmail) {
 }
 
 /**
- * Login requires every captured frame to (a) be within `threshold` of one profile,
- * (b) point at the SAME profile, and (c) beat the nearest other profile by at least
- * `margin`. Any uncertainty → reject so a wrong person can never sign in.
+ * Live-capture guard shared by enrollment and login: the submitted frames must
+ * look like they came from a real camera session. Identical vectors = replayed
+ * capture; wildly different vectors = frames of different moments/people.
+ */
+export function assertLiveFrames(descriptors, { min = MIN_INTER_FRAME_DISTANCE, max = MAX_INTER_FRAME_DISTANCE } = {}) {
+  const list = (Array.isArray(descriptors) ? descriptors : []).filter(isValidDescriptor)
+  if (list.length < 2) {
+    return { ok: false, reason: 'not-enough-frames', message: 'Not enough clear frames were captured. Try again.' }
+  }
+  let minPair = Infinity
+  let maxPair = 0
+  for (let i = 0; i < list.length; i += 1) {
+    for (let j = i + 1; j < list.length; j += 1) {
+      const distance = descriptorDistance(list[i], list[j])
+      if (distance < minPair) minPair = distance
+      if (distance > maxPair) maxPair = distance
+    }
+  }
+  if (minPair < min) {
+    return {
+      ok: false,
+      reason: 'static',
+      message: 'This capture looks static (replayed frames). Sign in live — look at the camera and move naturally.',
+    }
+  }
+  if (maxPair > max) {
+    return {
+      ok: false,
+      reason: 'inconsistent',
+      message: 'Captured frames look inconsistent. Stay steady, alone in the frame, in even light.',
+    }
+  }
+  return { ok: true, minPair, maxPair }
+}
+
+/**
+ * Enrollment-time identity guard: a face that is already enrolled on another
+ * account cannot be registered again. Returns conflict info when the closest
+ * other-account descriptor is within the uniqueness threshold.
+ */
+export function enrollmentConflict(descriptors, profiles, selfEmail, threshold = FACE_ENROLL_UNIQUENESS_THRESHOLD) {
+  const list = (Array.isArray(descriptors) ? descriptors : []).filter(isValidDescriptor)
+  const self = normalizeEmail(selfEmail)
+  let best = null
+  for (const profile of profiles) {
+    if (normalizeEmail(profile.email) === self) continue
+    for (const stored of profile.descriptors || []) {
+      for (const descriptor of list) {
+        const distance = descriptorDistance(descriptor, stored)
+        if (!best || distance < best.distance) {
+          best = { distance, email: normalizeEmail(profile.email), name: profile.name || profile.email }
+        }
+      }
+    }
+  }
+  if (best && best.distance <= threshold) return { conflict: true, ...best }
+  return { conflict: false, distance: best ? best.distance : null }
+}
+
+/**
+ * Login requires every captured frame to (a) look like a live capture, (b) be
+ * within `threshold` of one profile, (c) point at the SAME profile, and (d)
+ * beat the nearest other profile by at least `margin`. Any uncertainty → reject
+ * so a wrong person can never sign in.
  */
 export function strictMatchFrames(descriptors, profiles, {
   threshold = FACE_LOGIN_THRESHOLD,
@@ -107,6 +176,8 @@ export function strictMatchFrames(descriptors, profiles, {
   if (list.length < frames) {
     return { ok: false, reason: 'not-enough-frames', message: `Capture ${frames} clear frames of your face.` }
   }
+  const live = assertLiveFrames(list.slice(0, frames))
+  if (!live.ok) return live
   const used = list.slice(0, frames)
   let profile = null
   let worstDistance = 0
