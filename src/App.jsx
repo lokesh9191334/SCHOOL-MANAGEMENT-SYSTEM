@@ -38,6 +38,7 @@ import ParentHome from './pages/role/ParentHome'
 import ExamMarksStudio from './pages/teacher/ExamMarksStudio'
 import PremiumReportCard from './pages/teacher/PremiumReportCard'
 import ParentOnlinePaymentPage from './pages/parent/OnlinePaymentPage'
+import ParentResultsPage from './pages/parent/ResultsPage'
 import AIAssistantPage from './pages/ai-assistant'
 import PaymentReviewPage from './pages/fees/PaymentReviewPage'
 import SchoolRequestsPage from './pages/super-admin/SchoolRequestsPage'
@@ -63,7 +64,10 @@ const SPECIAL_PATHS = new Set([
   '/teacher',
   '/parent',
   '/teacher/exams/marks',
+  '/teacher/exams/results',
+  '/teacher/results',
   '/teacher/exams/report-cards',
+  '/parent/results',
   '/ai-assistant',
   '/parent/fees/online',
   '/parent/fees/pending',
@@ -105,7 +109,10 @@ function App() {
             <Route path="/parent" element={<ParentHome />} />
 
             <Route path="/teacher/exams/marks" element={<ExamMarksStudio />} />
+            <Route path="/teacher/exams/results" element={<ExamMarksStudio />} />
+            <Route path="/teacher/results" element={<ExamMarksStudio />} />
             <Route path="/teacher/exams/report-cards" element={<PremiumReportCard />} />
+            <Route path="/parent/results" element={<ParentResultsPage />} />
             <Route path="/ai-assistant" element={<AIAssistantPage />} />
             <Route path="/parent/fees/online" element={<ParentOnlinePaymentPage />} />
             <Route path="/parent/fees/pending" element={<Navigate replace to="/parent/fees/online" />} />

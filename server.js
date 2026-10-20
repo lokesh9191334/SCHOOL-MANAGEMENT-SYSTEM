@@ -34,6 +34,7 @@ import {
   sendAdminLoginKeyEmail,
   sendOtpEmail,
   sendParentAttendanceEmail,
+  sendResultEmail,
   verifyOtpHash,
 } from './emailOtp.js'
 import {
@@ -97,6 +98,7 @@ import {
 } from './aiAssistant.js'
 import { academicPdfFilename, buildAcademicPdf } from './academicDocs.js'
 import { collectAcademicRecipients, sendAcademicDocumentEmails } from './academicMailer.js'
+import { computeResult, normalizeExamTitle, rankResults, sanitizeSubjects } from './resultsStore.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -2210,6 +2212,404 @@ app.put('/api/records/:key', (req, res) => {
   if (JSON.stringify(req.body).length > 2_000_000) return res.status(413).json({ error: 'Record store is too large.' })
   writeJsonFile(join('data', 'records', `${key}.json`), req.body)
   res.json({ saved: true, count: req.body.length })
+})
+
+// Exam results (teacher-only builder). A class has one saved subject list that
+// every result of that class reuses; totals, percentage, grade and class rank
+// are always computed here, never trusted from the browser. Publishing a
+// result stores it for the student and emails the linked parent.
+const RESULTS_FILE = join('data', 'records', 'sms_results.json')
+const RESULT_SUBJECTS_FILE = join('data', 'records', 'sms_result_subjects.json')
+const RESULTS_EMAIL_JOB_DIR = join('data', 'records', 'sms_results_email_jobs')
+const RESULT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MAX_RESULT_CLASS_LENGTH = 80
+
+function readResultRows() {
+  const rows = readJsonFile(RESULTS_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeResultRows(rows) {
+  writeJsonFile(RESULTS_FILE, Array.isArray(rows) ? rows : [])
+}
+
+function readResultSubjects() {
+  const map = readJsonFile(RESULT_SUBJECTS_FILE, {})
+  return map && typeof map === 'object' && !Array.isArray(map) ? map : {}
+}
+
+function writeResultSubjects(map) {
+  writeJsonFile(RESULT_SUBJECTS_FILE, map && typeof map === 'object' && !Array.isArray(map) ? map : {})
+}
+
+function resultClassKey(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function resultClassOfStudent(student) {
+  const direct = String(student?.applyingForClass || student?.studentClass || student?.className || '').trim()
+  const raw = direct || String(student?.subtitle || '').replace(/^Class\s+/i, '').trim()
+  return raw === 'N/A' ? '' : raw.slice(0, MAX_RESULT_CLASS_LENGTH)
+}
+
+function resultStudentName(student) {
+  return String(student?.title || student?.name || student?.studentName || '').trim().slice(0, 120) || 'Student'
+}
+
+function resultStudentsOfClass(students, classKey) {
+  return (Array.isArray(students) ? students : []).filter((student) => {
+    const className = resultClassOfStudent(student)
+    return className && resultClassKey(className) === classKey
+  })
+}
+
+function resultClassList(students) {
+  const classes = new Map()
+  for (const student of students) {
+    const name = resultClassOfStudent(student)
+    if (!name) continue
+    const key = resultClassKey(name)
+    if (!classes.has(key)) classes.set(key, { key, name, studentCount: 0 })
+    classes.get(key).studentCount += 1
+  }
+  return [...classes.values()].sort((a, b) => a.name.localeCompare(b.name, 'en', { numeric: true }))
+}
+
+function resultRecipientsForStudent(student, users) {
+  const keys = [student?.id, student?.applicationId]
+    .filter((value) => value !== undefined && value !== null && String(value).trim())
+    .map(String)
+  const emails = []
+  for (const user of Array.isArray(users) ? users : []) {
+    if (!user || user.role !== 'parent' || !keys.includes(String(user.linkedId || ''))) continue
+    const email = String(user.email || '').trim()
+    if (RESULT_EMAIL_REGEX.test(email)) emails.push(email)
+  }
+  for (const field of ['guardianEmail', 'fatherEmail', 'motherEmail', 'owner', 'email']) {
+    const email = String(student?.[field] || '').trim()
+    if (RESULT_EMAIL_REGEX.test(email)) emails.push(email)
+  }
+  return [...new Set(emails.map((email) => email.toLowerCase()))]
+}
+
+function rerankResultGroup(rows, examKey, classKey) {
+  const ranked = rankResults(rows.filter((row) => row.examKey === examKey && row.classKey === classKey))
+  const rankedById = new Map(ranked.map((row) => [row.id, row]))
+  return rows.map((row) => rankedById.get(row.id) || row)
+}
+
+function publicResult(row) {
+  return {
+    id: row.id,
+    examTitle: row.examTitle,
+    className: row.className,
+    studentId: row.studentId,
+    studentName: row.studentName,
+    rollNo: row.rollNo || '',
+    subjects: Array.isArray(row.subjects) ? row.subjects : [],
+    totalScored: row.totalScored,
+    totalMax: row.totalMax,
+    percent: row.percent,
+    grade: row.grade,
+    rank: row.rank || null,
+    teacherName: row.teacherName || '',
+    publishedAt: row.publishedAt || '',
+  }
+}
+
+function resultEmailStatus({ status, recipients = 0, students = 0, sent = 0, failed = 0, errors = [] }) {
+  return { status, recipients, students, sent, failed, errors, updatedAt: new Date().toISOString() }
+}
+
+async function queueResultEmailJob(publishId, jobs) {
+  const secret = authTokenSecret()
+  const base = String(process.env.URL || process.env.DEPLOY_PRIME_URL || '').replace(/\/+$/, '')
+  if (!secret || !base) {
+    throw new Error('Email job could not be queued because the deployment URL or auth secret is missing.')
+  }
+  const body = JSON.stringify({ publishId, jobs, expiresAt: Date.now() + 10 * 60 * 1000 })
+  const signature = createHmac('sha256', secret).update(body).digest('base64url')
+  const response = await fetch(`${base}/.netlify/functions/results-email-background`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-results-signature': signature },
+    body,
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!response.ok) {
+    throw new Error(`The background email job was rejected (HTTP ${response.status}).`)
+  }
+}
+
+async function deliverResultEmails({ publishId, jobs }) {
+  const recipients = jobs.reduce((total, job) => total + job.recipients.length, 0)
+  if (String(process.env.RESULT_MAIL_DISABLED || '') === 'true') {
+    return resultEmailStatus({
+      status: 'disabled',
+      recipients,
+      students: jobs.length,
+      errors: ['Result emails are disabled on this server.'],
+    })
+  }
+  if (!recipients) return resultEmailStatus({ status: 'sent', students: jobs.length })
+  if (isNetlifyRuntime) {
+    try {
+      await queueResultEmailJob(publishId, jobs)
+      return resultEmailStatus({ status: 'queued', recipients, students: jobs.length })
+    } catch (error) {
+      console.error('Result email queue failed:', error?.message || error)
+      return resultEmailStatus({
+        status: 'failed',
+        recipients,
+        students: jobs.length,
+        errors: [error?.message || 'Email job could not be queued.'],
+      })
+    }
+  }
+  let sent = 0
+  const errors = []
+  for (const job of jobs) {
+    for (const to of job.recipients) {
+      const result = await sendResultEmail({
+        to,
+        studentName: job.studentName,
+        examTitle: job.examTitle,
+        className: job.className,
+        subjects: job.subjects,
+        totalScored: job.totalScored,
+        totalMax: job.totalMax,
+        percent: job.percent,
+        grade: job.grade,
+        teacherName: job.teacherName,
+      })
+      if (result.sent) {
+        sent += 1
+      } else if (errors.length < 5) {
+        errors.push(result.error || 'The email could not be delivered.')
+      }
+    }
+  }
+  const failed = recipients - sent
+  return resultEmailStatus({
+    status: failed ? (sent ? 'partial' : 'failed') : 'sent',
+    recipients,
+    students: jobs.length,
+    sent,
+    failed,
+    errors,
+  })
+}
+
+app.get('/api/results/class', requireRoles('teacher'), (req, res) => {
+  const students = readStudentRecords()
+  const classes = resultClassList(students)
+  const requested = String(req.query.className || '').trim().slice(0, MAX_RESULT_CLASS_LENGTH)
+  if (!requested) {
+    return res.json({ classes, className: '', classKey: '', students: [], subjects: [], exams: [], examTitle: '', results: [] })
+  }
+  const classKey = resultClassKey(requested)
+  const matched = classes.find((entry) => entry.key === classKey)
+  const className = matched?.name || requested
+  const classStudents = resultStudentsOfClass(students, classKey)
+    .map((student) => ({
+      id: String(student.id || ''),
+      applicationId: String(student.applicationId || ''),
+      name: resultStudentName(student),
+      rollNo: String(student.rollNo || ''),
+      className,
+    }))
+    .sort(
+      (a, b) =>
+        a.rollNo.localeCompare(b.rollNo, 'en', { numeric: true }) || a.name.localeCompare(b.name),
+    )
+
+  const classRows = readResultRows().filter((row) => row.classKey === classKey)
+  const exams = []
+  const seenExams = new Set()
+  for (const row of [...classRows].sort((a, b) =>
+    String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')),
+  )) {
+    if (!row.examKey || seenExams.has(row.examKey)) continue
+    seenExams.add(row.examKey)
+    exams.push({
+      examTitle: row.examTitle,
+      publishedAt: row.publishedAt || '',
+      studentCount: classRows.filter((entry) => entry.examKey === row.examKey).length,
+    })
+  }
+
+  const stored = readResultSubjects()[classKey]
+  let subjects = Array.isArray(stored?.subjects) ? stored.subjects : []
+  const examTitle = normalizeExamTitle(req.query.examTitle)
+  const results = examTitle
+    ? rankResults(classRows.filter((row) => row.examKey === resultClassKey(examTitle)))
+    : []
+  if (!subjects.length && results.length) subjects = results[results.length - 1].subjects || []
+  res.json({
+    classes,
+    className,
+    classKey,
+    students: classStudents,
+    subjects,
+    exams,
+    examTitle,
+    results: results.map(publicResult),
+  })
+})
+
+app.post('/api/results/publish', requireRoles('teacher'), async (req, res) => {
+  const examTitle = normalizeExamTitle(req.body?.examTitle)
+  const requestedClass = String(req.body?.className || '').trim().slice(0, MAX_RESULT_CLASS_LENGTH)
+  if (!examTitle) return res.status(400).json({ error: 'Enter the examination name.' })
+  if (!requestedClass) return res.status(400).json({ error: 'Choose a class before entering marks.' })
+
+  const subjectsResult = sanitizeSubjects(req.body?.subjects)
+  if (!subjectsResult.ok) return res.status(400).json({ error: subjectsResult.error })
+  const subjects = subjectsResult.subjects
+
+  const students = readStudentRecords()
+  const classKey = resultClassKey(requestedClass)
+  const matched = resultClassList(students).find((entry) => entry.key === classKey)
+  if (!matched) {
+    return res.status(400).json({ error: `No students are enrolled in "${requestedClass}" yet.` })
+  }
+  const className = matched.name
+  const classStudents = new Map(
+    resultStudentsOfClass(students, classKey).map((student) => [String(student.id || ''), student]),
+  )
+
+  const marks = Array.isArray(req.body?.marks) ? req.body.marks : []
+  if (!marks.length) return res.status(400).json({ error: 'Enter marks for at least one student.' })
+  if (marks.length > 300) return res.status(400).json({ error: 'Publish up to 300 students at a time.' })
+
+  const seen = new Set()
+  const computed = []
+  for (const entry of marks) {
+    const studentId = String(entry?.studentId || '')
+    const student = classStudents.get(studentId)
+    if (!student) {
+      return res.status(400).json({ error: 'One of the selected students does not belong to this class.' })
+    }
+    if (seen.has(studentId)) {
+      return res.status(400).json({ error: `Marks for ${resultStudentName(student)} were sent twice.` })
+    }
+    seen.add(studentId)
+    const result = computeResult({ subjects, scores: entry?.scores })
+    if (!result.ok) return res.status(400).json({ error: `${resultStudentName(student)}: ${result.error}` })
+    computed.push({ student, result })
+  }
+
+  const examKey = resultClassKey(examTitle)
+  const existing = readResultRows()
+  const publishId = `RESP-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  const publishedAt = new Date().toISOString()
+  const teacherRecord = readJsonFile(USERS_FILE, []).find((entry) => entry.id === req.authUser.id)
+  const teacherName = String(teacherRecord?.name || req.authUser.email || 'Class teacher').slice(0, 120)
+  const rows = computed.map(({ student, result }) => {
+    const studentId = String(student.id || '')
+    const previous = existing.find(
+      (row) =>
+        row.examKey === examKey && row.classKey === classKey && String(row.studentId) === studentId,
+    )
+    return {
+      id: previous?.id || `RES-${classKey.replace(/[^a-z0-9]+/g, '-')}-${studentId}-${examKey.replace(/[^a-z0-9]+/g, '-').slice(0, 32)}`,
+      publishId,
+      examTitle,
+      examKey,
+      className,
+      classKey,
+      studentId,
+      applicationId: String(student.applicationId || ''),
+      studentName: resultStudentName(student),
+      rollNo: String(student.rollNo || ''),
+      subjects: result.subjects,
+      totalScored: result.totalScored,
+      totalMax: result.totalMax,
+      percent: result.percent,
+      grade: result.grade,
+      teacherId: req.authUser.id,
+      teacherName,
+      publishedAt,
+    }
+  })
+
+  const studentIds = new Set(rows.map((row) => String(row.studentId)))
+  const merged = [
+    ...existing.filter(
+      (row) =>
+        !(
+          row.examKey === examKey &&
+          row.classKey === classKey &&
+          studentIds.has(String(row.studentId))
+        ),
+    ),
+    ...rows,
+  ]
+  const ranked = rerankResultGroup(merged, examKey, classKey)
+  writeResultRows(ranked)
+  writeResultSubjects({
+    ...readResultSubjects(),
+    [classKey]: { className, subjects, updatedAt: publishedAt },
+  })
+
+  const users = readJsonFile(USERS_FILE, [])
+  const savedRows = ranked
+    .filter((row) => row.publishId === publishId)
+    .sort((a, b) => Number(a.rank || 0) - Number(b.rank || 0))
+  const jobs = savedRows.map((row) => ({
+    studentName: row.studentName,
+    examTitle,
+    className,
+    subjects: row.subjects,
+    totalScored: row.totalScored,
+    totalMax: row.totalMax,
+    percent: row.percent,
+    grade: row.grade,
+    teacherName: row.teacherName,
+    recipients: resultRecipientsForStudent(classStudents.get(String(row.studentId)), users),
+  }))
+  const email = await deliverResultEmails({ publishId, jobs })
+  res.json({
+    saved: savedRows.length,
+    publishId,
+    className,
+    examTitle,
+    results: savedRows.map(publicResult),
+    email,
+  })
+})
+
+app.get('/api/results/my', requireRoles('parent'), (req, res) => {
+  const user = readJsonFile(USERS_FILE, []).find((entry) => entry.id === req.authUser.id)
+  const linkedId = user?.linkedId
+  if (!linkedId) return res.json({ student: null, results: [] })
+  const students = readStudentRecords()
+  const student =
+    students.find(
+      (entry) =>
+        String(entry.id) === String(linkedId) || String(entry.applicationId) === String(linkedId),
+    ) || null
+  const keys = [student?.id, linkedId]
+    .filter((value) => value !== undefined && value !== null && String(value).trim())
+    .map(String)
+  const results = readResultRows()
+    .filter(
+      (row) =>
+        keys.includes(String(row.studentId)) ||
+        (row.applicationId && keys.includes(String(row.applicationId))),
+    )
+    .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))
+    .map(publicResult)
+  res.json({
+    student: student
+      ? {
+          id: String(student.id || ''),
+          name: resultStudentName(student),
+          className: resultClassOfStudent(student),
+          rollNo: String(student.rollNo || ''),
+        }
+      : null,
+    results,
+  })
 })
 
 // Published academic documents (timetable + datesheet). The server builds the

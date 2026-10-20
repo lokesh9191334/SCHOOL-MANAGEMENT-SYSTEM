@@ -86,6 +86,31 @@
   font: inherit;
 }
 
+.ems-toolbar select {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #dce3f0;
+  font: inherit;
+  background: #fff;
+}
+
+.ems-inline-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #4157ff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ems-inline-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .ems-stats {
   display: flex;
   gap: 10px;
@@ -156,6 +181,14 @@
   color: #111b33;
 }
 
+.ems-roll {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #8b97b3;
+}
+
 .ems-mark {
   width: 72px;
   padding: 8px 10px;
@@ -202,4 +235,210 @@
   margin: 0;
   color: #8b97b3;
   font-size: 0.88rem;
+}
+
+.ems-alert {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ems-alert.is-error {
+  background: rgba(243, 93, 93, 0.1);
+  border: 1px solid rgba(243, 93, 93, 0.25);
+  color: #b23c3c;
+}
+
+.ems-alert.is-success {
+  background: rgba(23, 179, 152, 0.1);
+  border: 1px solid rgba(23, 179, 152, 0.25);
+  color: #0d8f7a;
+}
+
+.ems-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px dashed #dce3f0;
+  color: #7f8ba5;
+}
+
+.ems-empty strong {
+  color: #111b33;
+}
+
+.ems-empty a {
+  color: #4157ff;
+  font-weight: 700;
+}
+
+.ems-subjects {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(65, 87, 255, 0.08);
+}
+
+.ems-subjects summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  cursor: pointer;
+  font-weight: 800;
+  color: #111b33;
+}
+
+.ems-subjects summary small {
+  font-weight: 600;
+  color: #8b97b3;
+}
+
+.ems-subject-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ems-subject-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 14px;
+  background: #f6f8ff;
+}
+
+.ems-subject-row input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1.5px solid #dce3f0;
+  font: inherit;
+}
+
+.ems-subject-row input[type='text'] {
+  width: 150px;
+}
+
+.ems-subject-row input[type='number'] {
+  width: 78px;
+  font-weight: 700;
+}
+
+.ems-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #e3d6d6;
+  background: #fff;
+  color: #c23b3b;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ems-add-subject {
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed #c9d4f2;
+  background: #fff;
+  color: #4157ff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ems-add-subject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ems-pill {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.ems-pill.is-published {
+  background: rgba(23, 179, 152, 0.15);
+  color: #0d8f7a;
+}
+
+.ems-pill.is-draft {
+  background: #eef1f8;
+  color: #7f8ba5;
+}
+
+.ems-confirm {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(135deg, #1b2a55, #4157ff);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ems-confirm:disabled {
+  background: #dce3f0;
+  color: #8b97b3;
+  cursor: not-allowed;
+}
+
+.ems-publish-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #10182f;
+  color: #fff;
+}
+
+.ems-publish-bar div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 62ch;
+}
+
+.ems-publish-bar span {
+  color: #9aa7c4;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.ems-publish-bar .ems-btn.primary {
+  background: #fff;
+  color: #10182f;
+}
+
+.ems-publish-bar .ems-btn.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .ems-hero-actions {
+    width: 100%;
+  }
+
+  .ems-toolbar label {
+    min-width: 100%;
+  }
 }

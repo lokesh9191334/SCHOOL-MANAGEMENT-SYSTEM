@@ -373,6 +373,97 @@ export async function sendParentAttendanceEmail({ to, studentName, status, class
   }
 }
 
+/**
+ * Exam result published notice to a parent/guardian. Sent from the school's own
+ * SMTP account. Never throws — callers get { sent: true/false } either way.
+ */
+export async function sendResultEmail({
+  to,
+  studentName,
+  examTitle,
+  className,
+  subjects = [],
+  totalScored,
+  totalMax,
+  percent,
+  grade,
+  teacherName,
+}) {
+  const rows = (Array.isArray(subjects) ? subjects : [])
+    .map(
+      (subject) => `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf1f8;color:#111b33">${escapeHtml(subject.name)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf1f8;color:#5c6b8c;text-align:center">${escapeHtml(subject.scored)} / ${escapeHtml(subject.max)}</td>
+    </tr>`,
+    )
+    .join('')
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Exam result published</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">${escapeHtml(studentName)} · ${escapeHtml(examTitle)}</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">${escapeHtml(className)} · Marked by ${escapeHtml(teacherName || 'the class teacher')}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 16px">
+      <thead><tr>
+        <th style="text-align:left;padding:8px 10px;background:#f4f6fb;color:#5c6b8c;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Subject</th>
+        <th style="text-align:center;padding:8px 10px;background:#f4f6fb;color:#5c6b8c;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Marks</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px;padding:12px 14px;border-radius:12px;background:#f4f6fb">
+        <p style="margin:0;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Total</p>
+        <strong style="color:#111b33;font-size:20px">${escapeHtml(totalScored)} / ${escapeHtml(totalMax)}</strong>
+      </div>
+      <div style="flex:1;min-width:120px;padding:12px 14px;border-radius:12px;background:#f4f6fb">
+        <p style="margin:0;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Percentage</p>
+        <strong style="color:#111b33;font-size:20px">${escapeHtml(percent)}%</strong>
+      </div>
+      <div style="flex:1;min-width:120px;padding:12px 14px;border-radius:12px;background:#10182f">
+        <p style="margin:0;color:#9aa7c4;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Grade</p>
+        <strong style="color:#fff;font-size:20px">${escapeHtml(grade)}</strong>
+      </div>
+    </div>
+    <p style="color:#5c6b8c;line-height:1.6;margin:18px 0 0">The full result is also available in your parent portal under Results. Contact the class teacher for any correction in marks.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Examination Desk</p>
+  </div>
+</body></html>`
+
+  const subjectLines = (Array.isArray(subjects) ? subjects : [])
+    .map((subject) => `${subject.name}: ${subject.scored} / ${subject.max}`)
+    .join('\n')
+  const text = [
+    `Exam result published for ${studentName}`,
+    `${examTitle} · ${className}`,
+    '',
+    subjectLines,
+    '',
+    `Total: ${totalScored} / ${totalMax}`,
+    `Percentage: ${percent}%`,
+    `Grade: ${grade}`,
+    `Marked by: ${teacherName || 'the class teacher'}`,
+    '',
+    'The full result is also available in your parent portal under Results.',
+  ].join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Result published · ${studentName} · ${examTitle}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'parent-result',
+      logLabel: 'Parent result email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] parent result email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [
