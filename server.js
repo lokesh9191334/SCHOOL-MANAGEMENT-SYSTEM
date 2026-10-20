@@ -2220,7 +2220,6 @@ app.put('/api/records/:key', (req, res) => {
 // result stores it for the student and emails the linked parent.
 const RESULTS_FILE = join('data', 'records', 'sms_results.json')
 const RESULT_SUBJECTS_FILE = join('data', 'records', 'sms_result_subjects.json')
-const RESULTS_EMAIL_JOB_DIR = join('data', 'records', 'sms_results_email_jobs')
 const RESULT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_RESULT_CLASS_LENGTH = 80
 
@@ -2329,15 +2328,23 @@ async function queueResultEmailJob(publishId, jobs) {
   }
   const body = JSON.stringify({ publishId, jobs, expiresAt: Date.now() + 10 * 60 * 1000 })
   const signature = createHmac('sha256', secret).update(body).digest('base64url')
-  const response = await fetch(`${base}/.netlify/functions/results-email-background`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-results-signature': signature },
-    body,
-    signal: AbortSignal.timeout(8000),
-  })
-  if (!response.ok) {
-    throw new Error(`The background email job was rejected (HTTP ${response.status}).`)
+  let lastError = null
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(`${base}/.netlify/functions/results-email-background`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-results-signature': signature },
+        body,
+        signal: AbortSignal.timeout(8000),
+      })
+      if (response.ok) return
+      lastError = new Error(`The background email job was rejected (HTTP ${response.status}).`)
+    } catch (error) {
+      lastError = error
+    }
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 700))
   }
+  throw lastError || new Error('The background email job could not be started.')
 }
 
 async function deliverResultEmails({ publishId, jobs }) {

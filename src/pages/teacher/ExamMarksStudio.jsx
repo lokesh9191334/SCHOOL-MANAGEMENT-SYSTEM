@@ -65,7 +65,7 @@ function computeRow(student, subjects, marks) {
 function emailMessage(email) {
   if (!email) return ''
   const parents = `${email.recipients} parent email${email.recipients === 1 ? '' : 's'}`
-  if (email.status === 'queued') return `Result saved. Email job queued for ${parents}.`
+  if (email.status === 'queued') return `Result saved. Emailing ${parents} automatically now.`
   if (email.status === 'sent') {
     return email.recipients
       ? `Result saved and emailed to ${parents}.`

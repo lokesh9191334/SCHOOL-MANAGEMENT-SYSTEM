@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchMyResults } from '../../services/results'
 import './ResultsPage.css'
+
+const POLL_MS = 30000
 
 function formatDate(value) {
   const date = new Date(value)
@@ -9,31 +11,75 @@ function formatDate(value) {
   return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function formatTime(value) {
+  if (!value) return ''
+  return new Date(value).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
+}
+
 export default function ResultsPage() {
   const [data, setData] = useState({ student: null, results: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [freshIds, setFreshIds] = useState(() => new Set())
+  const [lastChecked, setLastChecked] = useState(null)
+  const firstLoadRef = useRef(true)
+  const seenIdsRef = useRef(new Set())
+
+  const applyBody = useCallback((body) => {
+    const results = Array.isArray(body?.results) ? body.results : []
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false
+    } else {
+      const fresh = results.filter((row) => row?.id && !seenIdsRef.current.has(row.id))
+      if (fresh.length) {
+        setFreshIds((previous) => {
+          const next = new Set(previous)
+          fresh.forEach((row) => next.add(row.id))
+          return next
+        })
+        setNotice(
+          fresh.length === 1
+            ? `New result published: ${fresh[0].examTitle}. It is shown below and a copy is sent to your registered email.`
+            : `${fresh.length} new results were published just now. They are shown below and copies are sent to your registered email.`,
+        )
+      }
+    }
+    seenIdsRef.current = new Set(results.map((row) => row.id))
+    setData({ student: body?.student || null, results })
+    setLastChecked(new Date())
+  }, [])
 
   useEffect(() => {
-    let active = true
-    fetchMyResults()
-      .then((body) => {
-        if (!active) return
-        setData({
-          student: body?.student || null,
-          results: Array.isArray(body?.results) ? body.results : [],
-        })
-      })
-      .catch((err) => {
-        if (active) setError(err?.message || 'Could not load your child’s results.')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => {
-      active = false
+    let cancelled = false
+    const load = async (initial = false) => {
+      try {
+        const body = await fetchMyResults()
+        if (cancelled) return
+        applyBody(body)
+        setError('')
+      } catch (err) {
+        if (cancelled) return
+        if (initial) setError(err?.message || 'Could not load your child’s results.')
+      } finally {
+        if (!cancelled && initial) setLoading(false)
+      }
     }
-  }, [])
+
+    load(true)
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') load(false)
+    }, POLL_MS)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load(false)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [applyBody])
 
   const student = data.student
 
@@ -48,6 +94,11 @@ export default function ResultsPage() {
               ? `${student.name} · ${student.className || 'Class not set'}${student.rollNo ? ` · Roll ${student.rollNo}` : ''}`
               : 'Every result the class teacher confirms appears here instantly, along with the total, percentage, grade and class rank.'}
           </p>
+          <p className="pr-live">
+            <span className="pr-live-dot" aria-hidden="true" />
+            Auto-updates every 30 seconds
+            {lastChecked ? ` · last checked ${formatTime(lastChecked)}` : ''}
+          </p>
         </div>
         <div className="pr-hero-actions">
           <Link className="pr-btn ghost" to="/parent/academics">
@@ -58,13 +109,18 @@ export default function ResultsPage() {
 
       {loading ? <p className="pr-empty">Loading results…</p> : null}
       {error ? <p className="pr-alert">{error}</p> : null}
+      {notice ? (
+        <p className="pr-alert is-success" role="status">
+          {notice}
+        </p>
+      ) : null}
 
       {!loading && !error && !data.results.length ? (
         <div className="pr-empty">
           <strong>No result published yet.</strong>
           <span>
-            When the class teacher confirms a result for your child, it will show up here and the same report is emailed
-            to your registered parent address.
+            When the class teacher confirms a result for your child, it will show up here automatically and the same
+            report is emailed to your registered parent address.
           </span>
         </div>
       ) : null}
@@ -73,7 +129,10 @@ export default function ResultsPage() {
         <article className="pr-card" key={result.id}>
           <div className="pr-card-head">
             <div>
-              <p className="pr-kicker">{result.className || student?.className || 'Class result'}</p>
+              <p className="pr-kicker">
+                {result.className || student?.className || 'Class result'}
+                {freshIds.has(result.id) ? <span className="pr-new">New</span> : null}
+              </p>
               <h3>{result.examTitle}</h3>
               <span>
                 Published {formatDate(result.publishedAt)}

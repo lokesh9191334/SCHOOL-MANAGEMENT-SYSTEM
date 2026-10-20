@@ -84,22 +84,28 @@ export async function handler(event) {
     const errors = []
     for (const job of jobs) {
       const recipients = (Array.isArray(job?.recipients) ? job.recipients : []).slice(0, 10)
+      const payload = {
+        studentName: String(job?.studentName || 'Student').slice(0, 120),
+        examTitle: String(job?.examTitle || 'Exam').slice(0, 120),
+        className: String(job?.className || '').slice(0, 80),
+        subjects: Array.isArray(job?.subjects) ? job.subjects : [],
+        totalScored: job?.totalScored,
+        totalMax: job?.totalMax,
+        percent: job?.percent,
+        grade: job?.grade,
+        teacherName: String(job?.teacherName || '').slice(0, 120),
+      }
       for (const to of recipients) {
-        const result = await sendResultEmail({
-          to,
-          studentName: String(job?.studentName || 'Student').slice(0, 120),
-          examTitle: String(job?.examTitle || 'Exam').slice(0, 120),
-          className: String(job?.className || '').slice(0, 80),
-          subjects: Array.isArray(job?.subjects) ? job.subjects : [],
-          totalScored: job?.totalScored,
-          totalMax: job?.totalMax,
-          percent: job?.percent,
-          grade: job?.grade,
-          teacherName: String(job?.teacherName || '').slice(0, 120),
-        })
+        let result = await sendResultEmail({ to, ...payload })
+        if (!result.sent) {
+          console.error('[results-email] first attempt failed, retrying:', to, result.error || '')
+          await new Promise((resolve) => setTimeout(resolve, 1200))
+          result = await sendResultEmail({ to, ...payload })
+        }
         if (result.sent) sent += 1
         else {
           failed += 1
+          console.error('[results-email] delivery failed after retry:', to, result.error || '')
           if (errors.length < 5) errors.push(result.error || 'The email could not be delivered.')
         }
       }
