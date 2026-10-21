@@ -14,6 +14,7 @@ export const SUPER_ADMIN_NAV = [
   ]),
   section('Academics', 'bookOpen', [
     item('/super-admin/academics', 'Timetable & Datesheets', 'calendar'),
+    item('/notices/events', 'Events & Programs', 'star'),
   ]),
   section('Security', 'shield', [
     item('/security/login-tracks', 'Login Tracks', 'pin'),
@@ -85,6 +86,7 @@ export const ADMIN_NAV = [
     item('/library/books/add', 'Library', 'book'),
   ]),
   section('Notices & Approvals', 'megaphone', [
+    item('/notices/events', 'Events & Programs', 'star'),
     item('/notices/school', 'School Notices', 'bell'),
     item('/notices/holidays', 'Holidays', 'sun'),
     item('/notices/exams', 'Exam Notices', 'fileText'),
@@ -104,7 +106,10 @@ export const ADMIN_NAV = [
 
 /** Teacher — classroom operations */
 export const TEACHER_NAV = [
-  section('Home', 'gauge', [item('/teacher', 'Teacher Desk', 'diamond', true)]),
+  section('Home', 'gauge', [
+    item('/teacher', 'Teacher Desk', 'diamond', true),
+    item('/teacher/events', 'School Events', 'star'),
+  ]),
   section('My Desk', 'faceScan', [item('/attendance/staff-face', 'Face Attendance', 'faceScan')]),
   section('Classroom', 'graduation', [
     item('/teacher/attendance', 'Student Attendance', 'checkSquare'),

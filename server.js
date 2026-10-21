@@ -32,6 +32,7 @@ import {
   readPending,
   savePending,
   sendAdminLoginKeyEmail,
+  sendEventEmail,
   sendOtpEmail,
   sendParentAttendanceEmail,
   sendResultEmail,
@@ -2617,6 +2618,301 @@ app.get('/api/results/my', requireRoles('parent'), (req, res) => {
       : null,
     results,
   })
+})
+
+// School events & programs (PTM, festivals, trips, competitions). Only school
+// admins create and publish them; publishing emails the chosen audience
+// automatically — parents, teachers or both. Every signed-in role sees the
+// published events in the portal, so no one depends on a manual forward.
+const EVENTS_FILE = join('data', 'records', 'sms_events.json')
+const EVENTS_EMAIL_JOB_DIR = join('data', 'records', 'sms_events_email_jobs')
+const EVENT_TYPES = new Set(['ptm', 'festival', 'cultural', 'sports', 'competition', 'trip', 'meeting', 'other'])
+const EVENT_TYPE_LABELS = {
+  ptm: 'Parent-Teacher Meeting',
+  festival: 'Festival',
+  cultural: 'Cultural Program',
+  sports: 'Sports Event',
+  competition: 'Competition',
+  trip: 'School Trip',
+  meeting: 'Meeting',
+  other: 'School Event',
+}
+const EVENT_AUDIENCES = new Set(['everyone', 'parents', 'teachers'])
+const MAX_EVENT_TITLE = 120
+const MAX_EVENT_VENUE = 120
+const MAX_EVENT_DESCRIPTION = 1500
+
+function readEvents() {
+  const rows = readJsonFile(EVENTS_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeEvents(rows) {
+  writeJsonFile(EVENTS_FILE, Array.isArray(rows) ? rows.slice(0, 200) : [])
+}
+
+function validEventId(id) {
+  return /^[A-Za-z0-9_-]{1,120}$/.test(String(id || ''))
+}
+
+function readEventEmailJob(eventId) {
+  if (!validEventId(eventId)) return null
+  try {
+    const full = dataFilePath(join(EVENTS_EMAIL_JOB_DIR, `${eventId}.json`))
+    if (!fs.existsSync(full)) return null
+    const parsed = JSON.parse(fs.readFileSync(full, 'utf8'))
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function eventWithEmail(event) {
+  const job = readEventEmailJob(event?.id)
+  if (!job) return event
+  if (job.publishedAt && event.publishedAt && job.publishedAt !== event.publishedAt) return event
+  return { ...event, email: job }
+}
+
+function eventEmailStatus({ status, recipients = 0, sent = 0, failed = 0, errors = [] }) {
+  return { status, recipients, sent, failed, errors, updatedAt: new Date().toISOString() }
+}
+
+function publicEvent(row, { includeEmail = false } = {}) {
+  const merged = includeEmail ? eventWithEmail(row) : row
+  return {
+    id: merged.id,
+    title: merged.title,
+    type: merged.type,
+    typeLabel: EVENT_TYPE_LABELS[merged.type] || 'School Event',
+    date: merged.date,
+    time: merged.time || '',
+    venue: merged.venue || '',
+    description: merged.description || '',
+    audience: merged.audience,
+    status: merged.status,
+    publishedAt: merged.publishedAt || '',
+    publishedByName: merged.publishedByName || '',
+    createdAt: merged.createdAt || '',
+    ...(includeEmail ? { email: merged.email } : {}),
+  }
+}
+
+function validEventDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return false
+  return !Number.isNaN(new Date(`${value}T00:00:00`).getTime())
+}
+
+function eventPayloadFromRequest(body) {
+  const title = String(body?.title || '').trim().slice(0, MAX_EVENT_TITLE)
+  const type = EVENT_TYPES.has(String(body?.type || '')) ? String(body.type) : 'other'
+  const date = String(body?.date || '').trim()
+  const time = String(body?.time || '').trim()
+  const venue = String(body?.venue || '').trim().slice(0, MAX_EVENT_VENUE)
+  const description = String(body?.description || '').trim().slice(0, MAX_EVENT_DESCRIPTION)
+  const audience = EVENT_AUDIENCES.has(String(body?.audience || '')) ? String(body.audience) : 'everyone'
+  return { title, type, date, time, venue, description, audience }
+}
+
+/** Audience-based fan-out list: parent accounts + guardian emails and/or teacher accounts. */
+function collectEventRecipients({ users = [], students = [], audience = 'everyone' }) {
+  const wantParents = audience !== 'teachers'
+  const wantTeachers = audience !== 'parents'
+  const emails = new Set()
+  const add = (email) => {
+    const normalized = String(email || '').trim().toLowerCase()
+    if (RESULT_EMAIL_REGEX.test(normalized)) emails.add(normalized)
+  }
+  for (const user of Array.isArray(users) ? users : []) {
+    const role = String(user?.role || '').toLowerCase()
+    if (role === 'parent' && wantParents) add(user?.email)
+    if (role === 'teacher' && wantTeachers) add(user?.email)
+    if (role === 'super_admin') add(user?.email)
+  }
+  if (wantParents) {
+    for (const student of Array.isArray(students) ? students : []) {
+      add(student?.guardianEmail)
+      add(student?.fatherEmail)
+      add(student?.motherEmail)
+    }
+  }
+  add(process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL)
+  return [...emails]
+}
+
+async function queueEventEmailJob(event, recipients) {
+  const secret = authTokenSecret()
+  const base = String(process.env.URL || process.env.DEPLOY_PRIME_URL || '').replace(/\/+$/, '')
+  if (!secret || !base) {
+    throw new Error('Email job could not be queued because the deployment URL or auth secret is missing.')
+  }
+  const body = JSON.stringify({
+    eventId: event.id,
+    eventModel: {
+      title: event.title,
+      type: event.type,
+      date: event.date,
+      time: event.time,
+      venue: event.venue,
+      description: event.description,
+      audience: event.audience,
+      publishedByName: event.publishedByName,
+      publishedAt: event.publishedAt,
+    },
+    recipients,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  })
+  const signature = createHmac('sha256', secret).update(body).digest('base64url')
+  let lastError = null
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(`${base}/.netlify/functions/events-email-background`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-events-signature': signature },
+        body,
+        signal: AbortSignal.timeout(8000),
+      })
+      if (response.ok) return
+      lastError = new Error(`The background email job was rejected (HTTP ${response.status}).`)
+    } catch (error) {
+      lastError = error
+    }
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 700))
+  }
+  throw lastError || new Error('The background email job could not be started.')
+}
+
+async function deliverEventEmails(event) {
+  const recipients = collectEventRecipients({
+    users: readJsonFile(USERS_FILE, []),
+    students: readStudentRecords(),
+    audience: event.audience,
+  })
+  if (String(process.env.EVENT_MAIL_DISABLED || '') === 'true') {
+    return eventEmailStatus({
+      status: 'disabled',
+      recipients: recipients.length,
+      errors: ['Event emails are disabled on this server.'],
+    })
+  }
+  if (!recipients.length) return eventEmailStatus({ status: 'sent' })
+  if (isNetlifyRuntime) {
+    try {
+      await queueEventEmailJob(event, recipients)
+      return eventEmailStatus({ status: 'queued', recipients: recipients.length })
+    } catch (error) {
+      console.error('Event email queue failed:', error?.message || error)
+      return eventEmailStatus({
+        status: 'failed',
+        recipients: recipients.length,
+        errors: [error?.message || 'Email job could not be queued.'],
+      })
+    }
+  }
+  let sent = 0
+  const errors = []
+  for (const to of recipients) {
+    const result = await sendEventEmail({
+      to,
+      title: event.title,
+      type: event.type,
+      date: event.date,
+      time: event.time,
+      venue: event.venue,
+      description: event.description,
+      publishedByName: event.publishedByName,
+    })
+    if (result.sent) sent += 1
+    else if (errors.length < 5) errors.push(result.error || 'The email could not be delivered.')
+  }
+  const failed = recipients.length - sent
+  return eventEmailStatus({
+    status: failed ? (sent ? 'partial' : 'failed') : 'sent',
+    recipients: recipients.length,
+    sent,
+    failed,
+    errors,
+  })
+}
+
+app.get('/api/events', requireRoles('admin', 'super_admin', 'teacher', 'parent'), (req, res) => {
+  const isAdmin = ['admin', 'super_admin'].includes(String(req.authUser.role).toLowerCase())
+  const rows = readEvents().filter((row) => row && row.id)
+  const visible = isAdmin ? rows : rows.filter((row) => row.status === 'published')
+  const today = new Date().toISOString().slice(0, 10)
+  const upcoming = visible
+    .filter((row) => String(row.date || '') >= today)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time).localeCompare(String(b.time)))
+  const past = visible
+    .filter((row) => String(row.date || '') < today)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+  res.json([...upcoming, ...past].slice(0, 120).map((row) => publicEvent(row, { includeEmail: isAdmin })))
+})
+
+app.post('/api/events', requireRoles('admin', 'super_admin'), (req, res) => {
+  const payload = eventPayloadFromRequest(req.body)
+  if (!payload.title) return res.status(400).json({ error: 'Enter the event name.' })
+  if (!validEventDate(payload.date)) return res.status(400).json({ error: 'Choose a valid event date.' })
+  if (payload.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.time)) {
+    return res.status(400).json({ error: 'Enter the time as HH:MM (24-hour), for example 10:30.' })
+  }
+
+  const adminRecord = readJsonFile(USERS_FILE, []).find((entry) => entry.id === req.authUser.id)
+  const adminName = String(adminRecord?.name || req.authUser.email || 'School admin').slice(0, 120)
+  const rows = readEvents()
+
+  if (req.body?.id) {
+    const id = String(req.body.id)
+    if (!validEventId(id)) return res.status(400).json({ error: 'Invalid event id.' })
+    const existing = rows.find((row) => row.id === id)
+    if (!existing) return res.status(404).json({ error: 'This event was not found.' })
+    const updated = {
+      ...existing,
+      ...payload,
+      publishedByName: existing.publishedByName || adminName,
+      updatedAt: new Date().toISOString(),
+    }
+    writeEvents(rows.map((row) => (row.id === id ? updated : row)))
+    return res.json({ event: publicEvent(updated, { includeEmail: true }) })
+  }
+
+  const event = {
+    id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    ...payload,
+    status: 'draft',
+    createdBy: req.authUser.id,
+    createdByName: adminName,
+    publishedByName: adminName,
+    createdAt: new Date().toISOString(),
+  }
+  writeEvents([event, ...rows])
+  res.status(201).json({ event: publicEvent(event, { includeEmail: true }) })
+})
+
+app.post('/api/events/:id/publish', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const id = String(req.params.id || '')
+  if (!validEventId(id)) return res.status(400).json({ error: 'Invalid event id.' })
+  const rows = readEvents()
+  const event = rows.find((row) => row.id === id)
+  if (!event) return res.status(404).json({ error: 'This event was not found.' })
+  if (event.status === 'published') {
+    return res.status(400).json({ error: 'This event is already published. Edit it and publish a new event instead.' })
+  }
+  event.status = 'published'
+  event.publishedAt = new Date().toISOString()
+  const email = await deliverEventEmails(event)
+  event.email = email
+  writeEvents(rows)
+  res.json({ event: publicEvent(event, { includeEmail: true }), email })
+})
+
+app.delete('/api/events/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const id = String(req.params.id || '')
+  if (!validEventId(id)) return res.status(400).json({ error: 'Invalid event id.' })
+  const rows = readEvents()
+  if (!rows.some((row) => row.id === id)) return res.status(404).json({ error: 'This event was not found.' })
+  writeEvents(rows.filter((row) => row.id !== id))
+  res.json({ deleted: id })
 })
 
 // Published academic documents (timetable + datesheet). The server builds the

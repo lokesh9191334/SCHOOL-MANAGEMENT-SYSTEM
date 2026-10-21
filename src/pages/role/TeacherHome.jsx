@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
+import UpcomingEvents from '../shared/UpcomingEvents'
 import './RoleHome.css'
 
 const cards = [
@@ -33,6 +34,7 @@ export default function TeacherHome() {
           <article><strong>{exceptions}</strong><span>Exceptions</span></article>
         </div>
       </header>
+      <UpcomingEvents moreTo="/teacher/events" />
       <section className="role-home__grid">
         {cards.map((card) => (
           <Link key={card.to} to={card.to === '/teacher/leave-inbox' ? '/approvals' : card.to} className="role-home__card tone-a">

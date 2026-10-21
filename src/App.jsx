@@ -39,6 +39,8 @@ import ExamMarksStudio from './pages/teacher/ExamMarksStudio'
 import PremiumReportCard from './pages/teacher/PremiumReportCard'
 import ParentOnlinePaymentPage from './pages/parent/OnlinePaymentPage'
 import ParentResultsPage from './pages/parent/ResultsPage'
+import EventsBuilder from './pages/admin/EventsBuilder'
+import EventsBoard from './pages/shared/EventsBoard'
 import AIAssistantPage from './pages/ai-assistant'
 import PaymentReviewPage from './pages/fees/PaymentReviewPage'
 import SchoolRequestsPage from './pages/super-admin/SchoolRequestsPage'
@@ -75,6 +77,9 @@ const SPECIAL_PATHS = new Set([
   '/parent/fees/installments',
   '/fees/online-payments',
   '/super-admin/school-requests',
+  '/notices/events',
+  '/teacher/events',
+  '/parent/events',
 ])
 
 const modulePaths = getModulePaths().filter((path) => !SPECIAL_PATHS.has(path))
@@ -120,6 +125,10 @@ function App() {
             <Route path="/parent/fees/installments" element={<Navigate replace to="/parent/fees/online" />} />
             <Route path="/fees/online-payments" element={<PaymentReviewPage />} />
             <Route path="/super-admin/school-requests" element={<SchoolRequestsPage />} />
+
+            <Route path="/notices/events" element={<EventsBuilder />} />
+            <Route path="/teacher/events" element={<EventsBoard title="Teacher platform" subtitle="School events, meetings and programs for your planning." />} />
+            <Route path="/parent/events" element={<EventsBoard title="Parent portal" subtitle="Meetings, functions and celebrations at your child's school." />} />
 
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/students/list" element={<StudentsPage />} />

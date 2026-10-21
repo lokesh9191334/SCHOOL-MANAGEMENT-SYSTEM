@@ -464,6 +464,102 @@ export async function sendResultEmail({
   }
 }
 
+/**
+ * School event / program invitation published by the admin. Goes to parents
+ * and teachers per the event audience. Never throws — callers get
+ * { sent: true/false } either way.
+ */
+export async function sendEventEmail({
+  to,
+  title,
+  type,
+  date,
+  time,
+  venue,
+  description,
+  publishedByName,
+}) {
+  const typeLabels = {
+    ptm: 'Parent-Teacher Meeting',
+    festival: 'Festival',
+    cultural: 'Cultural Program',
+    sports: 'Sports Event',
+    competition: 'Competition',
+    trip: 'School Trip',
+    meeting: 'Meeting',
+    other: 'School Event',
+  }
+  const typeLabel = typeLabels[String(type)] || 'School Event'
+  const whenDate = date
+    ? new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '—'
+  const when = time ? `${whenDate} at ${time}` : whenDate
+
+  const detailRow = (label, value) =>
+    value
+      ? `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:90px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+      : ''
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0 0 6px;color:#4157ff;font-size:12px;font-weight:700;letter-spacing:1px">SCHOOL EVENT</p>
+    <h2 style="margin:0 0 4px;color:#111b33">${escapeHtml(title)}</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">${escapeHtml(typeLabel)}${publishedByName ? ` · Published by ${escapeHtml(publishedByName)}` : ''}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Date', whenDate)}
+      ${detailRow('Time', time || '')}
+      ${detailRow('Venue', venue || '')}
+    </table>
+    ${
+      description
+        ? `<p style="color:#5c6b8c;line-height:1.7;margin:0 0 16px">${escapeHtml(description)}</p>`
+        : ''
+    }
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">The full details are also available in your portal under School Events. Contact the school office for any question about this event.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Events Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    `${typeLabel}: ${title}`,
+    `Date: ${when}`,
+    venue ? `Venue: ${venue}` : '',
+    '',
+    description || '',
+    '',
+    'The full details are also available in your portal under School Events.',
+    'School Management System · Events Desk',
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `${typeLabel} · ${title} · ${whenDate}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'school-event',
+      logLabel: 'School event email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] school event email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [

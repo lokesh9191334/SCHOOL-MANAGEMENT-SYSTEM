@@ -5,6 +5,7 @@ import { STORAGE_KEYS } from '../../utils/constants'
 import { getAuthUser } from '../../utils/session'
 import { currencySymbol } from '../../utils/currency'
 import { getApiAuthHeaders } from '../../services/apiAuth'
+import UpcomingEvents from '../shared/UpcomingEvents'
 import './RoleHome.css'
 
 const cards = [
@@ -63,6 +64,7 @@ export default function ParentHome() {
           <article><strong>{feeDueText}</strong><span>Fee due</span></article>
         </div>
       </header>
+      <UpcomingEvents moreTo="/parent/events" />
       <section className="role-home__grid">
         {cards.map((card) => (
           <Link key={card.to} to={card.to} className="role-home__card tone-c">
