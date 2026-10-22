@@ -9,10 +9,12 @@ import { getAuthUser } from '../../utils/session'
 import { homePathForRole } from '../../data/roleNav'
 import {
   fetchLiveVehicles,
+  fetchOverspeedAlerts,
   fetchTransportDirectory,
   createTrackingKey,
   setTrackingKeyActive,
   removeTrackingKey,
+  respondOverspeedAlert,
 } from '../../services/transportLive'
 import '../../styles/live-transport-premium.css'
 
@@ -80,6 +82,9 @@ function LiveTransport() {
 
   const [vehicles, setVehicles] = useState([])
   const [staleAfterSec, setStaleAfterSec] = useState(150)
+  const [alerts, setAlerts] = useState([])
+  const [limitKmh, setLimitKmh] = useState(60)
+  const [respondingId, setRespondingId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [lastRefresh, setLastRefresh] = useState(null)
@@ -113,6 +118,13 @@ function LiveTransport() {
       setError(err?.message || 'Could not load live positions.')
     } finally {
       setLoading(false)
+    }
+    try {
+      const speed = await fetchOverspeedAlerts()
+      setAlerts(Array.isArray(speed.alerts) ? speed.alerts : [])
+      if (Number.isFinite(Number(speed.limitKmh))) setLimitKmh(Number(speed.limitKmh))
+    } catch {
+      /* alerts panel is secondary — live map still works without it */
     }
   }, [])
 
@@ -225,12 +237,29 @@ function LiveTransport() {
     }
   }
 
+  const handleRespond = async (alert) => {
+    const note = String(window.prompt(`Action taken for ${alert.busNo || alert.driverName} (optional note):`, '') ?? '').slice(0, 300)
+    setRespondingId(alert.id)
+    try {
+      const updated = await respondOverspeedAlert(alert.id, String(note).slice(0, 300))
+      pushToast('ok', `Response recorded at ${updated.respondedAtIST} IST.`)
+      load()
+    } catch (err) {
+      pushToast('err', err?.message || 'Could not record the response.')
+    } finally {
+      setRespondingId('')
+    }
+  }
+
   const counts = useMemo(() => {
     const online = vehicles.filter((v) => v.online).length
     const activeLinks = vehicles.filter((v) => v.active !== false).length
-    return { online, activeLinks, total: vehicles.length }
-  }, [vehicles])
+    const openAlerts = alerts.filter((a) => a.status === 'open').length
+    return { online, activeLinks, total: vehicles.length, openAlerts }
+  }, [vehicles, alerts])
 
+  const openAlerts = useMemo(() => alerts.filter((a) => a.status === 'open'), [alerts])
+  const closedAlerts = useMemo(() => alerts.filter((a) => a.status !== 'open').slice(0, 8), [alerts])
   const selected = vehicles.find((v) => v.id === selectedId) || null
 
   if (!user) return <Navigate replace to="/auth/login" />
@@ -256,6 +285,7 @@ function LiveTransport() {
             <span className="tlive-count tlive-count--ok">{counts.online} live</span>
             <span className="tlive-count">{counts.activeLinks} links on</span>
             <span className="tlive-count">{counts.total} total</span>
+            {counts.openAlerts ? <span className="tlive-count tlive-count--alert">{counts.openAlerts} overspeed</span> : null}
           </div>
           <div className="tlive-hero__actions">
             <button type="button" className="tlive-btn tlive-btn--ghost" onClick={() => setAutoRefresh((v) => !v)}>
@@ -277,6 +307,70 @@ function LiveTransport() {
       </header>
 
       {error ? <p className="tlive-error">{error}</p> : null}
+
+      {openAlerts.length ? (
+        <section className="osd-panel" role="alert" aria-label="Bus overspeed warnings">
+          <div className="osd-panel__head">
+            <div>
+              <p className="osd-panel__kicker">Safety warning</p>
+              <h2 className="osd-panel__title">Bus overspeed above {limitKmh} km/h</h2>
+              <p className="osd-panel__sub">Admins were emailed with the bus number, driver details and exact time. Respond after you have followed up.</p>
+            </div>
+            <span className="osd-panel__live">
+              <i className="osd-panel__live-dot" aria-hidden /> Live
+            </span>
+          </div>
+          {openAlerts.map((a) => (
+            <article key={a.id} className="osd-card">
+              <div className="osd-card__speed" aria-label={`Top speed ${a.speedKmh} km per hour`}>
+                {a.speedKmh}
+                <small> km/h</small>
+              </div>
+              <div className="osd-card__body">
+                <p className="osd-card__title">
+                  {a.busNo || 'Bus'} <span aria-hidden>·</span> {a.driverName || 'Driver'}
+                </p>
+                <p className="osd-card__meta">{[a.routeLabel, a.phone].filter(Boolean).join(' · ') || 'Route not set'}</p>
+                <p className="osd-card__meta">
+                  Started <b>{a.startedAtIST || '—'}</b> IST · last seen <b>{a.lastAtIST || '—'}</b> IST · {a.pingCount || 1} speeding pings{a.endedAtIST ? ' · speeding ended' : ''}
+                </p>
+                <p className="osd-card__meta">
+                  {a.lat != null && a.lng != null ? (
+                    <>
+                      {Number(a.lat).toFixed(5)}, {Number(a.lng).toFixed(5)} ·{' '}
+                      <a href={`https://www.google.com/maps?q=${Number(a.lat)},${Number(a.lng)}`} target="_blank" rel="noreferrer">
+                        Open map
+                      </a>
+                    </>
+                  ) : (
+                    'Location —'
+                  )}
+                  {a.email?.recipients ? <> · emailed {a.email.sentCount || 0}/{a.email.recipients} admins</> : ''}
+                </p>
+                {a.device ? <p className="osd-card__meta osd-card__meta--dim">{a.device}</p> : null}
+              </div>
+              <div className="osd-card__actions">
+                <button type="button" className="tlive-btn tlive-btn--primary" onClick={() => handleRespond(a)} disabled={respondingId === a.id}>
+                  {respondingId === a.id ? 'Saving…' : 'Respond'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : null}
+
+      {!openAlerts.length && closedAlerts.length ? (
+        <section className="osd-history" aria-label="Recent overspeed responses">
+          <h2 className="osd-history__title">Recent overspeed responses</h2>
+          {closedAlerts.map((a) => (
+            <p key={a.id} className="osd-history__row">
+              <b>{a.busNo || 'Bus'}</b> · {a.driverName} · {a.speedKmh} km/h · started {a.startedAtIST} IST · responded{' '}
+              <b>{a.respondedAtIST || '—'}</b> IST{a.respondedBy ? ` by ${a.respondedBy}` : ''}
+              {a.responseNote ? ` — “${a.responseNote}”` : ''}
+            </p>
+          ))}
+        </section>
+      ) : null}
 
       <section className="tlive-grid">
         <VehicleMap vehicles={vehicles} selectedId={selectedId} onSelect={setSelectedId} />
@@ -321,6 +415,7 @@ function LiveTransport() {
                   <span className={`tlive-chip tlive-chip--${tone}`}>
                     {tone === 'online' ? 'Live' : tone === 'stale' ? 'Signal lost' : vehicle.active === false ? 'Off' : 'No ping yet'}
                   </span>
+                  {kmh != null && kmh > limitKmh ? <span className="tlive-chip tlive-chip--speed">Overspeed</span> : null}
                 </div>
 
                 <div className="tlive-vehicle__stats">

@@ -3,6 +3,7 @@
    persistence keeps working. */
 
 import { randomBytes } from 'node:crypto'
+import process from 'node:process'
 
 /** A vehicle is shown offline when no ping arrived within this window. */
 export const TRACK_STALE_MS = 150 * 1000
@@ -27,10 +28,11 @@ export function sanitizeFix(body) {
   const lng = Number(body?.lng)
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
-  const accuracy = Number(body?.accuracy)
-  const speed = Number(body?.speed)
-  const heading = Number(body?.heading)
-  const battery = Number(body?.battery)
+  // Number(null) is 0 — a missing reading must stay null, not become a fake 0.
+  const accuracy = body?.accuracy == null ? NaN : Number(body?.accuracy)
+  const speed = body?.speed == null ? NaN : Number(body?.speed)
+  const heading = body?.heading == null ? NaN : Number(body?.heading)
+  const battery = body?.battery == null ? NaN : Number(body?.battery)
   return {
     lat: Number(lat.toFixed(6)),
     lng: Number(lng.toFixed(6)),
@@ -54,4 +56,35 @@ export function isTrackOnline(lastAt, now = Date.now()) {
 /** Trail point appended per stored ping. */
 export function trailPoint(fix) {
   return { lat: fix.lat, lng: fix.lng }
+}
+
+/** Speed above which a bus trip is flagged to admins. */
+export const OVERSPEED_LIMIT_KMH = Number(process.env.OVERSPEED_LIMIT_KMH) >= 20 ? Number(process.env.OVERSPEED_LIMIT_KMH) : 60
+/** A repeat detection within this window updates the open alert instead of raising a new one. */
+export const OVERSPEED_EVENT_WINDOW_MS = 5 * 60 * 1000
+/** Below-limit movement for this long marks an open alert as ended. */
+export const OVERSPEED_END_MS = 3 * 60 * 1000
+
+export function haversineMeters(a, b) {
+  const R = 6371000
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const lat1 = toRad(a.lat)
+  const lat2 = toRad(b.lat)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+/** Trust the phone's GPS speed; when missing, derive it from the last two pings. */
+export function effectiveSpeedKmh(fix, prev) {
+  if (fix.speed != null && Number.isFinite(Number(fix.speed))) return Number(fix.speed) * 3.6
+  if (!prev || !Number.isFinite(Number(prev.lat)) || !Number.isFinite(Number(prev.lng))) return null
+  const prevAt = Date.parse(prev.at || '')
+  if (!Number.isFinite(prevAt)) return null
+  const dtSec = (Date.now() - prevAt) / 1000
+  if (dtSec < 2 || dtSec > 180) return null
+  const accuracy = Number(fix.accuracy)
+  if (Number.isFinite(accuracy) && accuracy > 100) return null
+  return (haversineMeters(prev, fix) / dtSec) * 3.6
 }

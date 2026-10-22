@@ -34,6 +34,7 @@ import {
   sendAdminLoginKeyEmail,
   sendEventEmail,
   sendOtpEmail,
+  sendOverspeedAlertEmail,
   sendParentAttendanceEmail,
   sendResultEmail,
   verifyOtpHash,
@@ -79,9 +80,13 @@ import {
   validDescriptors,
 } from './faceAttendance.js'
 import {
+  effectiveSpeedKmh,
   generateTrackingKey,
   isTrackOnline,
   normalizeTrackKey,
+  OVERSPEED_END_MS,
+  OVERSPEED_EVENT_WINDOW_MS,
+  OVERSPEED_LIMIT_KMH,
   sanitizeDevice,
   sanitizeFix,
   trailPoint,
@@ -2087,7 +2092,7 @@ app.get('/api/track/:key', (req, res) => {
   })
 })
 
-app.post('/api/track/:key/ping', (req, res) => {
+app.post('/api/track/:key/ping', async (req, res) => {
   const record = findTrackingKeyByKey(req.params.key)
   if (!record) return res.status(404).json({ error: 'This tracking link is not valid.' })
   if (record.active === false) return res.status(410).json({ error: 'This tracking link has been switched off by the school.' })
@@ -2108,7 +2113,144 @@ app.post('/api/track/:key/ping', (req, res) => {
   }
   live[record.id] = entry
   writeTransportLive(live)
-  res.json({ ok: true, atIST: entry.atIST, staleAfterSec: Math.round(TRACK_STALE_MS / 1000) })
+
+  const kmh = effectiveSpeedKmh(fix, prev)
+  let overspeedNotice = null
+  const detection = recordOverspeedDetection({ record, fix, kmh, device: entry.device })
+  if (detection) {
+    if (detection.isNew) {
+      const recipients = overspeedAdminEmails()
+      let sent = 0
+      for (const email of recipients) {
+        const result = await sendOverspeedAlertEmail({ to: email, event: { ...detection.event, limitKmh: OVERSPEED_LIMIT_KMH } })
+        if (result.sent) sent += 1
+      }
+      const alerts = readOverspeedAlerts()
+      const idx = alerts.findIndex((a) => a.id === detection.event.id)
+      if (idx >= 0) {
+        alerts[idx] = { ...alerts[idx], email: { sent: sent > 0, recipients: recipients.length, sentCount: sent } }
+        writeOverspeedAlerts(alerts)
+      }
+      overspeedNotice = { raised: true, speedKmh: detection.event.speedKmh, limitKmh: OVERSPEED_LIMIT_KMH }
+    } else {
+      overspeedNotice = { raised: false, speedKmh: detection.event.lastKmh, limitKmh: OVERSPEED_LIMIT_KMH }
+    }
+  } else if (kmh != null && kmh <= OVERSPEED_LIMIT_KMH) {
+    endOverspeedIfStale(record)
+  }
+
+  res.json({ ok: true, atIST: entry.atIST, staleAfterSec: Math.round(TRACK_STALE_MS / 1000), ...(overspeedNotice ? { overspeed: overspeedNotice } : {}) })
+})
+
+// --- Overspeed alerts: bus >60 km/h → admin email + dashboard warning + admin respond
+const OVERSPEED_FILE = join('data', 'overspeed_alerts.json')
+const OVERSPEED_KEEP_MAX = 300
+
+function readOverspeedAlerts() {
+  const list = readJsonFile(OVERSPEED_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function writeOverspeedAlerts(list) {
+  writeJsonFile(OVERSPEED_FILE, list.slice(0, OVERSPEED_KEEP_MAX))
+}
+
+function overspeedAdminEmails() {
+  return [...new Set(
+    readJsonFile(join('data', 'users.json'), [])
+      .filter((u) => ['admin', 'super_admin'].includes(String(u.role || '').toLowerCase()))
+      .map((u) => String(u.email || '').trim().toLowerCase())
+      .filter((email) => RESULT_EMAIL_REGEX.test(email)),
+  )]
+}
+
+function recordOverspeedDetection({ record, fix, kmh, device = '' }) {
+  if (kmh == null || kmh <= OVERSPEED_LIMIT_KMH) return null
+  const ist = istParts()
+  const alerts = readOverspeedAlerts()
+  const rounded = Math.round(kmh)
+  const stampIST = `${ist.date} ${ist.time}`
+
+  const openIndex = alerts.findIndex(
+    (a) => a.trackingId === record.id && a.status === 'open' && Date.now() - Date.parse(a.lastAt || 0) < OVERSPEED_EVENT_WINDOW_MS,
+  )
+  if (openIndex >= 0) {
+    const open = alerts[openIndex]
+    const updated = {
+      ...open,
+      speedKmh: Math.max(Number(open.speedKmh) || 0, rounded),
+      lastKmh: rounded,
+      lastAt: ist.iso,
+      lastAtIST: stampIST,
+      lat: fix.lat,
+      lng: fix.lng,
+      device: device || open.device || '',
+      pingCount: (open.pingCount || 1) + 1,
+    }
+    writeOverspeedAlerts(alerts.map((a, i) => (i === openIndex ? updated : a)))
+    return { event: updated, isNew: false }
+  }
+
+  const event = {
+    id: `OSD-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    trackingId: record.id,
+    busNo: record.vehicleLabel || '',
+    driverName: record.driverName || '',
+    phone: record.phone || '',
+    routeLabel: record.routeLabel || '',
+    speedKmh: rounded,
+    lastKmh: rounded,
+    lat: fix.lat,
+    lng: fix.lng,
+    startedAt: ist.iso,
+    startedAtIST: stampIST,
+    lastAt: ist.iso,
+    lastAtIST: stampIST,
+    device,
+    pingCount: 1,
+    status: 'open',
+    email: { sent: false, recipients: 0, sentCount: 0 },
+    endedAt: null,
+    endedAtIST: null,
+    respondedAt: null,
+    respondedAtIST: null,
+    respondedBy: '',
+    responseNote: '',
+  }
+  writeOverspeedAlerts([event, ...alerts])
+  return { event, isNew: true }
+}
+
+/** A below-limit trip after a gap marks the open alert as ended (informational). */
+function endOverspeedIfStale(record) {
+  const alerts = readOverspeedAlerts()
+  const idx = alerts.findIndex((a) => a.trackingId === record.id && a.status === 'open' && !a.endedAtIST)
+  if (idx < 0) return
+  if (Date.now() - Date.parse(alerts[idx].lastAt || 0) < OVERSPEED_END_MS) return
+  const ist = istParts()
+  writeOverspeedAlerts(alerts.map((a, i) => (i === idx ? { ...a, endedAt: ist.iso, endedAtIST: `${ist.date} ${ist.time}` } : a)))
+}
+
+app.get('/api/transport/overspeed', requireRoles('admin', 'super_admin'), (_req, res) => {
+  res.json({ alerts: readOverspeedAlerts(), limitKmh: OVERSPEED_LIMIT_KMH })
+})
+
+app.post('/api/transport/overspeed/:id/respond', requireRoles('admin', 'super_admin'), (req, res) => {
+  const alerts = readOverspeedAlerts()
+  const idx = alerts.findIndex((a) => a.id === req.params.id)
+  if (idx < 0) return res.status(404).json({ error: 'Overspeed alert not found.' })
+  if (alerts[idx].status !== 'open') return res.status(400).json({ error: 'This alert has already been responded to.' })
+  const ist = istParts()
+  const updated = {
+    ...alerts[idx],
+    status: 'responded',
+    respondedAt: ist.iso,
+    respondedAtIST: `${ist.date} ${ist.time}`,
+    respondedBy: req.authUser?.email || '',
+    responseNote: String(req.body?.note || '').trim().slice(0, 300),
+  }
+  writeOverspeedAlerts(alerts.map((a, i) => (i === idx ? updated : a)))
+  res.json(updated)
 })
 
 // API Routes - Fees

@@ -77,6 +77,24 @@ export async function fetchLiveVehicles() {
   return body || { vehicles: [], staleAfterSec: 150, now: Date.now() }
 }
 
+export async function fetchOverspeedAlerts() {
+  const res = await safeFetch(`${API}/overspeed`, { headers: getApiAuthHeaders() })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body || { alerts: [], limitKmh: 60 }
+}
+
+export async function respondOverspeedAlert(id, note = '') {
+  const res = await safeFetch(`${API}/overspeed/${encodeURIComponent(id)}/respond`, {
+    method: 'POST',
+    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ note }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body
+}
+
 /** Driver & vehicle records saved by the transport modules (read-only pick lists). */
 export async function fetchTransportDirectory() {
   const readList = async (recordsKey) => {

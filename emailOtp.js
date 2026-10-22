@@ -328,6 +328,81 @@ export async function sendSecurityAlertEmail({ to, event }) {
 }
 
 /**
+ * Overspeed alert to admins. Never throws — a failed alert must not
+ * break the driver ping flow.
+ */
+export async function sendOverspeedAlertEmail({ to, event }) {
+  const mapLink =
+    event?.lat != null && event?.lng != null
+      ? `https://www.google.com/maps?q=${Number(event.lat)},${Number(event.lng)}`
+      : ''
+  const row = (label, value) => `
+    <tr>
+      <td style="padding:10px 14px;color:#8b97b3;font-size:13px;border-bottom:1px solid #faf3e6;white-space:nowrap">${escapeHtml(label)}</td>
+      <td style="padding:10px 14px;color:#111b33;font-size:13px;font-weight:600;border-bottom:1px solid #faf3e6">${value}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#fdf7ef;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:0;border:1px solid #f3e2c4;overflow:hidden">
+    <div style="background:#92400e;padding:22px 28px">
+      <p style="margin:0;color:#fde8c0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">SMS · Bus Safety Alert</p>
+      <h2 style="margin:6px 0 0;color:#fff;font-size:20px">Overspeed: ${escapeHtml(event?.speedKmh ?? '—')} km/h (limit ${escapeHtml(event?.limitKmh ?? 60)})</h2>
+    </div>
+    <div style="padding:22px 28px">
+      <p style="color:#5c6b8c;line-height:1.5;margin:0 0 16px">
+        A school bus crossed the ${escapeHtml(event?.limitKmh ?? 60)} km/h safety limit during live tracking. Please follow up with the driver.
+      </p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #faf3e6;border-radius:12px;overflow:hidden">
+        ${row('Bus / vehicle', escapeHtml(event?.busNo || '—'))}
+        ${row('Driver', escapeHtml(event?.driverName || '—'))}
+        ${row('Driver phone', escapeHtml(event?.phone || '—'))}
+        ${row('Route', escapeHtml(event?.routeLabel || '—'))}
+        ${row('Top speed', escapeHtml(`${event?.speedKmh ?? '—'} km/h`))}
+        ${row('Started at', escapeHtml(event?.startedAtIST || '—'))}
+        ${row('Last seen', escapeHtml(`${event?.lastAtIST || '—'} (${event?.pingCount ?? 1} speeding pings)`))}
+        ${row('Location', escapeHtml(event?.lat != null ? `${Number(event.lat).toFixed(5)}, ${Number(event.lng).toFixed(5)}` : '—'))}
+        ${mapLink ? row('Map', `<a href="${escapeHtml(mapLink)}" style="color:#1b2a55">Open in Google Maps</a>`) : ''}
+      </table>
+      <p style="color:#8b97b3;font-size:12px;margin:18px 0 0">Open the Live Bus Tracking dashboard to respond to this alert with the exact action time.</p>
+      <p style="color:#1b2a55;font-weight:700;margin-top:16px">School Management System · Transport Desk</p>
+    </div>
+  </div>
+</body></html>`
+
+  const text = [
+    'SMS BUS SAFETY ALERT — Overspeed detected',
+    `Bus/vehicle: ${event?.busNo || '—'}`,
+    `Driver: ${event?.driverName || '—'} (${event?.phone || 'no phone'})`,
+    `Route: ${event?.routeLabel || '—'}`,
+    `Top speed: ${event?.speedKmh ?? '—'} km/h (limit ${event?.limitKmh ?? 60})`,
+    `Started at: ${event?.startedAtIST || '—'} IST`,
+    `Last seen: ${event?.lastAtIST || '—'} IST`,
+    event?.lat != null ? `Location: ${Number(event.lat).toFixed(5)}, ${Number(event.lng).toFixed(5)}` : '',
+    mapLink ? `Map: ${mapLink}` : '',
+    'Open the Live Bus Tracking dashboard to respond to this alert.',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `SMS Bus Alert · Overspeed ${event?.speedKmh ?? '—'} km/h — ${event?.busNo || 'Bus'}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'overspeed-alert',
+      logLabel: 'Overspeed alert',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] overspeed alert failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
+/**
  * Attendance alert to a parent/guardian. Sent from the school's own SMTP
  * account. Never throws — callers get { sent: true/false } either way.
  */
