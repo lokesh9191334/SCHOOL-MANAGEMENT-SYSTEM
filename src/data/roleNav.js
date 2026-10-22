@@ -19,6 +19,9 @@ export const SUPER_ADMIN_NAV = [
   section('Security', 'shield', [
     item('/security/login-tracks', 'Login Tracks', 'pin'),
   ]),
+  section('Transport', 'bus', [
+    item('/transport/live', 'Live Bus Tracking', 'locate'),
+  ]),
   section('Finance', 'rupee', [item('/fees/online-payments', 'Payment Verification', 'check')]),
   section('Assistant', 'sparkle', [item('/ai-assistant', 'AI Assistant', 'sparkle')]),
   section('Settings', 'gear', [

@@ -2103,6 +2103,7 @@ app.post('/api/track/:key/ping', async (req, res) => {
   if (prev && Date.now() - Date.parse(prev.at) < TRACK_MIN_PING_GAP_MS) {
     return res.json({ ok: true, throttled: true })
   }
+  const kmh = effectiveSpeedKmh(fix, prev)
   const ist = istParts()
   const entry = {
     ...fix,
@@ -2111,10 +2112,11 @@ app.post('/api/track/:key/ping', async (req, res) => {
     device: sanitizeDevice(req.body?.device),
     trail: [...(Array.isArray(prev?.trail) ? prev.trail : []), trailPoint(fix)].slice(-TRACK_TRAIL_MAX),
   }
+  // Devices that omit GPS speed (coords.speed null) still get a real speed
+  // on the dashboard — store the server-computed value back as m/s.
+  if (entry.speed == null && kmh != null) entry.speed = Math.round((kmh / 3.6) * 10) / 10
   live[record.id] = entry
   writeTransportLive(live)
-
-  const kmh = effectiveSpeedKmh(fix, prev)
   let overspeedNotice = null
   const detection = recordOverspeedDetection({ record, fix, kmh, device: entry.device })
   if (detection) {
