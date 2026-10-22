@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto'
 import { join } from 'node:path'
 import fs from 'fs'
 import { getDataDirectory } from './vercelBlobStore.js'
@@ -36,7 +37,10 @@ function writeInvites(list) {
 }
 
 function chunk() {
-  return Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X')
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let out = ''
+  for (let i = 0; i < 4; i += 1) out += alphabet[randomInt(0, alphabet.length)]
+  return out
 }
 
 export function generateInviteKey(role = 'teacher') {
@@ -48,10 +52,8 @@ export function generateInviteKey(role = 'teacher') {
 export function generateAdminLoginKey() {
   const letters = 'abcdefghijklmnopqrstuvwxyz'
   let prefix = ''
-  for (let i = 0; i < 3; i += 1) {
-    prefix += letters[Math.floor(Math.random() * letters.length)]
-  }
-  const digits = String(Math.floor(Math.random() * 1000)).padStart(3, '0')
+  for (let i = 0; i < 3; i += 1) prefix += letters[randomInt(0, letters.length)]
+  const digits = String(randomInt(0, 1000)).padStart(3, '0')
   return `${prefix}@${digits}`
 }
 

@@ -1,10 +1,9 @@
-import { getAuthUser } from '../utils/session'
+import { getApiAuthHeaders } from './apiAuth'
 
 const API = '/api/login-tracks'
 
 function authHeaders() {
-  const user = getAuthUser()
-  return { 'x-auth-email': user?.email || '' }
+  return getApiAuthHeaders()
 }
 
 async function parseResponse(res) {

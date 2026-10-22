@@ -7,7 +7,7 @@ import QRCode from 'qrcode'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
 import { fileURLToPath } from 'url'
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'path'
 import fs from 'fs'
 // Imported before vercelBlobStore.js on purpose: on Netlify this module
@@ -205,6 +205,27 @@ function signAuthPayload(payload) {
   return `${encoded}.${signature}`
 }
 
+/** Revocation guard: a token issued before the latest password change must die.
+ * Stamps are cached briefly per instance so requests do not pay a users.json read each time. */
+const PWD_STAMP_TTL_MS = 30 * 1000
+let pwdStampCache = { at: 0, map: new Map() }
+function passwordStampMap() {
+  if (Date.now() - pwdStampCache.at > PWD_STAMP_TTL_MS) {
+    pwdStampCache = {
+      at: Date.now(),
+      map: new Map(
+        readJsonFile(USERS_FILE, []).map((u) => [String(u.email).toLowerCase(), u.passwordChangedAt || 0]),
+      ),
+    }
+  }
+  return pwdStampCache.map
+}
+function passwordStampChanged(tokenUser) {
+  if (tokenUser.pwd === undefined) return false
+  const current = passwordStampMap().get(String(tokenUser.email).toLowerCase())
+  return (current || 0) !== (tokenUser.pwd || 0)
+}
+
 function requireRoles(...roles) {
   return (req, res, next) => {
     const header = String(req.get('authorization') || '')
@@ -241,6 +262,9 @@ function requireRoles(...roles) {
     }
     if (!user.id || !user.email || !user.role || user.expiresAt <= Date.now()) {
       return res.status(401).json({ error: 'Your sign-in session expired. Sign in again.' })
+    }
+    if (passwordStampChanged(user)) {
+      return res.status(401).json({ error: 'Your session was revoked by a password change. Sign in again.' })
     }
     if (roles.length && !roles.includes(user.role)) {
       return res.status(403).json({ error: 'Your account does not have access to this data.' })
@@ -491,6 +515,8 @@ function issueAuthToken(user) {
       id: user.id,
       email: user.email,
       role: user.role || 'admin',
+      pwd: user.passwordChangedAt || 0,
+      iat: Date.now(),
       expiresAt,
     }),
     user: {
@@ -504,6 +530,16 @@ function issueAuthToken(user) {
       ...(user.subscriptionPlan ? { subscriptionPlan: user.subscriptionPlan } : {}),
     },
   }
+}
+
+function accountBlocked(user) {
+  return Boolean(user.accountStatus) && user.accountStatus !== 'Active'
+}
+
+function accountBlockedMessage(user) {
+  return user.accountStatus === 'Pending approval'
+    ? 'Your school account is awaiting Super Admin approval and subscription assignment.'
+    : 'Your account has been rejected or deactivated. Contact your Super Admin.'
 }
 
 function ensureBootstrapSuperAdmin(users) {
@@ -583,7 +619,7 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     const otp = generateOtp()
-    const pendingToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    const pendingToken = randomBytes(12).toString('hex')
     const salt = bcrypt.genSaltSync(10)
     const passwordHash = bcrypt.hashSync(password, salt)
 
@@ -914,11 +950,11 @@ app.post('/api/auth/login', async (req, res) => {
       })
       return res.status(401).json({ error: 'Wrong password.' })
     }
-    if (user.accountStatus === 'Pending approval') return res.status(403).json({ error: 'Your school account is awaiting Super Admin approval and subscription assignment.' })
+    if (accountBlocked(user)) return res.status(403).json({ error: accountBlockedMessage(user) })
 
     const role = String(user.role || 'admin').toLowerCase()
     const isAdminLogin = role === 'admin' || role === 'super_admin'
-    const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    const loginToken = randomBytes(12).toString('hex')
 
     await trackLogin(req, {
       stage: 'login-attempt',
@@ -1089,8 +1125,8 @@ app.post('/api/auth/face-login', async (req, res) => {
       })
       return res.status(401).json({ error: 'Face matched but the linked staff account no longer exists. Contact your admin.' })
     }
-    if (user.accountStatus === 'Pending approval') {
-      return res.status(403).json({ error: 'Your school account is awaiting Super Admin approval and subscription assignment.' })
+    if (accountBlocked(user)) {
+      return res.status(403).json({ error: accountBlockedMessage(user) })
     }
 
     const role = String(user.role || '').toLowerCase()
@@ -1099,7 +1135,7 @@ app.post('/api/auth/face-login', async (req, res) => {
     }
 
     const isAdminLogin = role === 'admin' || role === 'super_admin'
-    const loginToken = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    const loginToken = randomBytes(12).toString('hex')
     const faceMatch = {
       name: match.profile.name || user.name || matchedEmail.split('@')[0],
       percent: match.percent,
@@ -1354,6 +1390,10 @@ app.post('/api/auth/login/verify', async (req, res) => {
       }
     }
 
+    if (accountBlocked(user)) {
+      return res.status(403).json({ error: accountBlockedMessage(user) })
+    }
+
     clearPending(key)
     const cleared = users.map((u) =>
       u.id === user.id
@@ -1501,16 +1541,15 @@ app.post('/api/auth/otp/resend', async (req, res) => {
   }
 })
 
-app.post('/api/auth/2fa/setup', async (req, res) => {
-  const { email } = req.body
-  if (!email) return res.status(400).json({ error: 'Email required' })
+app.post('/api/auth/2fa/setup', requireRoles(), async (req, res) => {
+  const email = String(req.authUser.email || '').trim().toLowerCase()
   const users = readJsonFile(join('data', 'users.json'), [])
-  const user = users.find((u) => u.email === email)
+  const user = users.find((u) => String(u.email).toLowerCase() === email)
   if (!user) return res.status(404).json({ error: 'User not found' })
 
   const secret = speakeasy.generateSecret({ length: 20, name: `SchoolSMS (${email})` })
   // store temp secret until verified
-  const updated = users.map((u) => (u.email === email ? { ...u, twoFactor: { ...(u.twoFactor || {}), tempSecret: secret.base32 } } : u))
+  const updated = users.map((u) => (String(u.email).toLowerCase() === email ? { ...u, twoFactor: { ...(u.twoFactor || {}), tempSecret: secret.base32 } } : u))
   writeJsonFile(join('data', 'users.json'), updated)
 
   const otpauth = secret.otpauth_url
@@ -1518,11 +1557,12 @@ app.post('/api/auth/2fa/setup', async (req, res) => {
   res.json({ otpauth, qrData, base32: secret.base32 })
 })
 
-app.post('/api/auth/2fa/verify', (req, res) => {
-  const { email, code, setup } = req.body
-  if (!email || !code) return res.status(400).json({ error: 'Email and code required' })
+app.post('/api/auth/2fa/verify', requireRoles(), (req, res) => {
+  const { code, setup } = req.body
+  const email = String(req.authUser.email || '').trim().toLowerCase()
+  if (!code) return res.status(400).json({ error: 'Email and code required' })
   const users = readJsonFile(join('data', 'users.json'), [])
-  const user = users.find((u) => u.email === email)
+  const user = users.find((u) => String(u.email).toLowerCase() === email)
   if (!user) return res.status(404).json({ error: 'User not found' })
 
   // Setup flow: verify against tempSecret then persist
@@ -1531,7 +1571,7 @@ app.post('/api/auth/2fa/verify', (req, res) => {
     if (!tempSecret) return res.status(400).json({ error: 'No 2FA setup in progress' })
     const verified = speakeasy.totp.verify({ secret: tempSecret, encoding: 'base32', token: String(code), window: 1 })
     if (!verified) return res.status(401).json({ error: 'Invalid code' })
-    const updated = users.map((u) => (u.email === email ? { ...u, twoFactor: { enabled: true, secret: tempSecret, method: 'authenticator' } } : u))
+    const updated = users.map((u) => (String(u.email).toLowerCase() === email ? { ...u, twoFactor: { enabled: true, secret: tempSecret, method: 'authenticator' } } : u))
     writeJsonFile(join('data', 'users.json'), updated)
     return res.json({ success: true })
   }
@@ -1540,33 +1580,29 @@ app.post('/api/auth/2fa/verify', (req, res) => {
   return res.status(400).json({ error: 'Authenticator login is not supported. Log in with email OTP.' })
 })
 
-app.post('/api/auth/2fa/disable', (req, res) => {
-  const { email, code } = req.body
-  if (!email || !code) return res.status(400).json({ error: 'Email and code required' })
+app.post('/api/auth/2fa/disable', requireRoles(), (req, res) => {
+  const { code } = req.body
+  const email = String(req.authUser.email || '').trim().toLowerCase()
+  if (!code) return res.status(400).json({ error: 'Email and code required' })
   const users = readJsonFile(join('data', 'users.json'), [])
-  const user = users.find((u) => u.email === email)
+  const user = users.find((u) => String(u.email).toLowerCase() === email)
   if (!user) return res.status(404).json({ error: 'User not found' })
   const secret = user.twoFactor && user.twoFactor.secret
   if (!secret) return res.status(400).json({ error: '2FA not configured' })
   const verified = speakeasy.totp.verify({ secret, encoding: 'base32', token: String(code), window: 1 })
   if (!verified) return res.status(401).json({ error: 'Invalid code' })
 
-  const updated = users.map((u) => (u.email === email ? { ...u, twoFactor: { enabled: false } } : u))
+  const updated = users.map((u) => (String(u.email).toLowerCase() === email ? { ...u, twoFactor: { enabled: false } } : u))
   writeJsonFile(join('data', 'users.json'), updated)
   res.json({ success: true })
 })
 
-/** Guard: x-auth-email header must belong to an admin or super admin */
+/** Guard: verified admin/super admin session token required (Bearer auth, role-checked) */
 function requireAdmin(req, res, next) {
-  const email = String(req.headers['x-auth-email'] || '').trim().toLowerCase()
-  if (!email) return res.status(401).json({ error: 'Missing x-auth-email header' })
-  const users = readJsonFile(join('data', 'users.json'), [])
-  const user = users.find((u) => String(u.email).toLowerCase() === email)
-  if (!user || !['admin', 'super_admin'].includes(String(user.role || '').toLowerCase())) {
-    return res.status(403).json({ error: 'Admin access required' })
-  }
-  req.adminUser = user
-  next()
+  requireRoles('admin', 'super_admin')(req, res, () => {
+    req.adminUser = req.authUser
+    next()
+  })
 }
 
 // Login Tracks — security audit of every login attempt (admin & super admin only)

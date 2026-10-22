@@ -1,3 +1,5 @@
+import { getApiAuthHeaders } from './apiAuth'
+
 const API = '/api/auth'
 
 async function parseResponse(res) {
@@ -122,10 +124,10 @@ export const resendOtp = async ({ email, purpose, pendingToken }) => {
   return body
 }
 
-export const twoFASetup = async ({ email }) => {
+export const twoFASetup = async ({ email } = {}) => {
   const res = await fetch(`${API}/2fa/setup`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ email }),
   })
   const body = await parseResponse(res)
@@ -133,10 +135,10 @@ export const twoFASetup = async ({ email }) => {
   return body
 }
 
-export const twoFAVerify = async ({ email, code, loginToken, setup }) => {
+export const twoFAVerify = async ({ email, code, loginToken, setup } = {}) => {
   const res = await fetch(`${API}/2fa/verify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ email, code, token: loginToken, setup }),
   })
   const body = await parseResponse(res)
@@ -162,10 +164,10 @@ export const clearSession = () => {
   }
 }
 
-export const twoFADisable = async ({ email, code }) => {
+export const twoFADisable = async ({ email, code } = {}) => {
   const res = await fetch(`${API}/2fa/disable`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ email, code }),
   })
   const body = await parseResponse(res)

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import fs from 'fs'
 import nodemailer from 'nodemailer'
+import { randomInt } from 'node:crypto'
 import { join } from 'node:path'
 import process from 'node:process'
 import { getDataDirectory } from './vercelBlobStore.js'
@@ -32,7 +33,7 @@ function writeJson(file, data) {
 }
 
 export function generateOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  return String(randomInt(100000, 1000000))
 }
 
 export function hashOtp(otp) {
