@@ -1,10 +1,12 @@
 {
+  "id": "/",
   "name": "SMS — School Management System",
   "short_name": "SMS",
   "description": "Premium school ERP for admissions, attendance, fees, academics and parent communication.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#eef1f8",
   "theme_color": "#1b2a55",
@@ -24,10 +26,16 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
