@@ -29,6 +29,8 @@ const requestContext = new AsyncLocalStorage()
 const originalWriteFileSync = fs.writeFileSync
 let writeTrackingInstalled = false
 let requestQueue = Promise.resolve()
+const BLOB_CACHE_TTL_MS = 4000
+const storeCache = { loadedAt: 0, etags: new Map() }
 
 if (isVercelRuntime) {
   process.env.DATA_DIR = dataDir
@@ -75,65 +77,112 @@ function installWriteTracking() {
   }
 }
 
+function localPathForBlob(pathname) {
+  const relativePath = pathname.slice(blobPrefix.length)
+  const localPath = resolve(dataDir, relativePath)
+  const localRelative = relative(dataDir, localPath)
+  if (
+    !localRelative ||
+    localRelative === '..' ||
+    localRelative.startsWith(`..${sep}`)
+  ) {
+    return null
+  }
+  return localPath
+}
+
+async function downloadBlob(blob, etags) {
+  const stored = await get(blob.pathname, { access: 'private', useCache: false })
+  if (!stored || stored.statusCode !== 200) {
+    throw new Error(`Could not read persistent data file "${blob.pathname}".`)
+  }
+  const localPath = localPathForBlob(blob.pathname)
+  if (!localPath) {
+    throw new Error('Vercel Blob returned an invalid data path.')
+  }
+  await fs.promises.mkdir(dirname(localPath), { recursive: true })
+  const bytes = Buffer.from(await new Response(stored.stream).arrayBuffer())
+  await fs.promises.writeFile(localPath, bytes)
+  etags.set(blob.pathname, blob.etag)
+}
+
+async function mapLimit(items, limit, fn) {
+  let nextIndex = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const item = items[nextIndex]
+      nextIndex += 1
+      await fn(item)
+    }
+  })
+  await Promise.all(workers)
+}
+
 async function loadBlobData() {
   if (!hasVercelBlobCredentials()) {
     throw new Error('Connect a private Vercel Blob store to this project before using the API.')
   }
 
-  await fs.promises.rm(dataDir, { recursive: true, force: true })
-  await fs.promises.mkdir(dataDir, { recursive: true })
+  // Warm instances serve from memory; only a list() + changed blobs otherwise.
+  if (storeCache.loadedAt && Date.now() - storeCache.loadedAt < BLOB_CACHE_TTL_MS) {
+    return new Map(storeCache.etags)
+  }
+
+  if (!storeCache.loadedAt) {
+    await fs.promises.rm(dataDir, { recursive: true, force: true })
+    await fs.promises.mkdir(dataDir, { recursive: true })
+  }
 
   const etags = new Map()
+  const changed = []
   let cursor
   do {
     const page = await list({ prefix: blobPrefix, limit: 1000, cursor })
     for (const blob of page.blobs) {
-      const stored = await get(blob.pathname, { access: 'private', useCache: false })
-      if (!stored || stored.statusCode !== 200) {
-        throw new Error(`Could not read persistent data file "${blob.pathname}".`)
-      }
-      const relativePath = blob.pathname.slice(blobPrefix.length)
-      const localPath = resolve(dataDir, relativePath)
-      const localRelative = relative(dataDir, localPath)
+      const localPath = localPathForBlob(blob.pathname)
       if (
-        !localRelative ||
-        localRelative === '..' ||
-        localRelative.startsWith(`..${sep}`)
+        localPath &&
+        storeCache.etags.get(blob.pathname) === blob.etag &&
+        fs.existsSync(localPath)
       ) {
-        throw new Error('Vercel Blob returned an invalid data path.')
+        etags.set(blob.pathname, blob.etag)
+        continue
       }
-      await fs.promises.mkdir(dirname(localPath), { recursive: true })
-      const bytes = Buffer.from(await new Response(stored.stream).arrayBuffer())
-      await fs.promises.writeFile(localPath, bytes)
-      etags.set(blob.pathname, blob.etag)
+      changed.push(blob)
     }
     cursor = page.hasMore ? page.cursor : undefined
   } while (cursor)
 
-  return etags
+  await mapLimit(changed, 6, (blob) => downloadBlob(blob, etags))
+  storeCache.loadedAt = Date.now()
+  storeCache.etags = etags
+  return new Map(etags)
 }
 
 async function persistBlobWrites(context) {
-  for (const [pathname, file] of context.writes) {
-    const etag = context.etags.get(pathname)
-    try {
-      const blob = await put(pathname, file.body, {
-        access: 'private',
-        addRandomSuffix: false,
-        allowOverwrite: Boolean(etag),
-        contentType: 'application/json',
-        ...(etag ? { ifMatch: etag } : {}),
-      })
-      context.etags.set(pathname, blob.etag)
-    } catch (error) {
-      if (error instanceof BlobPreconditionFailedError) {
-        const conflict = new Error('Data changed during this request. Nothing was overwritten; reload and try again.')
-        conflict.status = 409
-        throw conflict
+  await Promise.all(
+    [...context.writes].map(async ([pathname, file]) => {
+      const etag = context.etags.get(pathname)
+      try {
+        const blob = await put(pathname, file.body, {
+          access: 'private',
+          addRandomSuffix: false,
+          allowOverwrite: Boolean(etag),
+          contentType: 'application/json',
+          ...(etag ? { ifMatch: etag } : {}),
+        })
+        context.etags.set(pathname, blob.etag)
+        storeCache.etags.set(pathname, blob.etag)
+      } catch (error) {
+        if (error instanceof BlobPreconditionFailedError) {
+          const conflict = new Error('Data changed during this request. Nothing was overwritten; reload and try again.')
+          conflict.status = 409
+          throw conflict
+        }
+        throw error
       }
-      throw error
-    }
-  }
+    }),
+  )
   context.writes.clear()
 }
 
