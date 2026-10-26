@@ -1057,3 +1057,96 @@
     box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
   }
 }
+
+/* Floating auth notification — sits above the card so the panel never resizes */
+
+.auth-notice {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(520px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(10, 18, 41, 0.24);
+  animation: auth-notice-in 220ms cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.auth-notice p {
+  flex: 1;
+  margin: 0;
+  max-height: 32vh;
+  overflow-y: auto;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.auth-notice__dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.auth-notice--error {
+  border-color: #f2d2d2;
+  background: #fff5f4;
+  color: #a53333;
+}
+
+.auth-notice--error .auth-notice__dot {
+  background: #e05252;
+}
+
+.auth-notice--success {
+  border-color: #cceade;
+  background: #f0faf5;
+  color: #187250;
+}
+
+.auth-notice--success .auth-notice__dot {
+  background: #17b398;
+}
+
+.auth-notice__close {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1.1;
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.auth-notice__close:hover {
+  opacity: 1;
+}
+
+@keyframes auth-notice-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-notice {
+    animation: none;
+  }
+}

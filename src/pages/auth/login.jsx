@@ -373,6 +373,12 @@ const LoginPage = () => {
     <AuthShell
       mode="login"
       stageClassName={otpStep || faceSetup || attendance ? 'auth-stage--login-verify' : ''}
+      notice={error || info}
+      noticeTone={error ? 'error' : 'success'}
+      onNoticeClose={() => {
+        setError('')
+        setInfo('')
+      }}
       kicker="Secure sign in"
       title={
         attendance
@@ -498,9 +504,6 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          {error ? <div className="auth-error">{error}</div> : null}
-          {info ? <div className="auth-success">{info}</div> : null}
-
           <button className="auth-submit" type="submit" disabled={loading}>
             {loading ? 'Checking credentials…' : 'Continue'}
           </button>
@@ -605,9 +608,6 @@ const LoginPage = () => {
               Use a different account
             </button>
           </div>
-
-          {error ? <div className="auth-error">{error}</div> : null}
-          {info ? <div className="auth-success">{info}</div> : null}
 
           <button className="auth-submit" type="submit" disabled={loading || !canVerify}>
             {loading ? 'Verifying…' : isAdminDual ? 'Verify both & sign in' : 'Verify OTP & sign in'}

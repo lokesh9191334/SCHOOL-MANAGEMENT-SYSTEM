@@ -9,9 +9,32 @@ export default function AuthShell({
   footer,
   mode = 'login',
   stageClassName = '',
+  notice = '',
+  noticeTone = 'error',
+  onNoticeClose,
 }) {
   return (
     <div className={`auth-stage auth-stage--${mode} ${stageClassName}`.trim()}>
+      {notice ? (
+        <div
+          key={`${noticeTone}:${notice}`}
+          className={`auth-notice auth-notice--${noticeTone}`}
+          role={noticeTone === 'error' ? 'alert' : 'status'}
+        >
+          <span className="auth-notice__dot" aria-hidden="true" />
+          <p>{notice}</p>
+          {onNoticeClose ? (
+            <button
+              type="button"
+              className="auth-notice__close"
+              onClick={onNoticeClose}
+              aria-label="Dismiss notification"
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <section className={`auth-form-pane auth-form-pane--solo auth-form-pane--${mode}`}>
         <div className="auth-form-card">
           <header className="auth-form-head">
