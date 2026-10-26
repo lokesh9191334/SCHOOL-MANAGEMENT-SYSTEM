@@ -36,6 +36,19 @@ body {
   color: #202020;
 }
 
+@media (max-width: 1024px) {
+  /* Fixed backgrounds force full-screen repaints on phone GPUs and make the
+     shell appear to shake while scrolling; pin the gradient to the page. */
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+}
+
 .page-card,
 .panel-card,
 .stat-card,

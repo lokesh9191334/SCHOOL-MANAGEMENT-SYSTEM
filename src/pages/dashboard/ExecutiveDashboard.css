@@ -1100,3 +1100,11 @@ html.sms-dark .exec-donut {
     min-height: 130px;
   }
 }
+
+@media (max-width: 1024px) {
+  .exec-btn,
+  .exec-toast {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

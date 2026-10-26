@@ -252,12 +252,11 @@
   transition:
     transform 480ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 480ms ease;
-  will-change: transform, opacity;
 }
 
 .sms-route-panel.is-visible {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
+  transform: none;
 }
 
 .sms-topbar {
@@ -779,11 +778,27 @@
 
   .sms-outlet {
     padding-bottom: 4px;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .sms-main {
     gap: 10px;
     min-height: 0;
+  }
+
+  /* Mobile GPUs shimmer with live backdrop blur over a fixed gradient — use
+     solid surfaces on phones and keep the scroll area contained. */
+  .sms-topbar,
+  .sms-mobile-dock {
+    background: #ffffff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .sms-nav-backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 
