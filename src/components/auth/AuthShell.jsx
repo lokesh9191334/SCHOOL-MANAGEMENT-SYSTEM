@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import BrandMark from '../BrandMark.jsx'
 
 export default function AuthShell({
   kicker = 'Secure access',
@@ -15,8 +16,11 @@ export default function AuthShell({
         <div className="auth-form-card">
           <header className="auth-form-head">
             <div className="auth-mini-brand">
-              <div className="auth-mini-mark">SMS</div>
-              <p className="admin-kicker">{kicker}</p>
+              <BrandMark className="auth-mini-mark" size={46} />
+              <div className="auth-mini-text">
+                <strong>SMS</strong>
+                <p className="admin-kicker">{kicker}</p>
+              </div>
             </div>
             {title ? <h2>{title}</h2> : null}
             {subtitle ? <p>{subtitle}</p> : null}

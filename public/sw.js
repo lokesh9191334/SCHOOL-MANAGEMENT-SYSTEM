@@ -1,6 +1,14 @@
 /* SMS Progressive Web App service worker */
-const CACHE_VERSION = 'sms-shell-v3'
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png']
+const CACHE_VERSION = 'sms-shell-v4'
+const SHELL_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/brand/sms-mark.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/apple-touch-icon.png',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

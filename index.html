@@ -18,11 +18,224 @@
     <meta name="application-name" content="SMS" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/brand/sms-mark.svg" />
     <link rel="icon" type="image/png" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preload" as="image" href="/brand/sms-mark.svg" />
     <title>SMS</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a1229;
+      }
+
+      .boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 34%, #243f7d 0%, #152754 52%, #0a1229 100%);
+        transition: opacity 0.48s ease, visibility 0.48s ease;
+      }
+
+      .boot-splash--hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .boot-splash__aura {
+        position: absolute;
+        width: min(72vw, 420px);
+        height: min(72vw, 420px);
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(233, 189, 99, 0.18) 0%, rgba(233, 189, 99, 0) 62%);
+        animation: bs-breathe 3.2s ease-in-out infinite;
+      }
+
+      .boot-splash__mark {
+        width: clamp(104px, 26vw, 136px);
+        height: auto;
+        border-radius: 30px;
+        box-shadow: 0 26px 60px rgba(0, 0, 0, 0.45);
+        animation: bs-rise 0.7s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+      }
+
+      .boot-splash__name {
+        margin-top: 22px;
+        font: 800 clamp(30px, 7vw, 38px) / 1 Inter, 'Segoe UI', Arial, sans-serif;
+        letter-spacing: 0.22em;
+        text-indent: 0.22em;
+        background: linear-gradient(180deg, #ffffff, #dbe6ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: bs-rise 0.7s 0.08s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+      }
+
+      .boot-splash__tagline {
+        margin-top: 8px;
+        font: 600 clamp(10px, 2.6vw, 12px) / 1.4 Inter, 'Segoe UI', Arial, sans-serif;
+        letter-spacing: 0.3em;
+        text-indent: 0.3em;
+        text-transform: uppercase;
+        color: rgba(233, 189, 99, 0.92);
+        animation: bs-rise 0.7s 0.16s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+      }
+
+      .boot-splash__track {
+        margin-top: 26px;
+        width: 112px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        overflow: hidden;
+        animation: bs-rise 0.7s 0.24s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+      }
+
+      .boot-splash__track span {
+        display: block;
+        width: 44px;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, #e9bd63, transparent);
+        animation: bs-slide 1.25s ease-in-out infinite;
+      }
+
+      @keyframes bs-rise {
+        from {
+          opacity: 0;
+          transform: translateY(12px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @keyframes bs-breathe {
+        0%,
+        100% {
+          opacity: 0.55;
+          transform: scale(0.96);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.04);
+        }
+      }
+
+      @keyframes bs-slide {
+        0% {
+          transform: translateX(-48px);
+        }
+        100% {
+          transform: translateX(112px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-splash * {
+          animation: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot-splash" class="boot-splash" aria-hidden="true">
+      <div class="boot-splash__aura"></div>
+      <svg class="boot-splash__mark" viewBox="0 0 1024 1024" role="presentation">
+        <defs>
+          <radialGradient id="bsBg" cx="50%" cy="32%" r="80%">
+            <stop offset="0%" stop-color="#25407e" />
+            <stop offset="52%" stop-color="#152754" />
+            <stop offset="100%" stop-color="#0a1229" />
+          </radialGradient>
+          <linearGradient id="bsShield" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#243d78" />
+            <stop offset="100%" stop-color="#101f4a" />
+          </linearGradient>
+          <linearGradient id="bsGold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f9e3a6" />
+            <stop offset="45%" stop-color="#e9bd63" />
+            <stop offset="100%" stop-color="#c7922f" />
+          </linearGradient>
+          <linearGradient id="bsGoldDeep" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#c99a3c" />
+            <stop offset="100%" stop-color="#a0741f" />
+          </linearGradient>
+          <linearGradient id="bsGoldSoft" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f4d68c" />
+            <stop offset="100%" stop-color="#d3a03c" />
+          </linearGradient>
+          <linearGradient id="bsWhite" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#dbe6ff" />
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" rx="210" fill="url(#bsBg)" />
+        <rect
+          x="12"
+          y="12"
+          width="1000"
+          height="1000"
+          rx="200"
+          fill="none"
+          stroke="#ffffff"
+          stroke-opacity="0.10"
+          stroke-width="3"
+        />
+        <path
+          d="M288 284 L736 284 Q760 512 702 612 Q646 712 512 832 Q378 712 322 612 Q264 512 288 284 Z"
+          fill="url(#bsShield)"
+          stroke="url(#bsGold)"
+          stroke-width="16"
+          stroke-linejoin="round"
+        />
+        <ellipse cx="512" cy="352" rx="138" ry="22" fill="#000000" opacity="0.18" />
+        <polygon points="512,174 736,256 512,338 288,256" fill="url(#bsGold)" />
+        <polygon points="288,256 512,338 736,256 736,278 512,360 288,278" fill="url(#bsGoldDeep)" />
+        <path d="M416 314 Q512 288 608 314 L608 352 Q512 390 416 352 Z" fill="url(#bsGoldSoft)" />
+        <path
+          d="M736 256 Q776 302 768 368"
+          fill="none"
+          stroke="url(#bsGold)"
+          stroke-width="10"
+          stroke-linecap="round"
+        />
+        <circle cx="768" cy="384" r="16" fill="url(#bsGold)" />
+        <text
+          x="517"
+          y="574"
+          text-anchor="middle"
+          font-family="Inter, 'Segoe UI', Arial, sans-serif"
+          font-size="136"
+          font-weight="900"
+          letter-spacing="8"
+          fill="url(#bsWhite)"
+        >
+          SMS
+        </text>
+        <rect x="414" y="626" width="196" height="5" rx="2.5" fill="url(#bsGold)" />
+        <rect
+          x="501"
+          y="615"
+          width="22"
+          height="22"
+          rx="4"
+          transform="rotate(45 512 626)"
+          fill="url(#bsGold)"
+        />
+      </svg>
+      <div class="boot-splash__name">SMS</div>
+      <div class="boot-splash__tagline">School Management System</div>
+      <div class="boot-splash__track"><span></span></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

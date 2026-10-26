@@ -40,17 +40,25 @@
 }
 
 .auth-mini-mark {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-size: 0.78rem;
+  display: block;
+  flex: 0 0 auto;
+  box-shadow: 0 10px 24px rgba(9, 17, 40, 0.28);
+}
+
+.auth-mini-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-mini-text strong {
+  color: #172033;
+  font-size: 1rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #fff;
-  background: linear-gradient(135deg, #1b2a55, #4157ff);
-  box-shadow: 0 10px 22px rgba(65, 87, 255, 0.22);
+  letter-spacing: 0.18em;
 }
 
 .auth-form-head h2 {
@@ -408,14 +416,6 @@
 
 .auth-mini-brand {
   margin-bottom: 5px;
-}
-
-.auth-mini-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 13px;
-  background: linear-gradient(145deg, #172554, #4f66f5);
-  box-shadow: 0 8px 18px rgba(65, 87, 255, 0.2);
 }
 
 .auth-stage .admin-kicker {

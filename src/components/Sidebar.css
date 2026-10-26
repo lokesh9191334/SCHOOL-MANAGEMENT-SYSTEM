@@ -24,12 +24,18 @@
 .brand-logo {
   width: 52px;
   height: 52px;
-  border-radius: 12px;
-  background: #2563eb;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 18px;
+  border-radius: 14px;
+  display: block;
+  flex: 0 0 auto;
+  box-shadow: 0 10px 24px rgba(6, 12, 30, 0.45);
+}
+
+.brand-text strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #f4f7ff;
 }
 
 .brand-text small {
@@ -153,8 +159,7 @@
   .app-sidebar.collapsed .brand-logo {
     width: 40px;
     height: 40px;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 11px;
   }
 
   @media (max-width: 900px) {

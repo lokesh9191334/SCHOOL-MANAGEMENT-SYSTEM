@@ -18,6 +18,20 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
+const bootSplash = document.getElementById('boot-splash')
+if (bootSplash) {
+  const MIN_SPLASH_MS = 700
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const wait = Math.max(0, MIN_SPLASH_MS - performance.now())
+      window.setTimeout(() => {
+        bootSplash.classList.add('boot-splash--hide')
+        window.setTimeout(() => bootSplash.remove(), 520)
+      }, wait)
+    }),
+  )
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {

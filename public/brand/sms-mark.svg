@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="SMS school crest">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#25407e"/>
+      <stop offset="52%" stop-color="#152754"/>
+      <stop offset="100%" stop-color="#0a1229"/>
+    </radialGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#243d78"/>
+      <stop offset="100%" stop-color="#101f4a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f9e3a6"/>
+      <stop offset="45%" stop-color="#e9bd63"/>
+      <stop offset="100%" stop-color="#c7922f"/>
+    </linearGradient>
+    <linearGradient id="goldDeep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c99a3c"/>
+      <stop offset="100%" stop-color="#a0741f"/>
+    </linearGradient>
+    <linearGradient id="goldSoft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f4d68c"/>
+      <stop offset="100%" stop-color="#d3a03c"/>
+    </linearGradient>
+    <linearGradient id="white" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#dbe6ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="210" fill="url(#bg)"/>
+  <rect x="12" y="12" width="1000" height="1000" rx="200" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="3"/>
+
+  <path d="M288 284 L736 284 Q760 512 702 612 Q646 712 512 832 Q378 712 322 612 Q264 512 288 284 Z" fill="url(#shield)" stroke="url(#gold)" stroke-width="16" stroke-linejoin="round"/>
+
+  <ellipse cx="512" cy="352" rx="138" ry="22" fill="#000000" opacity="0.18"/>
+
+  <polygon points="512,174 736,256 512,338 288,256" fill="url(#gold)"/>
+  <polygon points="288,256 512,338 736,256 736,278 512,360 288,278" fill="url(#goldDeep)"/>
+  <path d="M416 314 Q512 288 608 314 L608 352 Q512 390 416 352 Z" fill="url(#goldSoft)"/>
+  <path d="M736 256 Q776 302 768 368" fill="none" stroke="url(#gold)" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="768" cy="384" r="16" fill="url(#gold)"/>
+
+  <text x="517" y="574" text-anchor="middle" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="136" font-weight="900" letter-spacing="8" fill="url(#white)">SMS</text>
+
+  <rect x="414" y="626" width="196" height="5" rx="2.5" fill="url(#gold)"/>
+  <rect x="501" y="615" width="22" height="22" rx="4" transform="rotate(45 512 626)" fill="url(#gold)"/>
+</svg>

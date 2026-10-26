@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import BrandMark from './BrandMark.jsx'
 import './Sidebar.css'
 
 const Sidebar = ({ sections = [], collapsed = false }) => {
@@ -37,10 +38,10 @@ const Sidebar = ({ sections = [], collapsed = false }) => {
   return (
     <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-brand">
-        <div className="brand-logo">SM</div>
+        <BrandMark className="brand-logo" size={52} />
         <div className="brand-text">
-          <strong>SchoolSMS</strong>
-          <small>Management</small>
+          <strong>SMS</strong>
+          <small>School Management</small>
         </div>
       </div>
 
