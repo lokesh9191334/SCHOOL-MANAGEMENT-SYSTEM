@@ -1,13 +1,13 @@
 /* SMS Progressive Web App service worker */
-const CACHE_VERSION = 'sms-shell-v4'
+const CACHE_VERSION = 'sms-shell-v5'
 const SHELL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/brand/sms-mark.svg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/apple-touch-icon.png',
+  '/icons/sms-crest-192.png',
+  '/icons/sms-crest-512.png',
+  '/apple-touch-icon-sms.png',
 ]
 
 self.addEventListener('install', (event) => {
@@ -38,6 +38,9 @@ self.addEventListener('fetch', (event) => {
 
   // Never cache API / auth traffic
   if (url.pathname.startsWith('/api/')) return
+
+  // Manifest + service worker must always come fresh from the network
+  if (url.pathname === '/manifest.json' || url.pathname === '/sw.js') return
 
   // App shell: network-first for navigations, cache fallback offline
   if (request.mode === 'navigate') {

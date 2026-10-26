@@ -86,7 +86,7 @@ export default function InstallApp() {
   return (
     <div className="sms-install" role="dialog" aria-label="Install SMS app">
       <div className="sms-install__icon" aria-hidden>
-        <img src="/icons/icon-192.png" alt="" width="44" height="44" />
+        <img src="/icons/sms-crest-192.png" alt="" width="44" height="44" />
       </div>
       <div className="sms-install__copy">
         <strong>Install SMS on this phone</strong>
