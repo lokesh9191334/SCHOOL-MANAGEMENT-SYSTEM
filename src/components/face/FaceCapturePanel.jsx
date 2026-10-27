@@ -4,11 +4,31 @@ import {
   detectFaceDescriptor,
   descriptorDistance,
   captureThumb,
+  listCameras,
   startCamera,
   stopCamera,
   describeCameraError,
   scaleBox,
 } from '../../utils/faceEngine'
+
+const CAMERA_KEY = 'sms.faceCameraId'
+
+const readSavedCamera = () => {
+  try {
+    return window.localStorage.getItem(CAMERA_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+const saveCamera = (deviceId) => {
+  try {
+    if (deviceId) window.localStorage.setItem(CAMERA_KEY, deviceId)
+    else window.localStorage.removeItem(CAMERA_KEY)
+  } catch {
+    /* storage blocked — choice lasts for this visit */
+  }
+}
 
 const SAMPLE_COUNT = 3
 const SAMPLE_MIN_GAP_MS = 900
@@ -33,6 +53,8 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
   const lastSampleAtRef = useRef(0)
   const submitRef = useRef(false)
   const aliveRef = useRef(true)
+  const switchSeqRef = useRef(0)
+  const cameraIdRef = useRef('')
 
   const [engineState, setEngineState] = useState('loading')
   const [engineNote, setEngineNote] = useState('')
@@ -41,6 +63,46 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
   const [box, setBox] = useState(null)
   const [count, setCount] = useState(0)
   const [softNote, setSoftNote] = useState('')
+  const [cameras, setCameras] = useState([])
+  const [cameraId, setCameraId] = useState(readSavedCamera)
+
+  useEffect(() => {
+    cameraIdRef.current = cameraId
+  }, [cameraId])
+
+  const refreshCameras = useCallback(async () => {
+    try {
+      const list = await listCameras()
+      if (!aliveRef.current) return
+      setCameras(list)
+      // Forget a saved camera that is no longer connected (Phone Link off, USB unplugged).
+      if (cameraIdRef.current && list.length && !list.some((cam) => cam.deviceId === cameraIdRef.current)) {
+        cameraIdRef.current = ''
+        saveCamera('')
+        setCameraId('')
+      }
+    } catch {
+      /* enumerateDevices can fail before permission — keep the old list */
+    }
+  }, [])
+
+  const pickCamera = useCallback((deviceId) => {
+    cameraIdRef.current = deviceId
+    saveCamera(deviceId)
+    setCameraId(deviceId)
+  }, [])
+
+  useEffect(() => {
+    // Deferred so the first device scan does not cascade a render mid-effect.
+    const timer = window.setTimeout(() => refreshCameras(), 0)
+    const media = navigator.mediaDevices
+    const onDeviceChange = () => refreshCameras()
+    media?.addEventListener?.('devicechange', onDeviceChange)
+    return () => {
+      window.clearTimeout(timer)
+      media?.removeEventListener?.('devicechange', onDeviceChange)
+    }
+  }, [refreshCameras])
 
   useEffect(() => {
     aliveRef.current = true
@@ -76,18 +138,63 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
     setCamError('')
     setPhase('starting')
     try {
-      const stream = await startCamera(videoRef.current)
+      let stream
+      try {
+        stream = await startCamera(videoRef.current, { deviceId: cameraIdRef.current })
+      } catch (err) {
+        if (!cameraIdRef.current) throw err
+        // Saved camera is gone — fall back to the default one instead of failing.
+        cameraIdRef.current = ''
+        saveCamera('')
+        setCameraId('')
+        stream = await startCamera(videoRef.current)
+      }
       if (!aliveRef.current) {
         stopCamera(stream, videoRef.current)
         return
       }
       streamRef.current = stream
       setPhase('scanning')
+      refreshCameras()
     } catch (err) {
       setCamError(describeCameraError(err))
       setPhase('idle')
     }
-  }, [engineState])
+  }, [engineState, refreshCameras])
+
+  // Switch between the laptop camera and the Phone Link camera while live.
+  const switchCamera = useCallback(
+    async (deviceId) => {
+      pickCamera(deviceId)
+      if (!streamRef.current) return
+      const seq = switchSeqRef.current + 1
+      switchSeqRef.current = seq
+      submitRef.current = false
+      samplesRef.current = []
+      setCount(0)
+      setBox(null)
+      setSoftNote('')
+      setCamError('')
+      stopCamera(streamRef.current, videoRef.current)
+      streamRef.current = null
+      setPhase('starting')
+      try {
+        const stream = await startCamera(videoRef.current, { deviceId })
+        if (seq !== switchSeqRef.current || !aliveRef.current) {
+          stopCamera(stream, videoRef.current)
+          return
+        }
+        streamRef.current = stream
+        setPhase('scanning')
+        refreshCameras()
+      } catch (err) {
+        if (seq !== switchSeqRef.current) return
+        setCamError(describeCameraError(err))
+        setPhase('idle')
+      }
+    },
+    [pickCamera, refreshCameras],
+  )
 
   // Capture 3 spaced frames, then hand them to the parent.
   useEffect(() => {
@@ -191,6 +298,25 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
           </div>
         ) : null}
       </div>
+
+      {cameras.length > 1 ? (
+        <label className="af-camera">
+          <span>Camera</span>
+          <select
+            value={cameraId}
+            onChange={(event) => switchCamera(event.target.value)}
+            disabled={phase === 'starting' || phase === 'submitting'}
+            aria-label="Choose which camera to use for face capture"
+          >
+            <option value="">Auto (default front camera)</option>
+            {cameras.map((cam) => (
+              <option key={cam.deviceId} value={cam.deviceId}>
+                {cam.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <div className="af-progress" aria-hidden="true">
         {Array.from({ length: SAMPLE_COUNT }, (_, i) => (

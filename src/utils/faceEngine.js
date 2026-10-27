@@ -133,13 +133,26 @@ export function describeCameraError(err) {
   return err?.message || 'Camera could not be started.'
 }
 
-export async function startCamera(videoEl, { facingMode = 'user' } = {}) {
+/** Video inputs on this device (laptop webcam, Phone Link camera, USB cam…). */
+export async function listCameras() {
+  if (!navigator.mediaDevices?.enumerateDevices) return []
+  const devices = await navigator.mediaDevices.enumerateDevices()
+  return devices
+    // Before camera permission Chrome lists placeholder entries with no id/label.
+    .filter((device) => device.kind === 'videoinput' && device.deviceId)
+    .map((device, index) => ({
+      deviceId: device.deviceId,
+      label: (device.label || '').trim() || `Camera ${index + 1}`,
+    }))
+}
+
+export async function startCamera(videoEl, { facingMode = 'user', deviceId = '' } = {}) {
   const supportIssue = cameraSupportError()
   if (supportIssue) throw new Error(supportIssue)
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode, width: { ideal: 720 }, height: { ideal: 540 } },
-    audio: false,
-  })
+  const constraints = deviceId
+    ? { deviceId: { exact: deviceId }, width: { ideal: 720 }, height: { ideal: 540 } }
+    : { facingMode, width: { ideal: 720 }, height: { ideal: 540 } }
+  const stream = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false })
   videoEl.srcObject = stream
   await videoEl.play().catch(() => {})
   return stream
