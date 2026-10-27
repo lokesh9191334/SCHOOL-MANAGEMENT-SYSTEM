@@ -103,8 +103,9 @@ function bestDistanceExcluding(descriptor, profiles, excludedEmail) {
 
 /**
  * Live-capture guard shared by enrollment and login: the submitted frames must
- * look like they came from a real camera session. Identical vectors = replayed
- * capture; wildly different vectors = frames of different moments/people.
+ * look like they came from a real camera session. Static means every pair is
+ * near-identical (frozen/replayed capture) — one close pair among live frames
+ * is normal; wildly different vectors mean different moments/people.
  */
 export function assertLiveFrames(descriptors, { min = MIN_INTER_FRAME_DISTANCE, max = MAX_INTER_FRAME_DISTANCE } = {}) {
   const list = (Array.isArray(descriptors) ? descriptors : []).filter(isValidDescriptor)
@@ -120,7 +121,7 @@ export function assertLiveFrames(descriptors, { min = MIN_INTER_FRAME_DISTANCE, 
       if (distance > maxPair) maxPair = distance
     }
   }
-  if (minPair < min) {
+  if (maxPair < min) {
     return {
       ok: false,
       reason: 'static',

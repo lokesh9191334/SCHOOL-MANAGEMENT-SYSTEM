@@ -237,10 +237,16 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
             setSoftNote('Frames look inconsistent — stay steady, alone in the frame, and keep looking at the camera.')
             return
           }
-          if (minPair < MIN_INTER_FRAME) {
+          // Static only when EVERY pair is near-identical (frozen/replayed
+          // frames). One close pair among live frames is normal.
+          if (maxPair < MIN_INTER_FRAME) {
             samplesRef.current = []
             setCount(0)
-            setSoftNote('Capture looks static — move naturally (blink, smile slightly) while it re-captures.')
+            setSoftNote(
+              minPair === 0
+                ? 'Camera frames look frozen — move slightly and look at the camera. If it repeats, choose another camera from the dropdown above.'
+                : 'Capture looks static — move naturally (blink, smile slightly) while it re-captures.',
+            )
             return
           }
           submitRef.current = true
