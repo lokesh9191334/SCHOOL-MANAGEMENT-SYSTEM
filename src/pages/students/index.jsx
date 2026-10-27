@@ -105,12 +105,6 @@ const StudentsPage = () => {
   const selected = students.find((s) => s.id === selectedId) ?? filteredStudents[0] ?? null
   const profileStudent = students.find((s) => s.id === profileId) ?? null
 
-  useEffect(() => {
-    if (!selectedId && filteredStudents[0]) {
-      setSelectedId(filteredStudents[0].id)
-    }
-  }, [filteredStudents, selectedId])
-
   const updateStatus = async (id, status) => {
     const next = students.map((student) =>
       student.id === id ? { ...student, status, tone: toneForStatus(status) } : student,
@@ -423,7 +417,10 @@ const StudentsPage = () => {
                     <Link className="sl-btn sl-btn-secondary sl-btn-sm" to="/attendance">
                       Attendance
                     </Link>
-                    <Link className="sl-btn sl-btn-secondary sl-btn-sm" to="/students/id-card">
+                    <Link
+                      className="sl-btn sl-btn-secondary sl-btn-sm"
+                      to={`/students/id-card?student=${encodeURIComponent(selected.id)}`}
+                    >
                       ID card
                     </Link>
                     <Link className="sl-btn sl-btn-secondary sl-btn-sm" to="/examination/results">

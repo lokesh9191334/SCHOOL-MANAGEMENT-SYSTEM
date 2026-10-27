@@ -59,7 +59,13 @@ export function trailPoint(fix) {
 }
 
 /** Speed above which a bus trip is flagged to admins. */
-export const OVERSPEED_LIMIT_KMH = Number(process.env.OVERSPEED_LIMIT_KMH) >= 20 ? Number(process.env.OVERSPEED_LIMIT_KMH) : 60
+export const OVERSPEED_LIMIT_KMH = Number(process.env.OVERSPEED_LIMIT_KMH) >= 20 ? Number(process.env.OVERSPEED_LIMIT_KMH) : 55
+/** No school bus genuinely reaches this; anything above is a GPS artifact, not a real reading. */
+export const MAX_PLAUSIBLE_SPEED_KMH = 120
+/** Derived speed is only trusted with a tight accuracy and a sane gap between pings. */
+const DERIVED_MIN_GAP_SEC = 5
+const DERIVED_MAX_GAP_SEC = 120
+const DERIVED_MAX_ACCURACY_M = 50
 /** A repeat detection within this window updates the open alert instead of raising a new one. */
 export const OVERSPEED_EVENT_WINDOW_MS = 5 * 60 * 1000
 /** Below-limit movement for this long marks an open alert as ended. */
@@ -76,15 +82,20 @@ export function haversineMeters(a, b) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
-/** Trust the phone's GPS speed; when missing, derive it from the last two pings. */
+/** Trust the phone's GPS speed; when missing, derive it from the last two pings.
+    Unreliable readings return null so admins see “—” rather than a fake speed. */
 export function effectiveSpeedKmh(fix, prev) {
-  if (fix.speed != null && Number.isFinite(Number(fix.speed))) return Number(fix.speed) * 3.6
+  if (fix.speed != null && Number.isFinite(Number(fix.speed))) {
+    const kmh = Number(fix.speed) * 3.6
+    return kmh <= MAX_PLAUSIBLE_SPEED_KMH ? kmh : null
+  }
   if (!prev || !Number.isFinite(Number(prev.lat)) || !Number.isFinite(Number(prev.lng))) return null
   const prevAt = Date.parse(prev.at || '')
   if (!Number.isFinite(prevAt)) return null
   const dtSec = (Date.now() - prevAt) / 1000
-  if (dtSec < 2 || dtSec > 180) return null
+  if (dtSec < DERIVED_MIN_GAP_SEC || dtSec > DERIVED_MAX_GAP_SEC) return null
   const accuracy = Number(fix.accuracy)
-  if (Number.isFinite(accuracy) && accuracy > 100) return null
-  return (haversineMeters(prev, fix) / dtSec) * 3.6
+  if (!Number.isFinite(accuracy) || accuracy > DERIVED_MAX_ACCURACY_M) return null
+  const kmh = (haversineMeters(prev, fix) / dtSec) * 3.6
+  return kmh <= MAX_PLAUSIBLE_SPEED_KMH ? kmh : null
 }

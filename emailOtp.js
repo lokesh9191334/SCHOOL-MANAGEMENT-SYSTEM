@@ -342,23 +342,38 @@ export async function sendOverspeedAlertEmail({ to, event }) {
       <td style="padding:10px 14px;color:#111b33;font-size:13px;font-weight:600;border-bottom:1px solid #faf3e6">${value}</td>
     </tr>`
 
+  // The speed warning is raised at the reading that crossed the limit; the peak may come from a later ping.
+  const triggerKmh = event?.triggerKmh ?? event?.speedKmh ?? '—'
+  const latestKmh = event?.lastKmh ?? triggerKmh
+  const peakKmh = event?.speedKmh ?? triggerKmh
+  const accuracy = Number.isFinite(Number(event?.accuracy)) ? Math.round(Number(event.accuracy)) : null
+  const measuredBy =
+    event?.speedSource === 'gps'
+      ? `Phone GPS${accuracy != null ? ` (±${accuracy} m)` : ''}`
+      : event?.speedSource === 'derived'
+        ? `Calculated from GPS positions${accuracy != null ? ` (±${accuracy} m)` : ''}`
+        : 'GPS'
+
   const html = `<!doctype html>
 <html><body style="font-family:Segoe UI,Arial,sans-serif;background:#fdf7ef;padding:24px">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:0;border:1px solid #f3e2c4;overflow:hidden">
     <div style="background:#92400e;padding:22px 28px">
       <p style="margin:0;color:#fde8c0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">SMS · Bus Safety Alert</p>
-      <h2 style="margin:6px 0 0;color:#fff;font-size:20px">Overspeed: ${escapeHtml(event?.speedKmh ?? '—')} km/h (limit ${escapeHtml(event?.limitKmh ?? 60)})</h2>
+      <h2 style="margin:6px 0 0;color:#fff;font-size:20px">Overspeed: ${escapeHtml(triggerKmh)} km/h (limit ${escapeHtml(event?.limitKmh ?? 55)})</h2>
     </div>
     <div style="padding:22px 28px">
       <p style="color:#5c6b8c;line-height:1.5;margin:0 0 16px">
-        A school bus crossed the ${escapeHtml(event?.limitKmh ?? 60)} km/h safety limit during live tracking. Please follow up with the driver.
+        A school bus crossed the ${escapeHtml(event?.limitKmh ?? 55)} km/h safety limit during live tracking. Speeds below are the real GPS readings from the driver's phone at the time of the alert.
       </p>
       <table style="width:100%;border-collapse:collapse;border:1px solid #faf3e6;border-radius:12px;overflow:hidden">
         ${row('Bus / vehicle', escapeHtml(event?.busNo || '—'))}
         ${row('Driver', escapeHtml(event?.driverName || '—'))}
         ${row('Driver phone', escapeHtml(event?.phone || '—'))}
         ${row('Route', escapeHtml(event?.routeLabel || '—'))}
-        ${row('Top speed', escapeHtml(`${event?.speedKmh ?? '—'} km/h`))}
+        ${row('Speed at alert', escapeHtml(`${triggerKmh} km/h`))}
+        ${row('Latest speed', escapeHtml(`${latestKmh} km/h`))}
+        ${row('Peak in this window', escapeHtml(`${peakKmh} km/h`))}
+        ${row('Measured by', escapeHtml(measuredBy))}
         ${row('Started at', escapeHtml(event?.startedAtIST || '—'))}
         ${row('Last seen', escapeHtml(`${event?.lastAtIST || '—'} (${event?.pingCount ?? 1} speeding pings)`))}
         ${row('Location', escapeHtml(event?.lat != null ? `${Number(event.lat).toFixed(5)}, ${Number(event.lng).toFixed(5)}` : '—'))}
@@ -375,7 +390,10 @@ export async function sendOverspeedAlertEmail({ to, event }) {
     `Bus/vehicle: ${event?.busNo || '—'}`,
     `Driver: ${event?.driverName || '—'} (${event?.phone || 'no phone'})`,
     `Route: ${event?.routeLabel || '—'}`,
-    `Top speed: ${event?.speedKmh ?? '—'} km/h (limit ${event?.limitKmh ?? 60})`,
+    `Speed at alert: ${triggerKmh} km/h (limit ${event?.limitKmh ?? 55})`,
+    `Latest speed: ${latestKmh} km/h`,
+    `Peak in this window: ${peakKmh} km/h`,
+    `Measured by: ${measuredBy}`,
     `Started at: ${event?.startedAtIST || '—'} IST`,
     `Last seen: ${event?.lastAtIST || '—'} IST`,
     event?.lat != null ? `Location: ${Number(event.lat).toFixed(5)}, ${Number(event.lng).toFixed(5)}` : '',
@@ -388,7 +406,7 @@ export async function sendOverspeedAlertEmail({ to, event }) {
   try {
     const mail = await deliverMail({
       to,
-      subject: `SMS Bus Alert · Overspeed ${event?.speedKmh ?? '—'} km/h — ${event?.busNo || 'Bus'}`,
+      subject: `SMS Bus Alert · Overspeed ${triggerKmh} km/h — ${event?.busNo || 'Bus'}`,
       html,
       text,
       demoCode: null,
@@ -556,6 +574,7 @@ export async function sendEventEmail({
   publishedByName,
 }) {
   const typeLabels = {
+    holiday: 'School Holiday',
     ptm: 'Parent-Teacher Meeting',
     festival: 'Festival',
     cultural: 'Cultural Program',
@@ -566,6 +585,7 @@ export async function sendEventEmail({
     other: 'School Event',
   }
   const typeLabel = typeLabels[String(type)] || 'School Event'
+  const isHoliday = String(type) === 'holiday'
   const whenDate = date
     ? new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
         timeZone: 'Asia/Kolkata',
@@ -588,7 +608,7 @@ export async function sendEventEmail({
   const html = `<!doctype html>
 <html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
-    <p style="margin:0 0 6px;color:#4157ff;font-size:12px;font-weight:700;letter-spacing:1px">SCHOOL EVENT</p>
+    <p style="margin:0 0 6px;color:#4157ff;font-size:12px;font-weight:700;letter-spacing:1px">${isHoliday ? 'SCHOOL HOLIDAY' : 'SCHOOL EVENT'}</p>
     <h2 style="margin:0 0 4px;color:#111b33">${escapeHtml(title)}</h2>
     <p style="margin:0 0 16px;color:#5c6b8c">${escapeHtml(typeLabel)}${publishedByName ? ` · Published by ${escapeHtml(publishedByName)}` : ''}</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
@@ -601,7 +621,7 @@ export async function sendEventEmail({
         ? `<p style="color:#5c6b8c;line-height:1.7;margin:0 0 16px">${escapeHtml(description)}</p>`
         : ''
     }
-    <p style="color:#5c6b8c;line-height:1.6;margin:0">The full details are also available in your portal under School Events. Contact the school office for any question about this event.</p>
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">${isHoliday ? 'School transport and live bus tracking stay off on this date. Classwork resumes on the next working day.' : 'The full details are also available in your portal under School Events. Contact the school office for any question about this event.'}</p>
     <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Events Desk</p>
   </div>
 </body></html>`
@@ -613,7 +633,9 @@ export async function sendEventEmail({
     '',
     description || '',
     '',
-    'The full details are also available in your portal under School Events.',
+    isHoliday
+      ? 'School transport and live bus tracking stay off on this date.'
+      : 'The full details are also available in your portal under School Events.',
     'School Management System · Events Desk',
   ]
     .filter((line) => line !== '')

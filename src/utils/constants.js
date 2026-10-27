@@ -14,6 +14,7 @@ export const ROLES = {
   ADMIN: 'admin',
   TEACHER: 'teacher',
   PARENT: 'parent',
+  DRIVER: 'driver',
 }
 
 export const REGISTER_ROLE_OPTIONS = [
@@ -169,7 +170,8 @@ export const ERP_NAV_SECTIONS = [
       { to: '/transport/drivers', label: 'Driver Details', icon: '◫' },
       { to: '/transport/vehicles', label: 'Vehicle Details', icon: '▣' },
       { to: '/transport/pickup-points', label: 'Pickup Points', icon: '⌖' },
-      { to: '/transport/fees', label: 'Transport Fees', icon: '₹' },
+      { to: '/transport/drop-points', label: 'Drop Points', icon: '⌖' },
+      { to: '/transport/student-allocation', label: 'Student Allocation', icon: '⇄' },
     ],
   },
   {
@@ -341,10 +343,14 @@ export const FEATURE_WORKSPACES = [
   ]),
   workspace('/transport/pickup-points', 'Pickup Points', 'Transport Management', '⌖', 'Configure student pickup points and route stop planning.', [
     { label: 'Bus routes', to: '/transport/routes' },
-    { label: 'Transport fees', to: '/transport/fees' },
+    { label: 'Drop points', to: '/transport/drop-points' },
   ]),
-  workspace('/transport/fees', 'Transport Fees', 'Transport Management', '₹', 'Control billing and route-linked transport fee management.', [
-    { label: 'Fee collection', to: '/fees/payments' },
+  workspace('/transport/drop-points', 'Drop Points', 'Transport Management', '⌖', 'Configure afternoon drop points and route stop planning.', [
+    { label: 'Bus routes', to: '/transport/routes' },
+    { label: 'Pickup points', to: '/transport/pickup-points' },
+  ]),
+  workspace('/transport/student-allocation', 'Student Allocation', 'Transport Management', '⇄', 'Allocate students to routes with pickup and drop stops.', [
+    { label: 'Bus routes', to: '/transport/routes' },
     { label: 'Pickup points', to: '/transport/pickup-points' },
   ]),
   workspace('/library/books/add', 'Add Books', 'Library Management', '＋', 'Create and catalog books with premium library indexing.', [

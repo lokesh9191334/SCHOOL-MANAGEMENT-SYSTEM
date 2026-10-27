@@ -7,7 +7,7 @@ import QRCode from 'qrcode'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
 import { fileURLToPath } from 'url'
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'path'
 import fs from 'fs'
 // Imported before vercelBlobStore.js on purpose: on Netlify this module
@@ -96,6 +96,32 @@ import {
   TRACKING_KEYS_MAX,
 } from './transportLive.js'
 import {
+  fetchRoadGeometry,
+  newTransportId,
+  normalizeAllocation,
+  normalizeDriver,
+  normalizeRoute,
+  normalizeVehicle,
+  routeSignature,
+  straightGeometry,
+  TRANSPORT_ALLOCATIONS_MAX,
+  TRANSPORT_DRIVERS_MAX,
+  TRANSPORT_ROUTES_MAX,
+  TRANSPORT_VEHICLES_MAX,
+} from './transportRoutes.js'
+import {
+  dailyDeliveryStamp,
+  markAutoFailed,
+  markAutoSent,
+  runDailyWhatsApp,
+} from './driverWhatsApp.js'
+import {
+  maskWhatsAppPhone,
+  normalizeWhatsAppPhone,
+  sendDailyTrackingWhatsApp,
+  whatsAppConfigStatus,
+} from './whatsappCloud.js'
+import {
   buildSnapshot,
   chunkText,
   offlineReply,
@@ -105,6 +131,7 @@ import {
 import { academicPdfFilename, buildAcademicPdf } from './academicDocs.js'
 import { collectAcademicRecipients, sendAcademicDocumentEmails } from './academicMailer.js'
 import { computeResult, normalizeExamTitle, rankResults, sanitizeSubjects } from './resultsStore.js'
+import { holidayForDate } from './schoolCalendar.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -273,6 +300,9 @@ function requireRoles(...roles) {
     }
     if (roles.length && !roles.includes(user.role)) {
       return res.status(403).json({ error: 'Your account does not have access to this data.' })
+    }
+    if (!roles.length && user.role === 'driver') {
+      return res.status(403).json({ error: 'Driver accounts can only use the driver portal.' })
     }
     req.authUser = user
     next()
@@ -1994,16 +2024,924 @@ function findTrackingKeyByKey(key) {
   return readTrackingKeys().find((record) => record.key === normalized) || null
 }
 
+// --- Daily WhatsApp delivery of driver tracking links ---
+const WHATSAPP_DAILY_LOG_FILE = join('data', 'transport_whatsapp_log.json')
+const WHATSAPP_DAILY_LOG_MAX = 500
+const WHATSAPP_DAILY_AUTO_AT = '6:00 AM IST'
+const WHATSAPP_DAILY_CRON = '30 0 * * *'
+
+function readWhatsAppDailyLog() {
+  const list = readJsonFile(WHATSAPP_DAILY_LOG_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function appendWhatsAppDailyLog(entries) {
+  const fresh = (Array.isArray(entries) ? entries : []).filter(Boolean)
+  if (!fresh.length) return readWhatsAppDailyLog()
+  const next = [...fresh, ...readWhatsAppDailyLog()].slice(0, WHATSAPP_DAILY_LOG_MAX)
+  writeJsonFile(WHATSAPP_DAILY_LOG_FILE, next)
+  return next
+}
+
+function safeSecretMatch(provided, expected) {
+  const left = Buffer.from(String(provided || ''))
+  const right = Buffer.from(String(expected || ''))
+  if (!left.length || !right.length || left.length !== right.length) return false
+  return timingSafeEqual(left, right)
+}
+
+function publicAppOrigin(req) {
+  const configured = String(process.env.PUBLIC_APP_URL || '').trim().replace(/\/+$/, '')
+  if (/^https?:\/\/[^/]+/i.test(configured)) return configured
+  const host = String(req?.headers?.['x-forwarded-host'] || req?.headers?.host || '')
+    .split(',')[0]
+    .trim()
+  if (host) {
+    const proto = String(req?.headers?.['x-forwarded-proto'] || req?.protocol || 'https')
+      .split(',')[0]
+      .trim()
+    return `${proto === 'http' ? 'http' : 'https'}://${host}`
+  }
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || ''
+  return vercelHost
+    ? `https://${String(vercelHost).replace(/^https?:\/\//, '').replace(/\/+$/, '')}`
+    : ''
+}
+
+function trackingLinkFor(req, record) {
+  const origin = publicAppOrigin(req)
+  if (!origin || !record?.key) return ''
+  return `${origin}/track/${encodeURIComponent(record.key)}`
+}
+
+function trackingKeyView(record) {
+  return {
+    ...record,
+    autoSend: record.autoSend === true,
+    phone: record.phone || '',
+    phoneMasked: maskWhatsAppPhone(record.phone),
+    lastAutoSentOn: record.lastAutoSentOn || '',
+    lastAutoSendAt: record.lastAutoSendAt || '',
+    lastAutoSendAtIST: record.lastAutoSendAtIST || '',
+    lastAutoSendStatus: record.lastAutoSendStatus || '',
+    lastAutoSendError: record.lastAutoSendError || '',
+  }
+}
+
+function whatsAppDeliverySummary(req, keys) {
+  const todayIST = istParts().date
+  const config = whatsAppConfigStatus()
+  const autoEnabled = keys.filter(
+    (record) => record.active !== false && record.autoSend === true,
+  )
+  return {
+    ...config,
+    provider: 'Meta WhatsApp Cloud API',
+    dailyAt: WHATSAPP_DAILY_AUTO_AT,
+    cronSchedule: WHATSAPP_DAILY_CRON,
+    cronReady: Boolean(String(process.env.CRON_SECRET || '').trim()),
+    publicBaseUrl: publicAppOrigin(req),
+    todayIST,
+    totalKeys: keys.length,
+    autoSendEnabled: autoEnabled.length,
+    autoSendMissingPhone: autoEnabled.filter(
+      (record) => !normalizeWhatsAppPhone(record.phone),
+    ).length,
+    sentToday: keys.filter(
+      (record) =>
+        record.lastAutoSentOn === todayIST && record.lastAutoSendStatus === 'sent',
+    ).length,
+    failedToday: keys.filter(
+      (record) =>
+        record.lastAutoSendStatus === 'failed' &&
+        String(record.lastAutoSendAtIST || '').startsWith(todayIST),
+    ).length,
+    recent: readWhatsAppDailyLog().slice(0, 12),
+  }
+}
+
+// --- Transport master data: routes, drivers, buses and student allocation ---
+const TRANSPORT_ROUTES_FILE = join('data', 'transport_routes.json')
+const TRANSPORT_DRIVERS_FILE = join('data', 'transport_drivers.json')
+const TRANSPORT_VEHICLES_FILE = join('data', 'transport_vehicles.json')
+const TRANSPORT_ALLOCATIONS_FILE = join('data', 'transport_allocations.json')
+const TRANSPORT_GEOMETRY_FILE = join('data', 'transport_geometry.json')
+
+function readTransportRoutes() {
+  const list = readJsonFile(TRANSPORT_ROUTES_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function writeTransportRoutes(list) {
+  writeJsonFile(TRANSPORT_ROUTES_FILE, (Array.isArray(list) ? list : []).slice(0, TRANSPORT_ROUTES_MAX))
+}
+
+/** One-time import of drivers added through the old generic module store. */
+function readTransportDrivers() {
+  const stored = readJsonFile(TRANSPORT_DRIVERS_FILE, null)
+  if (Array.isArray(stored)) return stored
+  const legacy = readJsonFile(join('data', 'records', 'sms_mod_transport_drivers.json'), [])
+  const stamp = new Date().toISOString()
+  const migrated = (Array.isArray(legacy) ? legacy : [])
+    .map((item, index) => ({
+      id: String(item?.id || `drv_legacy_${index}`),
+      name: String(item?.title || item?.name || '').trim().slice(0, 80),
+      phone: String(item?.phone || '').trim().slice(0, 24),
+      licenseNo: String(item?.license || '').trim().slice(0, 40),
+      licenseExpiry: '',
+      address: '',
+      vehicleLabel: String(item?.vehicle || '').trim().slice(0, 40),
+      status: ['On duty', 'Off duty', 'Leave'].includes(item?.status) ? item.status : 'Off duty',
+      notes: '',
+      createdAt: item?.createdAt || stamp,
+      updatedAt: item?.updatedAt || stamp,
+    }))
+    .filter((driver) => driver.name)
+  writeJsonFile(TRANSPORT_DRIVERS_FILE, migrated.slice(0, TRANSPORT_DRIVERS_MAX))
+  return migrated
+}
+
+function writeTransportDrivers(list) {
+  writeJsonFile(TRANSPORT_DRIVERS_FILE, (Array.isArray(list) ? list : []).slice(0, TRANSPORT_DRIVERS_MAX))
+}
+
+const DRIVER_PIN_ATTEMPTS_MAX = 5
+const DRIVER_PIN_LOCK_MS = 15 * 60 * 1000
+const DRIVER_SESSION_MS = 7 * 24 * 60 * 60 * 1000
+// Keeps unknown-phone logins as slow as registered ones, so timing cannot reveal drivers.
+const DRIVER_DUMMY_PIN_HASH = bcrypt.hashSync('000000', 10)
+
+function normalizeDriverPhone(value) {
+  let digits = String(value || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('00')) digits = digits.slice(2)
+  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1)
+  if (digits.length === 10) digits = `91${digits}`
+  return /^[1-9]\d{9,14}$/.test(digits) ? digits : ''
+}
+
+function driverLoginView(driver) {
+  const login = driver?.login && typeof driver.login === 'object' ? driver.login : {}
+  const lockedUntil = Number(login.lockedUntil) || 0
+  return {
+    enabled: Boolean(login.pinHash) && login.enabled !== false,
+    hasPin: Boolean(login.pinHash),
+    lastLoginAt: login.lastLoginAt || '',
+    lastLoginAtIST: login.lastLoginAtIST || '',
+    pinSetAtIST: login.pinSetAtIST || '',
+    lockedUntil: lockedUntil > Date.now() ? lockedUntil : 0,
+  }
+}
+
+function driverView(driver, routes) {
+  return {
+    id: driver.id,
+    name: driver.name,
+    phone: driver.phone || '',
+    licenseNo: driver.licenseNo || '',
+    licenseExpiry: driver.licenseExpiry || '',
+    address: driver.address || '',
+    vehicleLabel: driver.vehicleLabel || '',
+    status: driver.status || 'On duty',
+    notes: driver.notes || '',
+    createdAt: driver.createdAt || '',
+    updatedAt: driver.updatedAt || '',
+    routeId: routes.find((route) => route.driverId === driver.id)?.id || '',
+    login: driverLoginView(driver),
+  }
+}
+
+function issueDriverToken(driver) {
+  const secret = authTokenSecret()
+  if (!secret) throw new Error('AUTH_TOKEN_SECRET is not configured for this deployment.')
+  const expiresAt = Date.now() + DRIVER_SESSION_MS
+  return {
+    token: signAuthPayload({
+      id: driver.id,
+      email: `driver.${driver.id}@transport.local`,
+      role: 'driver',
+      dv: Number(driver.login?.version) || 0,
+      iat: Date.now(),
+      expiresAt,
+    }),
+    expiresAt,
+    user: {
+      id: driver.id,
+      name: driver.name,
+      phone: driver.phone || '',
+      role: 'driver',
+    },
+  }
+}
+
+function requireDriver(req, res, next) {
+  requireRoles('driver')(req, res, () => {
+    const driver = readTransportDrivers().find((item) => item.id === req.authUser.id)
+    if (!driver || !driver.login?.pinHash || driver.login.enabled === false) {
+      return res.status(401).json({ error: 'This driver login is no longer active. Sign in again.' })
+    }
+    if ((Number(driver.login.version) || 0) !== (Number(req.authUser.dv) || 0)) {
+      return res.status(401).json({ error: 'Your PIN was reset by the school. Sign in again with the new PIN.' })
+    }
+    req.driver = driver
+    next()
+  })
+}
+
+function driverTrackingRecord(driver) {
+  const route = readTransportRoutes().find((item) => item.driverId === driver.id) || null
+  const tracking = route?.trackingId
+    ? readTrackingKeys().find((item) => item.id === route.trackingId) || null
+    : null
+  return { route, tracking }
+}
+
+function readTransportVehicles() {
+  const stored = readJsonFile(TRANSPORT_VEHICLES_FILE, null)
+  if (Array.isArray(stored)) return stored
+  const legacy = readJsonFile(join('data', 'records', 'sms_mod_transport_vehicles.json'), [])
+  const stamp = new Date().toISOString()
+  const migrated = (Array.isArray(legacy) ? legacy : [])
+    .map((item, index) => {
+      const seats = parseInt(String(item?.capacity || '').replace(/[^\d]/g, ''), 10)
+      return {
+        id: String(item?.id || `veh_legacy_${index}`),
+        number: String(item?.title || item?.number || '').trim().slice(0, 40),
+        model: String(item?.model || '').trim().slice(0, 60),
+        capacity: Number.isFinite(seats) && seats > 0 ? seats : null,
+        insuranceTill: /^\d{4}-\d{2}-\d{2}$/.test(String(item?.insurance || '')) ? item.insurance : '',
+        status: ['Active', 'Maintenance', 'Retired'].includes(item?.status) ? item.status : 'Active',
+        notes: '',
+        createdAt: item?.createdAt || stamp,
+        updatedAt: item?.updatedAt || stamp,
+      }
+    })
+    .filter((vehicle) => vehicle.number)
+  writeJsonFile(TRANSPORT_VEHICLES_FILE, migrated.slice(0, TRANSPORT_VEHICLES_MAX))
+  return migrated
+}
+
+function writeTransportVehicles(list) {
+  writeJsonFile(TRANSPORT_VEHICLES_FILE, (Array.isArray(list) ? list : []).slice(0, TRANSPORT_VEHICLES_MAX))
+}
+
+function readTransportAllocations() {
+  const list = readJsonFile(TRANSPORT_ALLOCATIONS_FILE, [])
+  return Array.isArray(list) ? list : []
+}
+
+function writeTransportAllocations(list) {
+  writeJsonFile(TRANSPORT_ALLOCATIONS_FILE, (Array.isArray(list) ? list : []).slice(0, TRANSPORT_ALLOCATIONS_MAX))
+}
+
+/** Route.trackingId is the source of truth; mirror it onto the key record. */
+function syncRouteTrackingLinks() {
+  const routes = readTransportRoutes()
+  const keys = readTrackingKeys()
+  const routeByKey = new Map()
+  for (const route of routes) {
+    if (route.trackingId) routeByKey.set(route.trackingId, route.id)
+  }
+  let changed = false
+  const next = keys.map((key) => {
+    const wanted = routeByKey.get(key.id) || ''
+    if (String(key.routeId || '') !== wanted) {
+      changed = true
+      return { ...key, routeId: wanted }
+    }
+    return key
+  })
+  if (changed) writeTrackingKeys(next)
+}
+
+function keepRouteAssignmentUnique(routeId, field, value) {
+  if (!value) return
+  const routes = readTransportRoutes()
+  const stamp = istParts().iso
+  let changed = false
+  const next = routes.map((route) => {
+    if (route.id !== routeId && route[field] === value) {
+      changed = true
+      return { ...route, [field]: '', updatedAt: stamp }
+    }
+    return route
+  })
+  if (changed) writeTransportRoutes(next)
+}
+
+function assignDriverRoute(driverId, routeId) {
+  if (!driverId) return
+  const routes = readTransportRoutes()
+  const stamp = istParts().iso
+  let changed = false
+  const next = routes.map((route) => {
+    if (routeId && route.id === routeId) {
+      if (route.driverId === driverId) return route
+      changed = true
+      return { ...route, driverId, updatedAt: stamp }
+    }
+    if (route.driverId === driverId) {
+      changed = true
+      return { ...route, driverId: '', updatedAt: stamp }
+    }
+    return route
+  })
+  if (changed) writeTransportRoutes(next)
+}
+
+function assignVehicleRoute(vehicleId, routeId) {
+  if (!vehicleId) return
+  const routes = readTransportRoutes()
+  const stamp = istParts().iso
+  let changed = false
+  const next = routes.map((route) => {
+    if (routeId && route.id === routeId) {
+      if (route.vehicleId === vehicleId) return route
+      changed = true
+      return { ...route, vehicleId, updatedAt: stamp }
+    }
+    if (route.vehicleId === vehicleId) {
+      changed = true
+      return { ...route, vehicleId: '', updatedAt: stamp }
+    }
+    return route
+  })
+  if (changed) writeTransportRoutes(next)
+}
+
+function routeRelationError(value, routeId = '') {
+  const routes = readTransportRoutes()
+  if (value.driverId && !readTransportDrivers().some((driver) => driver.id === value.driverId)) {
+    return 'Selected driver was not found.'
+  }
+  if (value.vehicleId && !readTransportVehicles().some((vehicle) => vehicle.id === value.vehicleId)) {
+    return 'Selected bus was not found.'
+  }
+  if (value.trackingId) {
+    if (!readTrackingKeys().some((key) => key.id === value.trackingId)) return 'Selected tracking link was not found.'
+    if (routes.some((route) => route.id !== routeId && route.trackingId === value.trackingId)) {
+      return 'That tracking link is already assigned to another route.'
+    }
+  }
+  return ''
+}
+
+function allocationRelationError(value, allocationId = '') {
+  const students = readStudentRecords()
+  const student = students.find(
+    (item) => String(item.id) === String(value.studentId) || String(item.applicationId) === String(value.studentId),
+  )
+  if (!student) return { error: 'Student was not found.' }
+  const route = readTransportRoutes().find((item) => item.id === value.routeId)
+  if (!route) return { error: 'Select a valid route.' }
+  if (value.pickupStopId) {
+    const stop = route.stops.find((item) => item.id === value.pickupStopId)
+    if (!stop || !['pickup', 'both'].includes(stop.kind)) {
+      return { error: 'Selected pickup point does not belong to this route.' }
+    }
+  }
+  if (value.dropStopId) {
+    const stop = route.stops.find((item) => item.id === value.dropStopId)
+    if (!stop || !['drop', 'both'].includes(stop.kind)) {
+      return { error: 'Selected drop point does not belong to this route.' }
+    }
+  }
+  const studentKeys = [student.id, student.applicationId].filter(Boolean).map(String)
+  const duplicate = readTransportAllocations().find((allocation) => {
+    if (allocation.id === allocationId) return false
+    const existingKeys = [allocation.studentId, allocation.studentApplicationId].filter(Boolean).map(String)
+    return existingKeys.some((key) => studentKeys.includes(key))
+  })
+  if (duplicate) return { error: 'This student already has a bus allocation.' }
+  return {
+    student,
+    route,
+    value: {
+      ...value,
+      studentId: String(student.id ?? value.studentId),
+      studentApplicationId: String(student.applicationId || ''),
+    },
+  }
+}
+
+function serializeLiveVehicle(record, ping, now) {
+  const active = record.active !== false
+  return {
+    id: record.id,
+    key: record.key,
+    driverName: record.driverName,
+    vehicleLabel: record.vehicleLabel,
+    routeLabel: record.routeLabel,
+    routeId: record.routeId || '',
+    phone: record.phone || '',
+    active,
+    online: active && ping ? isTrackOnline(ping.at, now) : false,
+    autoSend: record.autoSend === true,
+    lastAutoSentOn: record.lastAutoSentOn || '',
+    lastAutoSendAt: record.lastAutoSendAt || '',
+    lastAutoSendAtIST: record.lastAutoSendAtIST || '',
+    lastAutoSendStatus: record.lastAutoSendStatus || '',
+    lastAutoSendError: record.lastAutoSendError || '',
+    lastPing: ping
+      ? {
+          lat: ping.lat,
+          lng: ping.lng,
+          accuracy: ping.accuracy,
+          speed: ping.speed,
+          heading: ping.heading,
+          battery: ping.battery,
+          at: ping.at,
+          atIST: ping.atIST,
+          device: ping.device || '',
+        }
+      : null,
+    trail: Array.isArray(ping?.trail) ? ping.trail : [],
+  }
+}
+
+function parentTransportContext(authUser) {
+  const user = readJsonFile(USERS_FILE, []).find((item) => String(item.id) === String(authUser?.id)) || null
+  const linkedId = String(user?.linkedId || '')
+  const students = readStudentRecords()
+  let student = linkedId
+    ? students.find((item) => String(item.id) === linkedId || String(item.applicationId) === linkedId) || null
+    : null
+  if (!student && user?.email) {
+    const email = String(user.email).trim().toLowerCase()
+    student =
+      students.find((item) =>
+        ['guardianEmail', 'fatherEmail', 'motherEmail']
+          .map((field) => String(item?.[field] || '').trim().toLowerCase())
+          .filter(Boolean)
+          .includes(email),
+      ) || null
+  }
+  const studentKeys = [linkedId, student?.id, student?.applicationId].filter(Boolean).map(String)
+  const allocation = studentKeys.length
+    ? readTransportAllocations().find((item) =>
+        [item.studentId, item.studentApplicationId]
+          .filter(Boolean)
+          .map(String)
+          .some((key) => studentKeys.includes(key)),
+      ) || null
+    : null
+  const route = allocation ? readTransportRoutes().find((item) => item.id === allocation.routeId) || null : null
+  const driver = route?.driverId ? readTransportDrivers().find((item) => item.id === route.driverId) || null : null
+  const keys = readTrackingKeys()
+  const tracking = route
+    ? keys.find((item) => item.id === route.trackingId) || keys.find((item) => item.routeId === route.id) || null
+    : null
+  return { user, student, allocation, route, driver, tracking }
+}
+
+function parentRouteView(route) {
+  return {
+    id: route.id,
+    name: route.name,
+    code: route.code || '',
+    status: route.status || 'Active',
+    vehicleLabel: route.vehicleLabel || '',
+    stops: route.stops.map((stop) => ({
+      id: stop.id,
+      name: stop.name,
+      kind: stop.kind,
+      time: stop.time || '',
+      landmark: stop.landmark || '',
+      lat: stop.lat,
+      lng: stop.lng,
+    })),
+  }
+}
+
+app.get('/api/transport/routes', requireRoles('admin', 'super_admin'), (_req, res) => {
+  res.json(readTransportRoutes())
+})
+
+app.post('/api/transport/routes', requireRoles('admin', 'super_admin'), (req, res) => {
+  const parsed = normalizeRoute(req.body)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const relationError = routeRelationError(parsed.value)
+  if (relationError) return res.status(400).json({ error: relationError })
+  const stamp = istParts().iso
+  const record = {
+    id: newTransportId('rte'),
+    ...parsed.value,
+    createdAt: stamp,
+    updatedAt: stamp,
+    createdBy: req.authUser?.email || '',
+  }
+  writeTransportRoutes([record, ...readTransportRoutes()])
+  keepRouteAssignmentUnique(record.id, 'driverId', record.driverId)
+  keepRouteAssignmentUnique(record.id, 'vehicleId', record.vehicleId)
+  syncRouteTrackingLinks()
+  res.status(201).json(record)
+})
+
+app.patch('/api/transport/routes/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const routes = readTransportRoutes()
+  const existing = routes.find((route) => route.id === req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Route not found.' })
+  const parsed = normalizeRoute(req.body, existing)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const relationError = routeRelationError(parsed.value, existing.id)
+  if (relationError) return res.status(400).json({ error: relationError })
+  const updated = { ...existing, ...parsed.value, updatedAt: istParts().iso }
+  writeTransportRoutes(routes.map((route) => (route.id === existing.id ? updated : route)))
+  keepRouteAssignmentUnique(updated.id, 'driverId', updated.driverId)
+  keepRouteAssignmentUnique(updated.id, 'vehicleId', updated.vehicleId)
+  syncRouteTrackingLinks()
+  res.json(updated)
+})
+
+app.delete('/api/transport/routes/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const routes = readTransportRoutes()
+  if (!routes.some((route) => route.id === req.params.id)) {
+    return res.status(404).json({ error: 'Route not found.' })
+  }
+  if (readTransportAllocations().some((allocation) => allocation.routeId === req.params.id)) {
+    return res.status(409).json({ error: 'Remove the student allocations for this route before deleting it.' })
+  }
+  writeTransportRoutes(routes.filter((route) => route.id !== req.params.id))
+  syncRouteTrackingLinks()
+  res.json({ deleted: true })
+})
+
+app.get('/api/transport/routes/:id/geometry', requireRoles('admin', 'super_admin', 'parent'), async (req, res) => {
+  const route = readTransportRoutes().find((item) => item.id === req.params.id)
+  if (!route) return res.status(404).json({ error: 'Route not found.' })
+  if (req.authUser.role === 'parent') {
+    const context = parentTransportContext(req.authUser)
+    if (!context.route || context.route.id !== route.id) {
+      return res.status(403).json({ error: 'This route is not assigned to your child.' })
+    }
+  }
+  const signature = routeSignature(route.stops)
+  const cacheRaw = readJsonFile(TRANSPORT_GEOMETRY_FILE, {})
+  const cache = cacheRaw && typeof cacheRaw === 'object' && !Array.isArray(cacheRaw) ? cacheRaw : {}
+  const cached = cache[route.id]
+  const cachedFresh =
+    cached &&
+    cached.signature === signature &&
+    (cached.source === 'osrm' || Date.now() - Number(cached.fetchedAt || 0) < 10 * 60 * 1000)
+  if (cachedFresh) return res.json({ id: route.id, ...cached })
+
+  let geometry = route.stops.length >= 2 ? await fetchRoadGeometry(route.stops) : null
+  if (!geometry) geometry = straightGeometry(route.stops)
+  const record = { signature, ...geometry, fetchedAt: Date.now() }
+  const routeIds = new Set(readTransportRoutes().map((item) => item.id))
+  const nextCache = {}
+  for (const [key, value] of Object.entries(cache)) {
+    if (routeIds.has(key)) nextCache[key] = value
+  }
+  nextCache[route.id] = record
+  writeJsonFile(TRANSPORT_GEOMETRY_FILE, nextCache)
+  res.json({ id: route.id, ...record })
+})
+
+app.get('/api/transport/drivers', requireRoles('admin', 'super_admin'), (_req, res) => {
+  const routes = readTransportRoutes()
+  res.json(readTransportDrivers().map((driver) => driverView(driver, routes)))
+})
+
+app.post('/api/transport/drivers', requireRoles('admin', 'super_admin'), (req, res) => {
+  const parsed = normalizeDriver(req.body)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const routeId = String(req.body?.routeId || '').trim()
+  if (routeId && !readTransportRoutes().some((route) => route.id === routeId)) {
+    return res.status(400).json({ error: 'Selected route was not found.' })
+  }
+  const stamp = istParts().iso
+  const record = { id: newTransportId('drv'), ...parsed.value, createdAt: stamp, updatedAt: stamp }
+  writeTransportDrivers([record, ...readTransportDrivers()])
+  assignDriverRoute(record.id, routeId)
+  res.status(201).json(driverView(record, readTransportRoutes()))
+})
+
+app.patch('/api/transport/drivers/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const drivers = readTransportDrivers()
+  const existing = drivers.find((driver) => driver.id === req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Driver not found.' })
+  const parsed = normalizeDriver(req.body, existing)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const routeId = req.body?.routeId !== undefined ? String(req.body.routeId || '').trim() : null
+  if (routeId && !readTransportRoutes().some((route) => route.id === routeId)) {
+    return res.status(400).json({ error: 'Selected route was not found.' })
+  }
+  const updated = { ...existing, ...parsed.value, updatedAt: istParts().iso }
+  writeTransportDrivers(drivers.map((driver) => (driver.id === existing.id ? updated : driver)))
+  if (routeId !== null) assignDriverRoute(updated.id, routeId)
+  res.json(driverView(updated, readTransportRoutes()))
+})
+
+app.delete('/api/transport/drivers/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const drivers = readTransportDrivers()
+  if (!drivers.some((driver) => driver.id === req.params.id)) {
+    return res.status(404).json({ error: 'Driver not found.' })
+  }
+  writeTransportDrivers(drivers.filter((driver) => driver.id !== req.params.id))
+  const stamp = istParts().iso
+  const routes = readTransportRoutes()
+  if (routes.some((route) => route.driverId === req.params.id)) {
+    writeTransportRoutes(
+      routes.map((route) => (route.driverId === req.params.id ? { ...route, driverId: '', updatedAt: stamp } : route)),
+    )
+  }
+  res.json({ deleted: true })
+})
+
+app.post('/api/transport/drivers/:id/login/pin', requireRoles('admin', 'super_admin'), (req, res) => {
+  const drivers = readTransportDrivers()
+  const existing = drivers.find((driver) => driver.id === req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Driver not found.' })
+  if (!normalizeDriverPhone(existing.phone)) {
+    return res.status(400).json({ error: 'Add a valid phone number to this driver before creating a login.' })
+  }
+  const pin = String(randomInt(0, 1000000)).padStart(6, '0')
+  const stamp = istParts()
+  const login = {
+    ...(existing.login && typeof existing.login === 'object' ? existing.login : {}),
+    pinHash: bcrypt.hashSync(pin, 10),
+    enabled: true,
+    version: (Number(existing.login?.version) || 0) + 1,
+    failedAttempts: 0,
+    lockedUntil: 0,
+    pinSetAt: stamp.iso,
+    pinSetAtIST: `${stamp.date} ${stamp.time}`,
+  }
+  const updated = { ...existing, login, updatedAt: stamp.iso }
+  writeTransportDrivers(drivers.map((driver) => (driver.id === existing.id ? updated : driver)))
+  res.json({ pin, driver: driverView(updated, readTransportRoutes()) })
+})
+
+app.patch('/api/transport/drivers/:id/login', requireRoles('admin', 'super_admin'), (req, res) => {
+  const enabled = req.body?.enabled
+  if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be true or false.' })
+  const drivers = readTransportDrivers()
+  const existing = drivers.find((driver) => driver.id === req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Driver not found.' })
+  if (enabled && !existing.login?.pinHash) {
+    return res.status(400).json({ error: 'Generate a PIN before enabling this login.' })
+  }
+  const stamp = istParts()
+  const nextLogin = {
+    ...existing.login,
+    enabled,
+    ...(enabled
+      ? {}
+      : {
+          version: (Number(existing.login?.version) || 0) + 1,
+          failedAttempts: 0,
+          lockedUntil: 0,
+        }),
+  }
+  const updated = { ...existing, login: nextLogin, updatedAt: stamp.iso }
+  writeTransportDrivers(drivers.map((driver) => (driver.id === existing.id ? updated : driver)))
+  res.json({ driver: driverView(updated, readTransportRoutes()) })
+})
+
+/** Driver phone + PIN login — no email/OTP needed, only the driver portal opens. */
+app.post('/api/auth/driver/login', async (req, res) => {
+  const phone = normalizeDriverPhone(req.body?.phone)
+  const pin = String(req.body?.pin || '').replace(/\D/g, '')
+  if (!phone || pin.length !== 6) {
+    return res.status(400).json({ error: 'Enter your phone number and 6-digit PIN.' })
+  }
+
+  const drivers = readTransportDrivers()
+  const driver = drivers.find((item) => normalizeDriverPhone(item.phone) === phone) || null
+  const login = driver?.login && typeof driver.login === 'object' ? driver.login : null
+  if (login?.lockedUntil && login.lockedUntil > Date.now()) {
+    const minutes = Math.max(1, Math.ceil((login.lockedUntil - Date.now()) / 60000))
+    return res.status(429).json({ error: `Too many wrong attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.` })
+  }
+
+  const pinOk = bcrypt.compareSync(pin, login?.pinHash || DRIVER_DUMMY_PIN_HASH)
+  if (!driver || !login?.pinHash || !pinOk) {
+    if (driver && login?.pinHash) {
+      const attempts = (Number(login.failedAttempts) || 0) + 1
+      const locked = attempts >= DRIVER_PIN_ATTEMPTS_MAX
+      const stamp = istParts()
+      const nextLogin = {
+        ...login,
+        failedAttempts: locked ? 0 : attempts,
+        lockedUntil: locked ? Date.now() + DRIVER_PIN_LOCK_MS : 0,
+      }
+      const updated = { ...driver, login: nextLogin, updatedAt: stamp.iso }
+      writeTransportDrivers(drivers.map((item) => (item.id === driver.id ? updated : item)))
+      if (locked) {
+        return res.status(429).json({ error: 'Too many wrong attempts. Try again in 15 minutes.' })
+      }
+    }
+    return res.status(401).json({ error: 'Wrong phone number or PIN.' })
+  }
+
+  if (login.enabled === false) {
+    return res.status(403).json({ error: 'This driver login is switched off by the school.' })
+  }
+
+  const stamp = istParts()
+  const updated = {
+    ...driver,
+    login: {
+      ...login,
+      failedAttempts: 0,
+      lockedUntil: 0,
+      lastLoginAt: stamp.iso,
+      lastLoginAtIST: `${stamp.date} ${stamp.time}`,
+    },
+    updatedAt: stamp.iso,
+  }
+  writeTransportDrivers(drivers.map((item) => (item.id === driver.id ? updated : item)))
+  res.json({ ...issueDriverToken(updated), expiresInSec: Math.round(DRIVER_SESSION_MS / 1000) })
+})
+
+app.get('/api/transport/vehicles', requireRoles('admin', 'super_admin'), (_req, res) => {
+  const routes = readTransportRoutes()
+  const vehicles = readTransportVehicles().map((vehicle) => ({
+    ...vehicle,
+    routeId: routes.find((route) => route.vehicleId === vehicle.id)?.id || '',
+  }))
+  res.json(vehicles)
+})
+
+app.post('/api/transport/vehicles', requireRoles('admin', 'super_admin'), (req, res) => {
+  const parsed = normalizeVehicle(req.body)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const routeId = String(req.body?.routeId || '').trim()
+  if (routeId && !readTransportRoutes().some((route) => route.id === routeId)) {
+    return res.status(400).json({ error: 'Selected route was not found.' })
+  }
+  const stamp = istParts().iso
+  const record = { id: newTransportId('veh'), ...parsed.value, createdAt: stamp, updatedAt: stamp }
+  writeTransportVehicles([record, ...readTransportVehicles()])
+  assignVehicleRoute(record.id, routeId)
+  res.status(201).json({ ...record, routeId })
+})
+
+app.patch('/api/transport/vehicles/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const vehicles = readTransportVehicles()
+  const existing = vehicles.find((vehicle) => vehicle.id === req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Bus not found.' })
+  const parsed = normalizeVehicle(req.body, existing)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const routeId = req.body?.routeId !== undefined ? String(req.body.routeId || '').trim() : null
+  if (routeId && !readTransportRoutes().some((route) => route.id === routeId)) {
+    return res.status(400).json({ error: 'Selected route was not found.' })
+  }
+  const updated = { ...existing, ...parsed.value, updatedAt: istParts().iso }
+  writeTransportVehicles(vehicles.map((vehicle) => (vehicle.id === existing.id ? updated : vehicle)))
+  if (routeId !== null) assignVehicleRoute(updated.id, routeId)
+  const assigned = readTransportRoutes().find((route) => route.vehicleId === updated.id)
+  res.json({ ...updated, routeId: assigned?.id || '' })
+})
+
+app.delete('/api/transport/vehicles/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const vehicles = readTransportVehicles()
+  if (!vehicles.some((vehicle) => vehicle.id === req.params.id)) {
+    return res.status(404).json({ error: 'Bus not found.' })
+  }
+  writeTransportVehicles(vehicles.filter((vehicle) => vehicle.id !== req.params.id))
+  const stamp = istParts().iso
+  const routes = readTransportRoutes()
+  if (routes.some((route) => route.vehicleId === req.params.id)) {
+    writeTransportRoutes(
+      routes.map((route) => (route.vehicleId === req.params.id ? { ...route, vehicleId: '', updatedAt: stamp } : route)),
+    )
+  }
+  res.json({ deleted: true })
+})
+
+app.get('/api/transport/allocations', requireRoles('admin', 'super_admin'), (_req, res) => {
+  res.json(readTransportAllocations())
+})
+
+app.post('/api/transport/allocations', requireRoles('admin', 'super_admin'), (req, res) => {
+  const parsed = normalizeAllocation(req.body)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const relation = allocationRelationError(parsed.value)
+  if (relation.error) return res.status(400).json({ error: relation.error })
+  const stamp = istParts().iso
+  const record = {
+    id: newTransportId('alo'),
+    ...relation.value,
+    createdAt: stamp,
+    updatedAt: stamp,
+    createdBy: req.authUser?.email || '',
+  }
+  writeTransportAllocations([record, ...readTransportAllocations()])
+  res.status(201).json(record)
+})
+
+app.patch('/api/transport/allocations/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const allocations = readTransportAllocations()
+  const existing = allocations.find((allocation) => allocation.id === req.params.id)
+  if (!existing) return res.status(404).json({ error: 'Allocation not found.' })
+  const parsed = normalizeAllocation(req.body, existing)
+  if (parsed.error) return res.status(400).json({ error: parsed.error })
+  const relation = allocationRelationError(parsed.value, existing.id)
+  if (relation.error) return res.status(400).json({ error: relation.error })
+  const updated = { ...existing, ...relation.value, updatedAt: istParts().iso }
+  writeTransportAllocations(allocations.map((allocation) => (allocation.id === existing.id ? updated : allocation)))
+  res.json(updated)
+})
+
+app.delete('/api/transport/allocations/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const allocations = readTransportAllocations()
+  if (!allocations.some((allocation) => allocation.id === req.params.id)) {
+    return res.status(404).json({ error: 'Allocation not found.' })
+  }
+  writeTransportAllocations(allocations.filter((allocation) => allocation.id !== req.params.id))
+  res.json({ deleted: true })
+})
+
+app.get('/api/transport/my', requireRoles('parent'), (req, res) => {
+  const context = parentTransportContext(req.authUser)
+  const now = Date.now()
+  const { student, allocation, route, driver, tracking } = context
+  const ping = tracking ? readTransportLive()[tracking.id] || null : null
+  const active = tracking ? tracking.active !== false : false
+  res.json({
+    student: student
+      ? {
+          id: student.id,
+          applicationId: student.applicationId || '',
+          name: student.title || student.name || '',
+          className: student.subtitle || student.className || '',
+          rollNo: student.rollNo || '',
+        }
+      : null,
+    allocation: allocation
+      ? {
+          id: allocation.id,
+          routeId: allocation.routeId,
+          pickupStopId: allocation.pickupStopId || '',
+          dropStopId: allocation.dropStopId || '',
+        }
+      : null,
+    route: route ? parentRouteView(route) : null,
+    driver: driver
+      ? {
+          name: driver.name,
+          phone: driver.phone || '',
+          status: driver.status || '',
+          licenseExpiry: driver.licenseExpiry || '',
+        }
+      : tracking
+        ? {
+            name: tracking.driverName || '',
+            phone: tracking.phone || '',
+            status: 'On duty',
+            licenseExpiry: '',
+          }
+        : null,
+    vehicle: tracking
+      ? {
+          driverName: tracking.driverName || '',
+          vehicleLabel: tracking.vehicleLabel || '',
+          active,
+          online: active && ping ? isTrackOnline(ping.at, now) : false,
+          lastPing: ping
+            ? {
+                lat: ping.lat,
+                lng: ping.lng,
+                accuracy: ping.accuracy,
+                speed: ping.speed,
+                heading: ping.heading,
+                battery: ping.battery,
+                at: ping.at,
+                atIST: ping.atIST,
+              }
+            : null,
+          trail: Array.isArray(ping?.trail) ? ping.trail.slice(-40) : [],
+        }
+      : null,
+    staleAfterSec: Math.round(TRACK_STALE_MS / 1000),
+    now,
+  })
+})
+
 app.get('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (_req, res) => {
-  res.json(readTrackingKeys())
+  res.json(readTrackingKeys().map(trackingKeyView))
 })
 
 app.post('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (req, res) => {
   const driverName = String(req.body?.driverName || '').trim().slice(0, 80)
-  const vehicleLabel = String(req.body?.vehicleLabel || '').trim().slice(0, 80)
-  const routeLabel = String(req.body?.routeLabel || '').trim().slice(0, 80)
-  const phone = String(req.body?.phone || '').trim().slice(0, 24)
+  const routeId = String(req.body?.routeId || '').trim()
+  const route = routeId ? readTransportRoutes().find((item) => item.id === routeId) : null
+  if (routeId && !route) return res.status(400).json({ error: 'Selected route was not found.' })
+  const vehicleLabel = String(req.body?.vehicleLabel || '').trim().slice(0, 80) || route?.vehicleLabel || ''
+  const routeLabel = String(req.body?.routeLabel || '').trim().slice(0, 80) || route?.name || ''
+  const rawPhone = String(req.body?.phone || '').trim().slice(0, 24)
+  const phone = normalizeWhatsAppPhone(rawPhone)
+  const autoSend = Boolean(req.body?.autoSend)
   if (!driverName) return res.status(400).json({ error: 'Driver name is required.' })
+  if (rawPhone && !phone) {
+    return res.status(400).json({ error: 'Enter a valid WhatsApp number with country code, e.g. +91 98765 43210.' })
+  }
+  if (autoSend && !phone) {
+    return res.status(400).json({ error: 'A valid WhatsApp number is required for daily auto-send.' })
+  }
   const keys = readTrackingKeys()
   const record = {
     id: `trk_${Date.now().toString(36)}`,
@@ -2011,22 +2949,208 @@ app.post('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (
     driverName,
     vehicleLabel,
     routeLabel,
+    routeId,
     phone,
     active: true,
+    autoSend,
     createdAt: istParts().iso,
     createdBy: req.authUser?.email || '',
   }
   writeTrackingKeys([record, ...keys].slice(0, TRACKING_KEYS_MAX))
-  res.status(201).json(record)
+  if (routeId) {
+    const stamp = istParts().iso
+    writeTransportRoutes(
+      readTransportRoutes().map((item) =>
+        item.id === routeId ? { ...item, trackingId: record.id, vehicleLabel: item.vehicleLabel || vehicleLabel, updatedAt: stamp } : item,
+      ),
+    )
+    syncRouteTrackingLinks()
+  }
+  res.status(201).json(trackingKeyView(record))
 })
 
 app.patch('/api/transport/tracking-keys/:id', requireRoles('admin', 'super_admin'), (req, res) => {
   const keys = readTrackingKeys()
   const record = keys.find((item) => item.id === req.params.id)
   if (!record) return res.status(404).json({ error: 'Tracking link not found.' })
-  const updated = { ...record, active: Boolean(req.body?.active), updatedAt: istParts().iso }
+  const body = req.body || {}
+  const patch = {}
+  if ('active' in body) patch.active = Boolean(body.active)
+  if ('autoSend' in body) patch.autoSend = Boolean(body.autoSend)
+  let nextPhone = record.phone || ''
+  if ('phone' in body) {
+    const rawPhone = String(body.phone || '').trim().slice(0, 24)
+    nextPhone = normalizeWhatsAppPhone(rawPhone)
+    if (rawPhone && !nextPhone) {
+      return res.status(400).json({ error: 'Enter a valid WhatsApp number with country code, e.g. +91 98765 43210.' })
+    }
+    patch.phone = nextPhone
+  }
+  const nextAutoSend = 'autoSend' in patch ? patch.autoSend : record.autoSend === true
+  if (nextAutoSend && !normalizeWhatsAppPhone(nextPhone)) {
+    return res.status(400).json({ error: 'A valid WhatsApp number is required for daily auto-send.' })
+  }
+  if (!Object.keys(patch).length) return res.json(trackingKeyView(record))
+  const updated = { ...record, ...patch, updatedAt: istParts().iso }
   writeTrackingKeys(keys.map((item) => (item.id === record.id ? updated : item)))
-  res.json(updated)
+  res.json(trackingKeyView(updated))
+})
+
+app.get('/api/transport/whatsapp/status', requireRoles('admin', 'super_admin'), (req, res) => {
+  res.json(whatsAppDeliverySummary(req, readTrackingKeys()))
+})
+
+app.post('/api/transport/tracking-keys/:id/send-now', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const keys = readTrackingKeys()
+  const record = keys.find((item) => item.id === req.params.id)
+  if (!record) return res.status(404).json({ error: 'Tracking link not found.' })
+  if (record.active === false) {
+    return res.status(409).json({ error: 'Switch this tracking link on before sending it.' })
+  }
+  if (!normalizeWhatsAppPhone(record.phone)) {
+    return res.status(400).json({ error: 'Save a valid WhatsApp number before sending.' })
+  }
+  const link = trackingLinkFor(req, record)
+  if (!link) return res.status(503).json({ error: 'The public app link is not configured. Set PUBLIC_APP_URL on the server.' })
+  try {
+    const result = await sendDailyTrackingWhatsApp({
+      to: record.phone,
+      driverName: record.driverName,
+      vehicleLabel: record.vehicleLabel,
+      routeLabel: record.routeLabel,
+      link,
+    })
+    const updated = markAutoSent(record)
+    writeTrackingKeys(keys.map((item) => (item.id === record.id ? updated : item)))
+    appendWhatsAppDailyLog([
+      {
+        at: updated.lastAutoSendAt,
+        atIST: updated.lastAutoSendAtIST,
+        trigger: 'manual',
+        id: record.id,
+        driverName: record.driverName,
+        phone: maskWhatsAppPhone(record.phone),
+        status: 'sent',
+        messageId: result.messageId,
+      },
+    ])
+    res.json({ key: trackingKeyView(updated), messageId: result.messageId, sentAtIST: updated.lastAutoSendAtIST })
+  } catch (error) {
+    const updated = markAutoFailed(record, error)
+    writeTrackingKeys(keys.map((item) => (item.id === record.id ? updated : item)))
+    appendWhatsAppDailyLog([
+      {
+        at: updated.lastAutoSendAt,
+        atIST: updated.lastAutoSendAtIST,
+        trigger: 'manual',
+        id: record.id,
+        driverName: record.driverName,
+        phone: maskWhatsAppPhone(record.phone),
+        status: 'failed',
+        error: updated.lastAutoSendError,
+      },
+    ])
+    const status = Number(error?.status) >= 500 ? Number(error.status) : 502
+    res.status(status).json({
+      error: updated.lastAutoSendError,
+      missing: Array.isArray(error?.missing) ? error.missing : undefined,
+      key: trackingKeyView(updated),
+    })
+  }
+})
+
+/** Cron runs stay silent on a school holiday and log one skip entry. */
+function respondHolidayCronSkip(res, holiday = currentHoliday()) {
+  if (!holiday.active) return false
+  const stamp = dailyDeliveryStamp()
+  appendWhatsAppDailyLog([
+    {
+      at: stamp.iso,
+      atIST: stamp.atIST,
+      trigger: 'cron',
+      status: 'skipped-holiday',
+      error: holiday.title,
+    },
+  ])
+  res.json({
+    ok: true,
+    skippedHoliday: true,
+    holiday,
+    todayIST: stamp.date,
+    counts: { eligible: 0, sent: 0, failed: 0, skipped: 0 },
+  })
+  return true
+}
+
+// Vercel Cron entry point: 6:00 AM IST daily. Configure CRON_SECRET so Vercel
+// sends the bearer header; the endpoint also refuses to run without it.
+app.get('/api/cron/transport-daily-links', async (req, res) => {
+  const secret = String(process.env.CRON_SECRET || '').trim()
+  if (!secret) {
+    return res.status(503).json({ error: 'CRON_SECRET is not set on the server, so cron runs are disabled.' })
+  }
+  if (!safeSecretMatch(req.headers.authorization, `Bearer ${secret}`)) {
+    return res.status(401).json({ error: 'Unauthorized cron request.' })
+  }
+  if (respondHolidayCronSkip(res)) return
+  const config = whatsAppConfigStatus()
+  if (!config.configured) {
+    const stamp = dailyDeliveryStamp()
+    appendWhatsAppDailyLog([
+      {
+        at: stamp.iso,
+        atIST: stamp.atIST,
+        trigger: 'cron',
+        status: 'skipped-config',
+        error: `Missing: ${config.missing.join(', ')}`,
+      },
+    ])
+    return res.status(503).json({
+      error: 'WhatsApp Cloud API is not configured.',
+      missing: config.missing,
+    })
+  }
+  if (!publicAppOrigin(req)) {
+    return res.status(503).json({ error: 'PUBLIC_APP_URL is required so tracking links point at the public app.' })
+  }
+  if (respondHolidayCronSkip(res)) return
+  const todayIST = istParts().date
+  const result = await runDailyWhatsApp({
+    records: readTrackingKeys(),
+    todayIST,
+    linkFor: (record) => trackingLinkFor(req, record),
+    send: (payload) => sendDailyTrackingWhatsApp(payload),
+  })
+  writeTrackingKeys(result.records)
+  const runStamp = dailyDeliveryStamp()
+  appendWhatsAppDailyLog([
+    ...result.sent.map((item) => ({
+      at: runStamp.iso,
+      atIST: runStamp.atIST,
+      trigger: 'cron',
+      id: item.id,
+      driverName: item.driverName,
+      status: 'sent',
+      messageId: item.messageId,
+    })),
+    ...result.failed.map((item) => ({
+      at: runStamp.iso,
+      atIST: runStamp.atIST,
+      trigger: 'cron',
+      id: item.id,
+      driverName: item.driverName,
+      status: 'failed',
+      error: item.error,
+    })),
+  ])
+  res.json({
+    ok: result.failed.length === 0,
+    todayIST,
+    counts: result.counts,
+    sent: result.sent,
+    failed: result.failed,
+    skipped: result.skipped,
+  })
 })
 
 app.delete('/api/transport/tracking-keys/:id', requireRoles('admin', 'super_admin'), (req, res) => {
@@ -2040,6 +3164,13 @@ app.delete('/api/transport/tracking-keys/:id', requireRoles('admin', 'super_admi
     delete live[req.params.id]
     writeTransportLive(live)
   }
+  const routes = readTransportRoutes()
+  if (routes.some((route) => route.trackingId === req.params.id)) {
+    writeTransportRoutes(
+      routes.map((route) => (route.trackingId === req.params.id ? { ...route, trackingId: '' } : route)),
+    )
+  }
+  syncRouteTrackingLinks()
   res.json({ deleted: true })
 })
 
@@ -2047,35 +3178,74 @@ app.get('/api/transport/live', requireRoles('admin', 'super_admin'), (_req, res)
   const keys = readTrackingKeys()
   const live = readTransportLive()
   const now = Date.now()
-  const vehicles = keys.map((record) => {
-    const ping = live[record.id] || null
-    const active = record.active !== false
-    return {
-      id: record.id,
-      key: record.key,
-      driverName: record.driverName,
-      vehicleLabel: record.vehicleLabel,
-      routeLabel: record.routeLabel,
-      phone: record.phone || '',
-      active,
-      online: active && ping ? isTrackOnline(ping.at, now) : false,
-      lastPing: ping
-        ? {
-            lat: ping.lat,
-            lng: ping.lng,
-            accuracy: ping.accuracy,
-            speed: ping.speed,
-            heading: ping.heading,
-            battery: ping.battery,
-            at: ping.at,
-            atIST: ping.atIST,
-            device: ping.device || '',
-          }
-        : null,
-      trail: Array.isArray(ping?.trail) ? ping.trail : [],
-    }
+  const vehicles = keys.map((record) => serializeLiveVehicle(record, live[record.id] || null, now))
+  res.json({ vehicles, routes: readTransportRoutes(), staleAfterSec: Math.round(TRACK_STALE_MS / 1000), now })
+})
+
+function currentHoliday(date = new Date()) {
+  return holidayForDate(date, readEvents())
+}
+
+function rejectHolidayTracking(res, holiday = currentHoliday()) {
+  if (!holiday.active) return false
+  res.status(409).json({
+    error: `Today is ${holiday.title}. School transport and live tracking are off.`,
+    code: 'HOLIDAY',
+    holiday,
   })
-  res.json({ vehicles, staleAfterSec: Math.round(TRACK_STALE_MS / 1000), now })
+  return true
+}
+
+app.get('/api/driver/me', requireDriver, (req, res) => {
+  const { route, tracking } = driverTrackingRecord(req.driver)
+  const vehicle = route?.vehicleId
+    ? readTransportVehicles().find((item) => item.id === route.vehicleId) || null
+    : null
+  const live = tracking ? readTransportLive()[tracking.id] || null : null
+  res.json({
+    driver: {
+      id: req.driver.id,
+      name: req.driver.name,
+      phone: req.driver.phone || '',
+    },
+    route: route
+      ? {
+          id: route.id,
+          name: route.name,
+          code: route.code || '',
+          status: route.status || 'Active',
+          stops: Array.isArray(route.stops) ? route.stops : [],
+        }
+      : null,
+    bus: vehicle
+      ? { id: vehicle.id, number: vehicle.number, model: vehicle.model || '', capacity: vehicle.capacity ?? null }
+      : route?.vehicleLabel
+        ? { id: '', number: route.vehicleLabel, model: '', capacity: null }
+        : null,
+    tracking: tracking
+      ? {
+          active: tracking.active !== false,
+          pingEverySec: 15,
+          lastPingAt: live?.at || '',
+          lastPingAtIST: live?.atIST || '',
+          staleAfterSec: Math.round(TRACK_STALE_MS / 1000),
+        }
+      : null,
+    holiday: currentHoliday(),
+    now: Date.now(),
+  })
+})
+
+app.post('/api/driver/ping', requireDriver, async (req, res) => {
+  if (rejectHolidayTracking(res)) return
+  const { tracking } = driverTrackingRecord(req.driver)
+  if (!tracking) {
+    return res.status(409).json({ error: 'No tracking link is connected to your route. Contact the school office.' })
+  }
+  if (tracking.active === false) {
+    return res.status(410).json({ error: 'Live tracking is switched off by the school.' })
+  }
+  return handleTrackPing(req, res, tracking)
 })
 
 // Public driver endpoints — the link key itself is the capability.
@@ -2092,10 +3262,8 @@ app.get('/api/track/:key', (req, res) => {
   })
 })
 
-app.post('/api/track/:key/ping', async (req, res) => {
-  const record = findTrackingKeyByKey(req.params.key)
-  if (!record) return res.status(404).json({ error: 'This tracking link is not valid.' })
-  if (record.active === false) return res.status(410).json({ error: 'This tracking link has been switched off by the school.' })
+async function handleTrackPing(req, res, record) {
+  if (rejectHolidayTracking(res)) return
   const fix = sanitizeFix(req.body)
   if (!fix) return res.status(400).json({ error: 'A valid GPS position is required.' })
   const live = readTransportLive()
@@ -2104,21 +3272,25 @@ app.post('/api/track/:key/ping', async (req, res) => {
     return res.json({ ok: true, throttled: true })
   }
   const kmh = effectiveSpeedKmh(fix, prev)
+  const speedSource = kmh == null ? null : fix.speed != null ? 'gps' : 'derived'
   const ist = istParts()
   const entry = {
     ...fix,
     at: ist.iso,
     atIST: `${ist.date} ${ist.time}`,
     device: sanitizeDevice(req.body?.device),
+    speedSource,
     trail: [...(Array.isArray(prev?.trail) ? prev.trail : []), trailPoint(fix)].slice(-TRACK_TRAIL_MAX),
   }
   // Devices that omit GPS speed (coords.speed null) still get a real speed
   // on the dashboard — store the server-computed value back as m/s.
   if (entry.speed == null && kmh != null) entry.speed = Math.round((kmh / 3.6) * 10) / 10
+  // Implausible GPS speed (above 120 km/h for a bus) is an artifact — show “—” instead of a fake value.
+  if (speedSource == null) entry.speed = null
   live[record.id] = entry
   writeTransportLive(live)
   let overspeedNotice = null
-  const detection = recordOverspeedDetection({ record, fix, kmh, device: entry.device })
+  const detection = recordOverspeedDetection({ record, fix, kmh, device: entry.device, speedSource })
   if (detection) {
     if (detection.isNew) {
       const recipients = overspeedAdminEmails()
@@ -2142,9 +3314,16 @@ app.post('/api/track/:key/ping', async (req, res) => {
   }
 
   res.json({ ok: true, atIST: entry.atIST, staleAfterSec: Math.round(TRACK_STALE_MS / 1000), ...(overspeedNotice ? { overspeed: overspeedNotice } : {}) })
+}
+
+app.post('/api/track/:key/ping', async (req, res) => {
+  const record = findTrackingKeyByKey(req.params.key)
+  if (!record) return res.status(404).json({ error: 'This tracking link is not valid.' })
+  if (record.active === false) return res.status(410).json({ error: 'This tracking link has been switched off by the school.' })
+  return handleTrackPing(req, res, record)
 })
 
-// --- Overspeed alerts: bus >60 km/h → admin email + dashboard warning + admin respond
+// --- Overspeed alerts: bus above 55 km/h → admin email + dashboard warning + admin respond
 const OVERSPEED_FILE = join('data', 'overspeed_alerts.json')
 const OVERSPEED_KEEP_MAX = 300
 
@@ -2166,11 +3345,12 @@ function overspeedAdminEmails() {
   )]
 }
 
-function recordOverspeedDetection({ record, fix, kmh, device = '' }) {
+function recordOverspeedDetection({ record, fix, kmh, device = '', speedSource = '' }) {
   if (kmh == null || kmh <= OVERSPEED_LIMIT_KMH) return null
   const ist = istParts()
   const alerts = readOverspeedAlerts()
   const rounded = Math.round(kmh)
+  const accuracy = Number.isFinite(Number(fix.accuracy)) ? Math.round(Number(fix.accuracy)) : null
   const stampIST = `${ist.date} ${ist.time}`
 
   const openIndex = alerts.findIndex(
@@ -2187,6 +3367,8 @@ function recordOverspeedDetection({ record, fix, kmh, device = '' }) {
       lat: fix.lat,
       lng: fix.lng,
       device: device || open.device || '',
+      speedSource: speedSource || open.speedSource || '',
+      accuracy: accuracy ?? open.accuracy ?? null,
       pingCount: (open.pingCount || 1) + 1,
     }
     writeOverspeedAlerts(alerts.map((a, i) => (i === openIndex ? updated : a)))
@@ -2201,6 +3383,7 @@ function recordOverspeedDetection({ record, fix, kmh, device = '' }) {
     phone: record.phone || '',
     routeLabel: record.routeLabel || '',
     speedKmh: rounded,
+    triggerKmh: rounded,
     lastKmh: rounded,
     lat: fix.lat,
     lng: fix.lng,
@@ -2209,6 +3392,8 @@ function recordOverspeedDetection({ record, fix, kmh, device = '' }) {
     lastAt: ist.iso,
     lastAtIST: stampIST,
     device,
+    speedSource,
+    accuracy,
     pingCount: 1,
     status: 'open',
     email: { sent: false, recipients: 0, sentCount: 0 },
@@ -2806,8 +3991,9 @@ app.get('/api/results/my', requireRoles('parent'), (req, res) => {
 // published events in the portal, so no one depends on a manual forward.
 const EVENTS_FILE = join('data', 'records', 'sms_events.json')
 const EVENTS_EMAIL_JOB_DIR = join('data', 'records', 'sms_events_email_jobs')
-const EVENT_TYPES = new Set(['ptm', 'festival', 'cultural', 'sports', 'competition', 'trip', 'meeting', 'other'])
+const EVENT_TYPES = new Set(['holiday', 'ptm', 'festival', 'cultural', 'sports', 'competition', 'trip', 'meeting', 'other'])
 const EVENT_TYPE_LABELS = {
+  holiday: 'School Holiday',
   ptm: 'Parent-Teacher Meeting',
   festival: 'Festival',
   cultural: 'Cultural Program',

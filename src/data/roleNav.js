@@ -173,6 +173,7 @@ export const PARENT_NAV = [
     item('/parent/fees/fines', 'Fines', 'alert'),
   ]),
   section('Transport', 'bus', [
+    item('/parent/transport/live', 'Live Bus Map', 'locate'),
     item('/parent/transport/bus', 'Bus Number', 'bus'),
     item('/parent/transport/driver', 'Driver Details', 'user'),
     item('/parent/transport/route', 'Route', 'route'),
@@ -201,6 +202,7 @@ export function homePathForRole(role) {
   if (normalized === ROLES.SUPER_ADMIN || normalized === 'superadmin') return '/super-admin'
   if (normalized === ROLES.TEACHER) return '/teacher'
   if (normalized === ROLES.PARENT) return '/parent'
+  if (normalized === ROLES.DRIVER) return '/driver'
   return '/dashboard'
 }
 

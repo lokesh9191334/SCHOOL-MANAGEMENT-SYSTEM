@@ -158,6 +158,14 @@
   border-left-color: #ef4444;
 }
 
+.drv-status--holiday {
+  border-left-color: #d4a017;
+}
+
+.drv-status--holiday .drv-status__dot {
+  background: #d4a017;
+}
+
 .drv-status__dot {
   flex-shrink: 0;
   width: 12px;
@@ -231,6 +239,51 @@
 .drv-action--stop {
   background: linear-gradient(135deg, #b42323, #ef4444);
   box-shadow: 0 16px 34px rgba(239, 68, 68, 0.3);
+}
+
+.drv-holiday {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fffaf0, #ffffff);
+  border: 1px solid #f0d9a8;
+  box-shadow: 0 14px 32px rgba(120, 84, 20, 0.1);
+}
+
+.drv-holiday__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: #1b2a55;
+  color: #f4c95d;
+}
+
+.drv-holiday__eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #a67c12;
+}
+
+.drv-holiday__title {
+  margin: 4px 0 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #1c2130;
+}
+
+.drv-holiday__text {
+  margin: 5px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #6a7186;
 }
 
 .drv-error {
@@ -351,5 +404,180 @@
 
   .drv-action:hover {
     transform: none;
+  }
+}
+
+/* ---------- Driver sign-in + trip assignment ---------- */
+
+.drv-login-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #6a7186;
+}
+
+.drv-hero__logout {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e8eaf0;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.drv-hero__logout:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.drv-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+  transform: none;
+}
+
+.drv-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(65, 87, 255, 0.24);
+  color: #4157ff;
+  background: rgba(65, 87, 255, 0.08);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.drv-mini-btn--ghost {
+  color: #4a5164;
+  border-color: #e0e3eb;
+  background: #f5f6fa;
+}
+
+.drv-mini-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.drv-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.drv-assignment,
+.drv-stops {
+  border-radius: 20px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid #e6e8ee;
+  box-shadow: 0 14px 32px rgba(20, 24, 40, 0.08);
+}
+
+.drv-assignment__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.drv-assignment__head h2,
+.drv-stops h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #1c2130;
+}
+
+.drv-assignment__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.drv-assignment__grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.drv-assignment__grid span {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6a7186;
+}
+
+.drv-assignment__grid b {
+  font-size: 0.88rem;
+  color: #1c2130;
+  overflow-wrap: anywhere;
+}
+
+.drv-stops {
+  margin-top: 14px;
+}
+
+.drv-stops ol {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.drv-stops li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.drv-stop__dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #4157ff;
+  box-shadow: 0 0 0 4px rgba(65, 87, 255, 0.12);
+}
+
+.drv-stop__body {
+  min-width: 0;
+}
+
+.drv-stop__name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #1c2130;
+}
+
+.drv-stop__meta {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #6a7186;
+  line-height: 1.4;
+}
+
+@media (max-width: 460px) {
+  .drv-assignment__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .drv-hero__logout {
+    width: 30px;
+    height: 30px;
   }
 }

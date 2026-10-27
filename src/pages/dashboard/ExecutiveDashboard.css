@@ -907,8 +907,8 @@
 .exec-modal__panel {
   position: relative;
   z-index: 1;
-  width: min(920px, 100%);
-  max-height: min(88vh, 900px);
+  width: min(1180px, 100%);
+  max-height: min(90vh, 960px);
   overflow: auto;
   border-radius: 22px;
   box-shadow: 0 28px 64px rgba(12, 18, 40, 0.28);

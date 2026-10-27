@@ -19,6 +19,7 @@ import { getAuthUser } from './utils/session'
 
 import StudentsPage from './pages/students/index'
 import AdmissionFormPage from './pages/students/AdmissionFormPage'
+import IdCardPage from './pages/students/IdCardPage'
 
 import TimetablePage from './pages/academics/timetable'
 import DatesheetPage from './pages/academics/datesheet'
@@ -30,7 +31,15 @@ import NotFoundPage from './pages/notFound'
 import LoginTracksPage from './pages/security/LoginTracks'
 import StaffFaceAttendancePage from './pages/staff/StaffFaceAttendance'
 import LiveTransportPage from './pages/transport/LiveTransport'
+import TransportRoutesPage from './pages/transport/RoutesPage'
+import TransportDriversPage from './pages/transport/DriversPage'
+import TransportVehiclesPage from './pages/transport/VehiclesPage'
+import TransportStopsPage from './pages/transport/StopsPage'
+import TransportAllocationsPage from './pages/transport/AllocationsPage'
+import ParentTransportPage from './pages/transport/ParentTransport'
 import DriverTrackPage from './pages/track/DriverTrack'
+import DriverLoginPage from './pages/driver/DriverLogin'
+import DriverTripPage from './pages/driver/DriverTrip'
 
 import SuperAdminHome from './pages/role/SuperAdminHome'
 import TeacherHome from './pages/role/TeacherHome'
@@ -50,6 +59,7 @@ const SPECIAL_PATHS = new Set([
   '/students',
   '/students/list',
   '/students/add',
+  '/students/id-card',
   '/academics/timetable',
   '/academics/datesheet',
   '/academics/documents',
@@ -80,6 +90,21 @@ const SPECIAL_PATHS = new Set([
   '/notices/events',
   '/teacher/events',
   '/parent/events',
+  '/transport',
+  '/transport/live',
+  '/transport/routes',
+  '/transport/drivers',
+  '/transport/vehicles',
+  '/transport/pickup-points',
+  '/transport/drop-points',
+  '/transport/student-allocation',
+  '/parent/transport/live',
+  '/parent/transport/bus',
+  '/parent/transport/driver',
+  '/parent/transport/route',
+  '/parent/transport/pickup',
+  '/parent/transport/drop',
+  '/parent/transport/allocation',
 ])
 
 const modulePaths = getModulePaths().filter((path) => !SPECIAL_PATHS.has(path))
@@ -103,6 +128,8 @@ function App() {
         </Route>
 
         <Route path="/track/:key" element={<DriverTrackPage />} />
+        <Route path="/driver/login" element={<DriverLoginPage />} />
+        <Route path="/driver" element={<DriverTripPage />} />
 
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
@@ -133,6 +160,7 @@ function App() {
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/students/list" element={<StudentsPage />} />
             <Route path="/students/add" element={<AdmissionFormPage />} />
+            <Route path="/students/id-card" element={<IdCardPage />} />
 
             <Route path="/academics/timetable" element={<TimetablePage />} />
             <Route path="/academics/datesheet" element={<DatesheetPage />} />
@@ -150,7 +178,22 @@ function App() {
 
             <Route path="/security/login-tracks" element={<LoginTracksPage />} />
             <Route path="/attendance/staff-face" element={<StaffFaceAttendancePage />} />
+            <Route path="/transport" element={<Navigate replace to="/transport/live" />} />
             <Route path="/transport/live" element={<LiveTransportPage />} />
+            <Route path="/transport/routes" element={<TransportRoutesPage />} />
+            <Route path="/transport/drivers" element={<TransportDriversPage />} />
+            <Route path="/transport/vehicles" element={<TransportVehiclesPage />} />
+            <Route path="/transport/pickup-points" element={<TransportStopsPage mode="pickup" />} />
+            <Route path="/transport/drop-points" element={<TransportStopsPage mode="drop" />} />
+            <Route path="/transport/student-allocation" element={<TransportAllocationsPage />} />
+
+            <Route path="/parent/transport/live" element={<ParentTransportPage tab="live" />} />
+            <Route path="/parent/transport/bus" element={<ParentTransportPage tab="bus" />} />
+            <Route path="/parent/transport/driver" element={<ParentTransportPage tab="driver" />} />
+            <Route path="/parent/transport/route" element={<ParentTransportPage tab="route" />} />
+            <Route path="/parent/transport/pickup" element={<ParentTransportPage tab="pickup" />} />
+            <Route path="/parent/transport/drop" element={<ParentTransportPage tab="drop" />} />
+            <Route path="/parent/transport/allocation" element={<ParentTransportPage tab="allocation" />} />
 
             {modulePaths.map((path) => (
               <Route key={path} path={path} element={<ModulePage />} />

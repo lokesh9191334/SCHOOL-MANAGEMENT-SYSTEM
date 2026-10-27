@@ -15,7 +15,7 @@ const cards = [
   { to: '/parent/fees/pending', label: 'Pending fees', note: 'Pay online' },
   { to: '/parent/results', label: 'Results', note: 'Published grades' },
   { to: '/parent/leave-request', label: 'Leave request', note: 'Send to class teacher' },
-  { to: '/parent/transport/bus', label: 'Transport', note: 'Bus, driver, pickup/drop' },
+  { to: '/parent/transport/live', label: 'Live bus', note: 'Track bus, driver & route' },
   { to: '/parent/notices', label: 'Notices & events', note: 'School updates' },
 ]
 

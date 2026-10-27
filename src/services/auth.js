@@ -69,6 +69,21 @@ export const login = async ({ email, password, geo }) => {
   return body
 }
 
+export const driverLogin = async ({ phone, pin }) => {
+  const res = await safeFetch(`${API}/driver/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, pin }),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) {
+    const error = new Error(buildErrorMessage(body, res) || 'Driver sign-in failed')
+    error.status = res.status
+    throw error
+  }
+  return body
+}
+
 export const loginVerify = async ({ email, code, loginToken, specialKey, geo }) => {
   const res = await safeFetch(`${API}/login/verify`, {
     method: 'POST',

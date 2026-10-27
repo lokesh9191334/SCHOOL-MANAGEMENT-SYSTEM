@@ -14,7 +14,7 @@ async function parseResponse(res) {
 
 function buildErrorMessage(body, res) {
   if (res && (res.status === 502 || res.status === 503 || res.status === 504)) {
-    return 'API server is not running. Start it with: npm run server (or use npm run dev:all).'
+    return body?.error || 'API server is not running. Start it with: npm run server (or use npm run dev:all).'
   }
   if (res && res.status === 401) {
     return body?.error || 'Your session expired. Sign in again.'
@@ -49,14 +49,42 @@ export async function createTrackingKey(payload) {
   return body
 }
 
-export async function setTrackingKeyActive(id, active) {
+export async function updateTrackingKey(id, patch) {
   const res = await safeFetch(`${API}/tracking-keys/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ active }),
+    body: JSON.stringify(patch),
   })
   const body = await parseResponse(res)
   if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body
+}
+
+export async function setTrackingKeyActive(id, active) {
+  return updateTrackingKey(id, { active })
+}
+
+/* ---- daily WhatsApp delivery ---- */
+
+export async function fetchWhatsAppStatus() {
+  const res = await safeFetch(`${API}/whatsapp/status`, { headers: getApiAuthHeaders() })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body || { configured: false, missing: [], recent: [] }
+}
+
+export async function sendTrackingKeyNow(id) {
+  const res = await safeFetch(`${API}/tracking-keys/${encodeURIComponent(id)}/send-now`, {
+    method: 'POST',
+    headers: getApiAuthHeaders(),
+  })
+  const body = await parseResponse(res)
+  if (!res.ok) {
+    const error = new Error(buildErrorMessage(body, res))
+    error.status = res.status
+    error.missing = Array.isArray(body?.missing) ? body.missing : []
+    throw error
+  }
   return body
 }
 
@@ -81,7 +109,7 @@ export async function fetchOverspeedAlerts() {
   const res = await safeFetch(`${API}/overspeed`, { headers: getApiAuthHeaders() })
   const body = await parseResponse(res)
   if (!res.ok) throw new Error(buildErrorMessage(body, res))
-  return body || { alerts: [], limitKmh: 60 }
+  return body || { alerts: [], limitKmh: 55 }
 }
 
 export async function respondOverspeedAlert(id, note = '') {

@@ -4,6 +4,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "regions": ["bom1"],
+  "crons": [
+    {
+      "path": "/api/cron/transport-daily-links",
+      "schedule": "30 0 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/icons/(.*)",

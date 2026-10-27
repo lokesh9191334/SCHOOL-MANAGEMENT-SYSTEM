@@ -33,3 +33,5 @@ public/models/
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env*

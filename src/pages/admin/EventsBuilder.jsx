@@ -3,6 +3,7 @@ import { deleteEvent, eventEmailMessage, listEvents, publishEvent, saveEvent } f
 import './EventsBuilder.css'
 
 const TYPE_OPTIONS = [
+  { value: 'holiday', label: 'Holiday (school closed)' },
   { value: 'ptm', label: 'Parent-Teacher Meeting' },
   { value: 'festival', label: 'Festival' },
   { value: 'cultural', label: 'Cultural Program' },
@@ -302,6 +303,12 @@ export default function EventsBuilder() {
             />
           </label>
         </div>
+        {form.type === 'holiday' ? (
+          <p className="ev-hint">
+            Published holiday date: school transport and live bus tracking stay off automatically. Driver login
+            remains available, and the daily WhatsApp link is skipped.
+          </p>
+        ) : null}
         <div className="ev-form-actions">
           <button type="submit" className="ev-btn primary" disabled={busy === 'save'}>
             {busy === 'save' ? 'Saving…' : form.id ? 'Save changes' : 'Save draft'}

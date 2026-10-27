@@ -13,6 +13,9 @@ export default function RequireAuth() {
   }
 
   const role = String(user.role || 'admin').toLowerCase()
+  if (role === 'driver') {
+    return <Navigate to="/driver" replace />
+  }
   const allowedPaths = navForRole(role).flatMap((section) => section.items.map((item) => item.to))
   const sharedPaths = ['/ai-assistant', '/settings/profile', '/settings/logout']
   const legacyRootPaths = role === 'admin' ? ['/dashboard', '/students', '/teachers', '/attendance', '/examination', '/fees', '/transport', '/library'] : []

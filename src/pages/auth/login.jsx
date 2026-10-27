@@ -89,6 +89,16 @@ const LoginPage = () => {
     return () => window.clearTimeout(timer)
   }, [resendIn])
 
+  // Login notifications stay on screen for 3 seconds only.
+  useEffect(() => {
+    if (!error && !info) return undefined
+    const timer = window.setTimeout(() => {
+      setError('')
+      setInfo('')
+    }, 3000)
+    return () => window.clearTimeout(timer)
+  }, [error, info])
+
   const stopWatch = useCallback(() => {
     if (watchRef.current != null && navigator.geolocation?.clearWatch) {
       navigator.geolocation.clearWatch(watchRef.current)
