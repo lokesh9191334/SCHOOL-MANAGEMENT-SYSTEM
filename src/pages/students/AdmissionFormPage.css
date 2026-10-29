@@ -230,14 +230,6 @@
   gap: 6px;
 }
 
-.admission-success__card > span {
-  font-size: 0.66rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 800;
-  color: #8a97b3;
-}
-
 .admission-success__side {
   display: flex;
   flex-direction: column;
@@ -356,6 +348,24 @@
 
 /* ---------- responsive ---------- */
 
+/* The page scrolls inside the app shell outlet, not the raw viewport, so the
+   100vh min-height used to push the form past the phone's visible height. */
+@media (max-width: 1024px) {
+  .admission-form-page {
+    min-height: 0;
+  }
+
+  .admission-form-page__panel {
+    min-width: 0;
+  }
+
+  /* This page ships its own header and wizard chrome; the shell topbar only
+     pushed the form below the phone's fold. The dock still has the Menu button. */
+  .sms-main:has(.admission-form-page) .sms-topbar {
+    display: none;
+  }
+}
+
 @media (max-width: 1080px) {
   .admission-success__body {
     grid-template-columns: 1fr;
@@ -380,9 +390,66 @@
 }
 
 @media (max-width: 640px) {
+  .admission-form-page {
+    gap: 10px;
+    min-height: 0;
+  }
+
   .admission-hero {
-    padding: 18px;
-    border-radius: 20px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'brand aside';
+    gap: 4px 10px;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .admission-hero__brand {
+    min-width: 0;
+  }
+
+  .admission-hero__brand div {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .admission-hero__brand strong {
+    display: block;
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admission-hero__brand img {
+    width: 26px;
+    height: 26px;
+    padding: 3px;
+    border-radius: 8px;
+  }
+
+  .admission-hero__brand p {
+    display: none;
+  }
+
+  /* The wizard topbar already prints the page title and hint. */
+  .admission-hero__copy {
+    display: none;
+  }
+
+  .admission-hero__aside {
+    margin-top: 0;
+    gap: 6px;
+  }
+
+  /* Session is shown in the wizard header on phones — keep this bar to one line. */
+  .admission-hero__chip {
+    display: none;
+  }
+
+  .admission-hero__back {
+    margin-top: 0;
+    padding: 6px 12px;
+    font-size: 0.74rem;
   }
 
   .admission-success {

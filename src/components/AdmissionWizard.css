@@ -903,11 +903,34 @@
 
 @media (max-width: 640px) {
   .premium-admission-form.adm-shell {
-    border-radius: 20px;
+    border-radius: 18px;
   }
 
   .adm-rail {
-    border-radius: 20px 20px 0 0;
+    padding: 10px 12px;
+    gap: 10px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  /* The topbar progress bar already shows completion — drop the ring so the
+     step chips and the form get the phone's vertical space. */
+  .adm-rail__progress {
+    display: none;
+  }
+
+  .adm-step-chip {
+    padding: 4px 9px;
+    gap: 6px;
+  }
+
+  .adm-step-chip__dot {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
+
+  .adm-step-chip__text strong {
+    font-size: 0.72rem;
   }
 
   .adm-main {
@@ -933,21 +956,42 @@
 
   .adm-topbar {
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
     align-items: stretch;
+    padding: 12px 14px 10px;
+  }
+
+  .adm-topbar__title h3 {
+    font-size: 1.04rem;
+  }
+
+  /* Kicker already says "Step 1 of 6" — the hint only eats height. */
+  .adm-topbar__title p:not(.adm-topbar__kicker) {
+    display: none;
+  }
+
+  .adm-topbar__session {
+    padding: 3px 9px;
+    font-size: 0.66rem;
   }
 
   .adm-topbar__aside {
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
     min-width: 0;
   }
 
+  .adm-topbar__bar {
+    flex: 1;
+  }
+
   .adm-step {
-    padding: 14px 14px 4px;
+    padding: 10px 10px 4px;
   }
 
   .adm-step .form-section {
-    padding: 16px 16px;
+    padding: 14px 14px;
     border-radius: 16px;
   }
 
@@ -958,8 +1002,8 @@
   .adm-nav {
     flex-direction: column;
     align-items: stretch;
-    padding: 12px 14px;
-    gap: 8px;
+    padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+    gap: 6px;
   }
 
   .adm-nav__meta span {
@@ -973,7 +1017,46 @@
 
   .adm-btn {
     justify-content: center;
-    padding: 11px 16px;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+  }
+
+  /* The sticky action bar floats over the step; keep the last field readable
+     above it instead of hidden underneath. */
+  .adm-step {
+    padding-bottom: 108px;
+  }
+
+  .adm-step input,
+  .adm-step select,
+  .adm-step textarea {
+    scroll-margin-bottom: 120px;
+  }
+
+  /* iOS zooms the whole page when a focused field is under 16px — the wizard
+     then looks broken and half of the layout sits off-screen. */
+  .adm-form input,
+  .adm-form select,
+  .adm-form textarea {
+    font-size: 16px;
+  }
+
+  /* Grid/flex children default to min-width:auto; long labels and chips pushed
+     the columns wider than the phone screen. */
+  .adm-main,
+  .adm-step,
+  .adm-nav {
+    min-width: 0;
+  }
+
+  .adm-main {
+    overflow-x: clip;
+  }
+
+  /* A full-height photo box pushed the Aadhaar field (and Continue) off the
+     first screen of the student step. */
+  .adm-step .photo-upload-preview {
+    height: 150px;
   }
 
   .adm-review-hero {

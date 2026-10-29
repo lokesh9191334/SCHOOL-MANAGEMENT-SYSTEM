@@ -124,12 +124,7 @@ const AdmissionFormPage = () => {
           <div className="admission-success__body">
             <div className="admission-success__cards">
               <div className="admission-success__card">
-                <span>Front</span>
-                <StudentIdCard student={registeredStudent} school={school} side="front" />
-              </div>
-              <div className="admission-success__card">
-                <span>Back</span>
-                <StudentIdCard student={registeredStudent} school={school} side="back" />
+                <StudentIdCard student={registeredStudent} school={school} />
               </div>
             </div>
 
@@ -151,7 +146,7 @@ const AdmissionFormPage = () => {
               <ol className="admission-success__steps">
                 <li>
                   <strong>Print and hand over the card</strong>
-                  <span>A4 sheet prints the front and back at exact 85.6 × 54 mm size.</span>
+                  <span>A4 sheet prints the card at exact 85.6 × 54 mm size.</span>
                 </li>
                 <li>
                   <strong>Share the parent portal</strong>

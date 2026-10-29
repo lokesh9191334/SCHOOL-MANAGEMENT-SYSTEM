@@ -288,13 +288,15 @@
   color: #a4afc0;
 }
 
-.aadhar-hint--verifying {
+.aadhar-hint--verifying,
+.aadhar-hint--checking {
   color: #4157ff;
   animation: pulse 1.5s infinite;
 }
 
-.aadhar-hint--verified {
-  color: #17b398;
+.aadhar-hint--verified,
+.aadhar-hint--valid {
+  color: #0d8f7a;
   font-weight: 600;
 }
 
