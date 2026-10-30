@@ -64,9 +64,11 @@ import {
 import {
   ATTENDANCE_COOLDOWN_MS,
   assertLiveFrames,
+  FACE_ENROLL_UNIQUENESS_THRESHOLD,
   FACE_LOGIN_FRAMES,
   enrollmentConflict,
   findBestMatch,
+  findDuplicateFaces,
   isLate,
   isValidDescriptor,
   isValidPhotoThumb,
@@ -1865,6 +1867,33 @@ app.delete('/api/face/me', (req, res) => {
   if (next.length === profiles.length) return res.json({ removed: false })
   writeFaceProfiles(next)
   res.json({ removed: true })
+})
+
+/* Read-only audit: accounts sharing a face. Enrollment blocks new clashes, so
+   any hit here is older data an admin should look at. Nothing is deleted. */
+app.get('/api/face/duplicates', requireRoles('admin', 'super_admin'), (req, res) => {
+  const profiles = readFaceProfiles()
+  const enrolled = profiles.filter(
+    (profile) => Array.isArray(profile.descriptors) && profile.descriptors.length,
+  )
+  const pairs = findDuplicateFaces(profiles).map(({ a, b, distance, percent }) => {
+    const slim = (profile) => ({
+      email: normalizeEmail(profile.email),
+      name: profile.name || normalizeEmail(profile.email).split('@')[0],
+      role: profile.role || '',
+      enrolledAt: profile.enrolledAt || null,
+      updatedAt: profile.updatedAt || null,
+      descriptorCount: Array.isArray(profile.descriptors) ? profile.descriptors.length : 0,
+      photoThumb: profile.photoThumb || null,
+    })
+    return { distance: Number(distance.toFixed(3)), matchPercent: percent, a: slim(a), b: slim(b) }
+  })
+  res.json({
+    threshold: FACE_ENROLL_UNIQUENESS_THRESHOLD,
+    profileCount: enrolled.length,
+    pairCount: pairs.length,
+    pairs,
+  })
 })
 
 /** Browser geo objects use `lon`; attendance storage expects `lng`. */

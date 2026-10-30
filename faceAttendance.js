@@ -163,6 +163,35 @@ export function enrollmentConflict(descriptors, profiles, selfEmail, threshold =
 }
 
 /**
+ * Read-only audit for admins: account pairs whose closest descriptors overlap.
+ * Such pairs should never coexist (enrollment blocks them up front), so each hit
+ * points at data enrolled before that guard existed. Nothing is modified here.
+ */
+export function findDuplicateFaces(profiles, threshold = FACE_ENROLL_UNIQUENESS_THRESHOLD) {
+  const list = (Array.isArray(profiles) ? profiles : []).filter(
+    (profile) => Array.isArray(profile.descriptors) && profile.descriptors.some(isValidDescriptor),
+  )
+  const pairs = []
+  for (let i = 0; i < list.length; i += 1) {
+    for (let j = i + 1; j < list.length; j += 1) {
+      let closest = Infinity
+      for (const a of list[i].descriptors) {
+        if (!isValidDescriptor(a)) continue
+        for (const b of list[j].descriptors) {
+          if (!isValidDescriptor(b)) continue
+          const distance = descriptorDistance(a, b)
+          if (distance < closest) closest = distance
+        }
+      }
+      if (closest <= threshold) {
+        pairs.push({ a: list[i], b: list[j], distance: closest, percent: matchPercent(closest) })
+      }
+    }
+  }
+  return pairs.sort((x, y) => x.distance - y.distance)
+}
+
+/**
  * Login requires every captured frame to (a) look like a live capture, (b) be
  * within `threshold` of one profile, (c) point at the SAME profile, and (d)
  * beat the nearest other profile by at least `margin`. Any uncertainty → reject

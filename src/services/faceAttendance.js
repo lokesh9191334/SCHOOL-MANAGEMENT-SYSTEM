@@ -67,6 +67,13 @@ export async function markFaceAttendance({ descriptor, location, device }) {
   return body || { matched: false, error: 'Scan could not be completed.' }
 }
 
+export async function fetchFaceDuplicates() {
+  const res = await safeFetch(`${API}/duplicates`, { headers: getApiAuthHeaders() })
+  const body = await parseResponse(res)
+  if (!res.ok) throw new Error(buildErrorMessage(body, res))
+  return body || { threshold: 0.45, profileCount: 0, pairCount: 0, pairs: [] }
+}
+
 export async function fetchStaffAttendance(date) {
   const qs = date ? `?date=${encodeURIComponent(date)}` : ''
   const res = await safeFetch(`${API}/attendance${qs}`, { headers: getApiAuthHeaders() })

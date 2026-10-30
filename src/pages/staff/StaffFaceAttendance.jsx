@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom'
 import NavGlyph from '../../layouts/NavGlyph'
 import { getAuthUser, roleLabel } from '../../utils/session'
 import { homePathForRole } from '../../data/roleNav'
-import { fetchMyFace, enrollMyFace, removeMyFace, markFaceAttendance, fetchStaffAttendance } from '../../services/faceAttendance'
+import { fetchMyFace, enrollMyFace, removeMyFace, markFaceAttendance, fetchStaffAttendance, fetchFaceDuplicates } from '../../services/faceAttendance'
 import {
   loadFaceEngine,
   detectFaceDescriptor,
@@ -110,6 +110,10 @@ const StaffFaceAttendance = () => {
   const [todayData, setTodayData] = useState(null)
   const [todayLoading, setTodayLoading] = useState(false)
   const [todayError, setTodayError] = useState('')
+
+  const [dupeData, setDupeData] = useState(null)
+  const [dupeLoading, setDupeLoading] = useState(false)
+  const [dupeError, setDupeError] = useState('')
 
   const [toasts, setToasts] = useState([])
 
@@ -346,6 +350,23 @@ const StaffFaceAttendance = () => {
     loadToday(todayDate)
   }, [tab, todayDate, isAdmin, loadToday])
 
+  const loadDuplicates = useCallback(async () => {
+    setDupeLoading(true)
+    setDupeError('')
+    try {
+      setDupeData(await fetchFaceDuplicates())
+    } catch (err) {
+      setDupeError(err?.message || 'Could not load the duplicate report.')
+    } finally {
+      setDupeLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'duplicates' || !isAdmin) return
+    loadDuplicates()
+  }, [tab, isAdmin, loadDuplicates])
+
   const summary = todayData?.summary || null
   const roster = useMemo(() => todayData?.roster || [], [todayData])
   const records = useMemo(() => todayData?.records || [], [todayData])
@@ -357,6 +378,7 @@ const StaffFaceAttendance = () => {
     { value: 'scan', label: 'Scan', icon: 'faceScan' },
     { value: 'myface', label: 'My Face', icon: 'user' },
     ...(isAdmin ? [{ value: 'today', label: 'Today', icon: 'clipboardCheck' }] : []),
+    ...(isAdmin ? [{ value: 'duplicates', label: 'Duplicates', icon: 'shield' }] : []),
   ]
 
   const toggleFull = () => {
@@ -799,6 +821,73 @@ const StaffFaceAttendance = () => {
             </article>
           ) : todayData && !records.length ? (
             <p className="sf-muted">No scans on {dateLabel(todayData.date)} yet.</p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {tab === 'duplicates' && isAdmin ? (
+        <section className="sf-today">
+          <div className="sf-today__bar">
+            <span className="sf-today__datelabel">Accounts sharing a face · read-only</span>
+            <button type="button" className="sf-btn" onClick={loadDuplicates} disabled={dupeLoading}>
+              <NavGlyph name="refresh" size={15} />
+              Refresh
+            </button>
+          </div>
+
+          {dupeError ? <p className="sf-error">{dupeError}</p> : null}
+          {dupeLoading && !dupeData ? <p className="sf-muted">Comparing face profiles…</p> : null}
+
+          {dupeData ? (
+            dupeData.pairCount ? (
+              <>
+                <p className="sf-muted">
+                  {dupeData.pairCount} pair{dupeData.pairCount === 1 ? '' : 's'} out of {dupeData.profileCount} enrolled
+                  profiles sit within {dupeData.threshold} distance. Nothing is changed automatically — review first.
+                </p>
+                <div className="sf-table-wrap">
+                  <table className="sf-table">
+                    <thead>
+                      <tr>
+                        <th>Account A</th>
+                        <th>Account B</th>
+                        <th>Match</th>
+                        <th>Distance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dupeData.pairs.map((pair) => (
+                        <tr key={`${pair.a.email}|${pair.b.email}`}>
+                          {[pair.a, pair.b].map((person) => (
+                            <td key={person.email}>
+                              <div className="sf-person">
+                                <div className="sf-avatar">
+                                  {person.photoThumb ? <img src={person.photoThumb} alt="" /> : initials(person.name)}
+                                </div>
+                                <div>
+                                  <p className="sf-person__name">{person.name}</p>
+                                  <p className="sf-person__role">
+                                    {roleLabel(person.role)} · {person.email}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                          ))}
+                          <td>
+                            <span className="sf-chip sf-chip--danger">{pair.matchPercent}%</span>
+                          </td>
+                          <td className="sf-mono">{pair.distance}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p className="sf-muted">
+                No duplicates — all {dupeData.profileCount} enrolled profiles are distinct.
+              </p>
+            )
           ) : null}
         </section>
       ) : null}
