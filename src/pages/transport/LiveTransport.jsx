@@ -92,9 +92,11 @@ function whatsAppState(vehicle, todayIST) {
   return { tone: 'wait', label: 'Scheduled daily', detail: 'Next send 6:00 AM IST' }
 }
 
-function speedKmh(speed) {
-  if (speed == null || !Number.isFinite(Number(speed))) return null
-  return Math.round(Number(speed) * 3.6)
+function speedKmh(ping) {
+  const kmh = Number(ping?.speedKmh)
+  if (ping?.speedKmh != null && Number.isFinite(kmh)) return Math.round(kmh)
+  const mps = Number(ping?.speed)
+  return ping?.speed != null && Number.isFinite(mps) ? Math.round(mps * 3.6) : null
 }
 
 function vehicleTone(vehicle) {
@@ -876,6 +878,15 @@ function LiveTransport() {
               <span className="tr-spinner" aria-hidden /> Drawing the {selectedRoute.name} road path…
             </p>
           ) : null}
+          {!vehicles.some(
+            (vehicle) =>
+              Number.isFinite(Number(vehicle.lastPing?.lat)) && Number.isFinite(Number(vehicle.lastPing?.lng)),
+          ) ? (
+            <p className="tlive-map-note">
+              Waiting for the first GPS ping. Each bus shows up here with a bus icon as soon as its driver taps
+              start trip.
+            </p>
+          ) : null}
         </div>
 
         <div className="tlive-list">
@@ -915,7 +926,7 @@ function LiveTransport() {
 
           {vehicles.map((vehicle) => {
             const tone = vehicleTone(vehicle)
-            const kmh = speedKmh(vehicle.lastPing?.speed)
+            const kmh = speedKmh(vehicle.lastPing)
             const routeForVehicle = routes.find((route) => route.id === vehicle.routeId) || null
             const waShare = whatsappLink(
               vehicle.phone,
@@ -1356,7 +1367,7 @@ function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, b
   const driverPhone = driver?.phone || vehicle?.phone || ''
   const busLabel = bus?.number || route.vehicleLabel || vehicle?.vehicleLabel || 'No bus assigned'
   const busMeta = [bus?.model, bus?.capacity ? `${bus.capacity} seats` : ''].filter(Boolean).join(' · ')
-  const kmh = speedKmh(vehicle?.lastPing?.speed)
+  const kmh = speedKmh(vehicle?.lastPing)
   const sourceLabel =
     geometryEntry?.data?.source === 'osrm'
       ? 'OSM road path'

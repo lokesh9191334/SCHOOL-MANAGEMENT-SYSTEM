@@ -80,7 +80,6 @@ import {
   validDescriptors,
 } from './faceAttendance.js'
 import {
-  effectiveSpeedKmh,
   generateTrackingKey,
   isTrackOnline,
   normalizeTrackKey,
@@ -89,6 +88,8 @@ import {
   OVERSPEED_LIMIT_KMH,
   sanitizeDevice,
   sanitizeFix,
+  smoothSpeedKmh,
+  speedReading,
   trailPoint,
   TRACK_MIN_PING_GAP_MS,
   TRACK_STALE_MS,
@@ -130,7 +131,13 @@ import {
 } from './aiAssistant.js'
 import { academicPdfFilename, buildAcademicPdf } from './academicDocs.js'
 import { collectAcademicRecipients, sendAcademicDocumentEmails } from './academicMailer.js'
-import { computeResult, normalizeExamTitle, rankResults, sanitizeSubjects } from './resultsStore.js'
+import {
+  computeResult,
+  gradeFromPercent,
+  normalizeExamTitle,
+  rankResults,
+  sanitizeSubjects,
+} from './resultsStore.js'
 import { holidayForDate } from './schoolCalendar.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
@@ -2449,6 +2456,8 @@ function serializeLiveVehicle(record, ping, now) {
           lng: ping.lng,
           accuracy: ping.accuracy,
           speed: ping.speed,
+          speedKmh: ping.speedKmh ?? null,
+          speedSource: ping.speedSource || '',
           heading: ping.heading,
           battery: ping.battery,
           at: ping.at,
@@ -2907,6 +2916,8 @@ app.get('/api/transport/my', requireRoles('parent'), (req, res) => {
                 lng: ping.lng,
                 accuracy: ping.accuracy,
                 speed: ping.speed,
+                speedKmh: ping.speedKmh ?? null,
+                speedSource: ping.speedSource || '',
                 heading: ping.heading,
                 battery: ping.battery,
                 at: ping.at,
@@ -3271,26 +3282,26 @@ async function handleTrackPing(req, res, record) {
   if (prev && Date.now() - Date.parse(prev.at) < TRACK_MIN_PING_GAP_MS) {
     return res.json({ ok: true, throttled: true })
   }
-  const kmh = effectiveSpeedKmh(fix, prev)
-  const speedSource = kmh == null ? null : fix.speed != null ? 'gps' : 'derived'
+  const reading = speedReading(fix, prev)
+  const shownKmh = smoothSpeedKmh(reading.kmh, prev)
+  const speedSource = shownKmh == null ? null : reading.source
   const ist = istParts()
   const entry = {
     ...fix,
     at: ist.iso,
     atIST: `${ist.date} ${ist.time}`,
     device: sanitizeDevice(req.body?.device),
+    speedKmh: shownKmh == null ? null : Math.round(shownKmh * 10) / 10,
     speedSource,
     trail: [...(Array.isArray(prev?.trail) ? prev.trail : []), trailPoint(fix)].slice(-TRACK_TRAIL_MAX),
   }
-  // Devices that omit GPS speed (coords.speed null) still get a real speed
-  // on the dashboard — store the server-computed value back as m/s.
-  if (entry.speed == null && kmh != null) entry.speed = Math.round((kmh / 3.6) * 10) / 10
-  // Implausible GPS speed (above 120 km/h for a bus) is an artifact — show “—” instead of a fake value.
-  if (speedSource == null) entry.speed = null
+  // Older screens read speed in m/s; keep it equal to the shown value so both agree.
+  entry.speed = shownKmh == null ? null : Math.round((shownKmh / 3.6) * 10) / 10
   live[record.id] = entry
   writeTransportLive(live)
   let overspeedNotice = null
-  const detection = recordOverspeedDetection({ record, fix, kmh, device: entry.device, speedSource })
+  // Alerts use the unsmoothed reading so a real overspeed is not delayed by the average.
+  const detection = recordOverspeedDetection({ record, fix, kmh: reading.kmh, device: entry.device, speedSource })
   if (detection) {
     if (detection.isNew) {
       const recipients = overspeedAdminEmails()
@@ -3309,11 +3320,11 @@ async function handleTrackPing(req, res, record) {
     } else {
       overspeedNotice = { raised: false, speedKmh: detection.event.lastKmh, limitKmh: OVERSPEED_LIMIT_KMH }
     }
-  } else if (kmh != null && kmh <= OVERSPEED_LIMIT_KMH) {
+  } else if (reading.kmh != null && reading.kmh <= OVERSPEED_LIMIT_KMH) {
     endOverspeedIfStale(record)
   }
 
-  res.json({ ok: true, atIST: entry.atIST, staleAfterSec: Math.round(TRACK_STALE_MS / 1000), ...(overspeedNotice ? { overspeed: overspeedNotice } : {}) })
+  res.json({ ok: true, atIST: entry.atIST, speedKmh: entry.speedKmh, speedSource, staleAfterSec: Math.round(TRACK_STALE_MS / 1000), ...(overspeedNotice ? { overspeed: overspeedNotice } : {}) })
 }
 
 app.post('/api/track/:key/ping', async (req, res) => {
@@ -3453,7 +3464,63 @@ app.post('/api/fees', (req, res) => {
   res.json(payment)
 })
 
+// School identity printed on report cards, fee receipts and ID cards. Stored
+// server-side so a parent's phone shows the same school details as the admin.
+const SCHOOL_PROFILE_FILE = join('data', 'school-profile.json')
+const SCHOOL_PROFILE_FIELDS = {
+  name: 70,
+  address: 120,
+  phone: 24,
+  email: 120,
+  website: 80,
+  principalName: 70,
+}
+const EMPTY_SCHOOL_PROFILE = {
+  name: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  principalName: '',
+}
+
+function readSchoolProfile() {
+  const stored = readJsonFile(SCHOOL_PROFILE_FILE, {})
+  const profile = {}
+  for (const [key, limit] of Object.entries(SCHOOL_PROFILE_FIELDS)) {
+    profile[key] = String(stored?.[key] ?? '').trim().slice(0, limit)
+  }
+  profile.updatedAt = String(stored?.updatedAt || '')
+  return profile
+}
+
+app.get('/api/school-profile', requireRoles(), (_req, res) => {
+  res.json(readSchoolProfile())
+})
+
+app.put('/api/school-profile', requireRoles('admin', 'super_admin'), (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const profile = {}
+  for (const [key, limit] of Object.entries(SCHOOL_PROFILE_FIELDS)) {
+    profile[key] = String(body[key] ?? '').trim().replace(/\s+/g, ' ').slice(0, limit)
+  }
+  if (!profile.name) return res.status(400).json({ error: 'School name is required.' })
+  if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+    return res.status(400).json({ error: 'Enter a valid school email address.' })
+  }
+  const saved = { ...profile, updatedAt: new Date().toISOString() }
+  writeJsonFile(SCHOOL_PROFILE_FILE, saved)
+  res.json(saved)
+})
+
+app.delete('/api/school-profile', requireRoles('admin', 'super_admin'), (_req, res) => {
+  const cleared = { ...EMPTY_SCHOOL_PROFILE, updatedAt: new Date().toISOString() }
+  writeJsonFile(SCHOOL_PROFILE_FILE, cleared)
+  res.json(cleared)
+})
+
 app.get('/api/payment-config', (_req, res) => {
+  const school = readSchoolProfile()
   res.json({
     holderName: process.env.PAYMENT_HOLDER_NAME || '',
     upiId: process.env.PAYMENT_UPI_ID || '',
@@ -3461,6 +3528,12 @@ app.get('/api/payment-config', (_req, res) => {
     bankName: process.env.PAYMENT_BANK_NAME || '',
     bankAccount: process.env.PAYMENT_BANK_ACCOUNT || '',
     bankIfsc: process.env.PAYMENT_BANK_IFSC || '',
+    schoolName: school.name,
+    schoolAddress: school.address,
+    schoolPhone: school.phone,
+    schoolEmail: school.email,
+    schoolWebsite: school.website,
+    principalName: school.principalName,
   })
 })
 
@@ -3482,6 +3555,24 @@ app.get('/api/payments', (req, res) => {
 app.get('/api/payments/summary', (req, res) => {
   const students = readStudentRecords()
   const payments = readJsonFile(join('data', 'payments.json'), [])
+  const resultRows = readResultRows()
+  const teacherRows = readJsonFile(join('data', 'teachers.json'), [])
+  const teacherPhoneOf = (name) => {
+    const needle = String(name || '').trim().toLowerCase()
+    if (!needle) return ''
+    const match = (Array.isArray(teacherRows) ? teacherRows : []).find((entry) => (
+      [entry?.title, entry?.name, entry?.email].some((value) => String(value || '').trim().toLowerCase() === needle)
+    ))
+    return String(match?.phone || match?.mobile || match?.contact || '').trim()
+  }
+  const classTeacherOf = (student) => {
+    if (!student) return { name: '', phone: '' }
+    const latest = resultRows
+      .filter((row) => String(row.studentId) === String(student.id) || String(row.studentId) === String(student.applicationId))
+      .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))[0]
+    const name = String(latest?.teacherName || '').trim()
+    return { name, phone: teacherPhoneOf(name) }
+  }
   const build = (student, linkedId) => {
     const keys = [student?.id, linkedId].filter((value) => value !== undefined && value !== null).map(String)
     const history = payments
@@ -3491,6 +3582,7 @@ app.get('/api/payments/summary', (req, res) => {
     const pending = history.filter((payment) => payment.status === 'Verification pending').reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
     const rawTotal = student?.totalFee
     const totalFee = rawTotal === null || rawTotal === undefined || rawTotal === '' || !Number.isFinite(Number(rawTotal)) ? null : Number(rawTotal)
+    const classTeacher = classTeacherOf(student)
     return {
       student: student
         ? { id: student.id, name: student.title || student.name || '', className: student.subtitle || student.className || '', rollNo: student.rollNo || '' }
@@ -3499,6 +3591,8 @@ app.get('/api/payments/summary', (req, res) => {
       paid,
       pending,
       balance: totalFee === null ? null : Math.max(0, totalFee - paid),
+      classTeacherName: classTeacher.name,
+      classTeacherPhone: classTeacher.phone,
       history,
     }
   }
@@ -3664,6 +3758,11 @@ function rerankResultGroup(rows, examKey, classKey) {
 }
 
 function publicResult(row) {
+  // Recompute from the stored totals so a ladder change applies to results
+  // published before the change without re-publishing them.
+  const totalMax = Number(row.totalMax) || 0
+  const totalScored = Number(row.totalScored) || 0
+  const percent = totalMax ? Math.round((totalScored / totalMax) * 1000) / 10 : 0
   return {
     id: row.id,
     examTitle: row.examTitle,
@@ -3672,10 +3771,10 @@ function publicResult(row) {
     studentName: row.studentName,
     rollNo: row.rollNo || '',
     subjects: Array.isArray(row.subjects) ? row.subjects : [],
-    totalScored: row.totalScored,
-    totalMax: row.totalMax,
-    percent: row.percent,
-    grade: row.grade,
+    totalScored,
+    totalMax,
+    percent,
+    grade: gradeFromPercent(percent),
     rank: row.rank || null,
     teacherName: row.teacherName || '',
     publishedAt: row.publishedAt || '',

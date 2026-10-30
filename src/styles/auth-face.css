@@ -181,6 +181,147 @@
   margin-top: 2px;
 }
 
+/* Blocked camera: browsers never re-prompt after "Block", so show the exact
+   way back instead of dead-ending on "change browser settings". */
+.af-permission {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, #fff8ed, #fff);
+  border: 1px solid rgba(201, 154, 60, 0.42);
+  box-shadow: 0 12px 30px rgba(16, 24, 47, 0.08);
+}
+
+.af-permission-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.af-permission-badge {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #c99a3c, #e2b45a);
+  box-shadow: 0 6px 14px rgba(201, 154, 60, 0.35);
+}
+
+.af-permission-head strong {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #10182f;
+}
+
+.af-permission-head p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #5b6478;
+}
+
+.af-permission-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e6ebf5;
+}
+
+.af-permission-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a6a1f;
+}
+
+.af-permission-block p,
+.af-permission-block li {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #1b2a55;
+}
+
+.af-permission-block p {
+  margin: 0;
+  color: #5b6478;
+}
+
+.af-permission-block ol {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.af-permission-copy {
+  align-self: flex-start;
+  margin-top: 2px;
+  appearance: none;
+  cursor: pointer;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(65, 87, 255, 0.35);
+  background: rgba(65, 87, 255, 0.07);
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #1b2a55;
+}
+
+.af-permission-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.af-permission-primary {
+  flex: 1;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #fff;
+  background: linear-gradient(135deg, #1b2a55, #4157ff);
+  box-shadow: 0 8px 18px rgba(65, 87, 255, 0.28);
+  transition: transform 0.15s ease;
+}
+
+.af-permission-primary:hover {
+  transform: translateY(-1px);
+}
+
+.af-permission-ghost {
+  appearance: none;
+  cursor: pointer;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #d9dfec;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4157ff;
+  transition: transform 0.15s ease;
+}
+
+.af-permission-primary:active,
+.af-permission-ghost:active {
+  transform: translateY(0);
+}
+
 /* Attendance result shown right after a face sign-in is verified */
 .af-result {
   display: flex;

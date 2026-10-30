@@ -1,34 +1,45 @@
 const SCHOOL_IDENTITY_KEY = 'sms_school_identity'
 
-const EMPTY_IDENTITY = { name: '', address: '', phone: '', website: '' }
+const EMPTY_IDENTITY = {
+  name: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  principalName: '',
+}
 
 function clean(value) {
   return String(value ?? '').trim()
 }
 
+function normalize(identity) {
+  return {
+    name: clean(identity?.name),
+    address: clean(identity?.address),
+    phone: clean(identity?.phone),
+    email: clean(identity?.email),
+    website: clean(identity?.website),
+    principalName: clean(identity?.principalName),
+  }
+}
+
+export function emptySchoolIdentity() {
+  return { ...EMPTY_IDENTITY }
+}
+
 export function readSchoolIdentity() {
   try {
     const raw = window.localStorage.getItem(SCHOOL_IDENTITY_KEY)
-    if (!raw) return { ...EMPTY_IDENTITY }
-    const parsed = JSON.parse(raw)
-    return {
-      name: clean(parsed?.name),
-      address: clean(parsed?.address),
-      phone: clean(parsed?.phone),
-      website: clean(parsed?.website),
-    }
+    if (!raw) return emptySchoolIdentity()
+    return normalize(JSON.parse(raw))
   } catch {
-    return { ...EMPTY_IDENTITY }
+    return emptySchoolIdentity()
   }
 }
 
 export function writeSchoolIdentity(identity) {
-  const next = {
-    name: clean(identity?.name),
-    address: clean(identity?.address),
-    phone: clean(identity?.phone),
-    website: clean(identity?.website),
-  }
+  const next = normalize(identity)
   window.localStorage.setItem(SCHOOL_IDENTITY_KEY, JSON.stringify(next))
   window.dispatchEvent(new CustomEvent('sms:school-identity', { detail: next }))
   return next
@@ -36,15 +47,16 @@ export function writeSchoolIdentity(identity) {
 
 export function clearSchoolIdentity() {
   window.localStorage.removeItem(SCHOOL_IDENTITY_KEY)
-  window.dispatchEvent(new CustomEvent('sms:school-identity', { detail: { ...EMPTY_IDENTITY } }))
+  window.dispatchEvent(new CustomEvent('sms:school-identity', { detail: emptySchoolIdentity() }))
 }
 
 export function schoolForCard(identity) {
+  const next = normalize(identity)
   return {
-    name: clean(identity?.name) || 'School Management System',
-    address: clean(identity?.address),
-    phone: clean(identity?.phone),
-    website: clean(identity?.website),
+    name: next.name,
+    address: next.address,
+    phone: next.phone,
+    website: next.website,
   }
 }
 

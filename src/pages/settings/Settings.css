@@ -402,6 +402,23 @@
   gap: 12px;
 }
 
+.st-school {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.st-school__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.st-school__hint {
+  grid-column: 1 / -1;
+}
+
 .st-pw__actions {
   display: flex;
   flex-wrap: wrap;
@@ -654,6 +671,10 @@ html.sms-dark .st-badge.warn {
   }
 
   .st-pw__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .st-school {
     grid-template-columns: 1fr;
   }
 

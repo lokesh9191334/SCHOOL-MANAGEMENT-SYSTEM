@@ -29,9 +29,11 @@ function timeAgo(iso) {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-function speedKmh(speed) {
-  if (speed == null || !Number.isFinite(Number(speed))) return null
-  return Math.round(Number(speed) * 3.6)
+function speedKmh(ping) {
+  const kmh = Number(ping?.speedKmh)
+  if (ping?.speedKmh != null && Number.isFinite(kmh)) return Math.round(kmh)
+  const mps = Number(ping?.speed)
+  return ping?.speed != null && Number.isFinite(mps) ? Math.round(mps * 3.6) : null
 }
 
 function stopKindLabel(kind) {
@@ -257,7 +259,7 @@ export default function ParentTransport({ tab = 'live' }) {
 
   const busTone = busToneOf(bus)
   const statusLabel = statusText(busTone, Boolean(bus))
-  const kmh = speedKmh(bus?.lastPing?.speed)
+  const kmh = speedKmh(bus?.lastPing)
   const busLabel = bus?.vehicleLabel || route?.vehicleLabel || 'Bus not assigned'
   const driverName = driver?.name || bus?.driverName || 'Driver not assigned'
   const driverPhone = driver?.phone || ''

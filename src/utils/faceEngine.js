@@ -48,6 +48,62 @@ export function loadFaceEngine(onProgress) {
 
 const DETECTOR_OPTIONS = { inputSize: 320, scoreThreshold: 0.5 }
 
+const IN_APP_BROWSER_PATTERN =
+  /(FBAN|FBAV|Instagram|Line\/|WhatsApp|Snapchat|Twitter|LinkedInApp|MicroMessenger|GSA\/|; wv\))/i
+
+/** True for embedded webviews (Instagram/Facebook/WhatsApp in-app browsers) where
+ *  camera permission cannot be granted reliably. */
+export function isInAppBrowser() {
+  if (typeof navigator === 'undefined') return false
+  return IN_APP_BROWSER_PATTERN.test(navigator.userAgent || '')
+}
+
+/** Whether this is the installed PWA rather than a normal browser tab. */
+export function isStandaloneApp() {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia?.('(display-mode: standalone)')?.matches === true ||
+    window.navigator.standalone === true
+  )
+}
+
+/** 'granted' | 'denied' | 'prompt' | 'unknown' (Safari/Firefox report unknown). */
+export async function readCameraPermission() {
+  if (typeof navigator === 'undefined' || !navigator.permissions?.query) return 'unknown'
+  try {
+    const status = await navigator.permissions.query({ name: 'camera' })
+    return status.state || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
+/** Live permission updates (the user may allow the camera in site settings and come back). */
+export function watchCameraPermission(onChange) {
+  let status = null
+  let cancelled = false
+  const emit = (state) => {
+    if (!cancelled) Promise.resolve().then(() => onChange(state))
+  }
+  if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+    navigator.permissions
+      .query({ name: 'camera' })
+      .then((result) => {
+        if (cancelled) return
+        status = result
+        result.onchange = () => emit(result.state)
+        emit(result.state)
+      })
+      .catch(() => emit('unknown'))
+  } else {
+    emit('unknown')
+  }
+  return () => {
+    cancelled = true
+    if (status) status.onchange = null
+  }
+}
+
 /** Euclidean distance between two 128-number face descriptors. */
 export function descriptorDistance(a, b) {
   let sum = 0
@@ -111,10 +167,13 @@ export function scaleBox(hit, videoEl) {
 }
 
 export function cameraSupportError() {
+  if (typeof window !== 'undefined' && window.isSecureContext === false) {
+    return 'Camera needs a secure https:// link. Open the school app from its https address (or http://localhost on a computer).'
+  }
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-    return window.isSecureContext
-      ? 'This browser does not support camera access.'
-      : 'Camera needs HTTPS. Open this app through its secure link (Vercel) or http://localhost — plain LAN http is blocked by the browser.'
+    return isInAppBrowser()
+      ? 'This in-app browser does not share the camera with websites. Open the school app link in Chrome or Safari.'
+      : 'This browser does not support camera access. Use the latest Chrome, Edge or Safari.'
   }
   return null
 }
@@ -122,7 +181,9 @@ export function cameraSupportError() {
 export function describeCameraError(err) {
   const name = err?.name || ''
   if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return 'Camera permission was denied. Allow camera access in the browser settings and try again.'
+    return isInAppBrowser()
+      ? 'This app’s built-in browser blocked the camera. Open the school link in Chrome or Safari to register your face.'
+      : 'Camera access is blocked for this site. Allow it once using the steps shown and the camera opens by itself.'
   }
   if (name === 'NotFoundError' || name === 'OverconstrainedError') {
     return 'No usable camera was found on this device.'

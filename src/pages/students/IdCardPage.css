@@ -639,32 +639,6 @@
   color: #7f8ba5;
 }
 
-.idc-side-toggle {
-  display: inline-flex;
-  padding: 3px;
-  border-radius: 999px;
-  background: #f1f4fc;
-  border: 1px solid rgba(17, 27, 51, 0.08);
-}
-
-.idc-side-toggle button {
-  padding: 7px 14px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: #7f8ba5;
-  font: inherit;
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.idc-side-toggle button.is-on {
-  background: #1b2a55;
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(27, 42, 85, 0.25);
-}
-
 .idc-card-wrap {
   padding: 6px;
   border-radius: 22px;

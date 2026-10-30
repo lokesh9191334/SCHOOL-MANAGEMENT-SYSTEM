@@ -7,6 +7,7 @@ import * as auth from '../../services/auth'
 import { enrollMyFace, fetchMyFace } from '../../services/faceAttendance'
 import { describeDevice } from '../../utils/faceEngine'
 import { homePathForRole } from '../../data/roleNav'
+import { expiredNotice } from '../../utils/session'
 import '../../styles/auth-premium.css'
 import '../../styles/auth-face.css'
 
@@ -52,7 +53,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
-  const [info, setInfo] = useState(location.state?.info || '')
+  const [info, setInfo] = useState(() => expiredNotice(location.search) || location.state?.info || '')
   const [loading, setLoading] = useState(false)
 
   const [otpStep, setOtpStep] = useState(false)
@@ -98,6 +99,12 @@ const LoginPage = () => {
     }, 3000)
     return () => window.clearTimeout(timer)
   }, [error, info])
+
+  // Drop the ?expired=1 flag from the address bar; the toast is already showing.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('expired') !== '1') return
+    window.history.replaceState(window.history.state, '', location.pathname)
+  }, [location.search, location.pathname])
 
   const stopWatch = useCallback(() => {
     if (watchRef.current != null && navigator.geolocation?.clearWatch) {

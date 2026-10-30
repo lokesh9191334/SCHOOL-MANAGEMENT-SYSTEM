@@ -49,6 +49,12 @@ export default function ParentOnlinePaymentPage() {
   const autoAmount = entry && entry.balance !== null && entry.balance > 0 ? String(entry.balance) : ''
   const amountValue = amountTouched ? amount : autoAmount
 
+  const receiptSettings = useMemo(() => ({
+    ...settings,
+    classTeacherName: entry?.classTeacherName || '',
+    classTeacherPhone: entry?.classTeacherPhone || '',
+  }), [settings, entry])
+
   const loadSummary = useCallback(() => fetch('/api/payments/summary', { headers: getApiAuthHeaders() })
     .then((response) => response.json().catch(() => null).then((body) => {
       if (!response.ok) throw new Error(body?.error || `Could not load fee details (${response.status}).`)
@@ -156,7 +162,7 @@ export default function ParentOnlinePaymentPage() {
       setExpiresAt(0)
       setSecondsLeft(0)
       try {
-        await downloadPaymentReceipt(saved, settings)
+        await downloadPaymentReceipt(saved, receiptSettings)
         setMessage(`Payment submitted. Receipt ${saved.receiptNo || saved.id} downloaded — status: Verification pending. The balance updates after the school verifies the payment.`)
         setMessageTone('is-success')
       } catch {
@@ -175,7 +181,7 @@ export default function ParentOnlinePaymentPage() {
   const downloadReceipt = async (payment) => {
     setBusyReceiptId(payment.id)
     try {
-      await downloadPaymentReceipt(payment, settings)
+      await downloadPaymentReceipt(payment, receiptSettings)
       setMessage(`Receipt ${payment.receiptNo || payment.id} downloaded.`)
       setMessageTone('is-info')
     } catch (error) {

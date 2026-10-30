@@ -47,6 +47,45 @@ function describeGeoError(err) {
   return err?.message || 'Could not read GPS position.'
 }
 
+function metersBetween(a, b) {
+  const R = 6371000
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+/** Phones report 0.0 m/s while the bus is already moving, so fill that gap from
+    how far the bus travelled since an older fix. */
+function trustedSpeed(fix, samples) {
+  const gps = fix.speed
+  const gpsKmh = gps == null ? null : gps * 3.6
+  let prev = null
+  for (let i = samples.length - 1; i >= 0; i -= 1) {
+    const gapSec = (fix.at - samples[i].at) / 1000
+    if (gapSec > 60) break
+    if (gapSec >= 5) {
+      prev = samples[i]
+      break
+    }
+  }
+  let derivedKmh = null
+  if (prev && fix.accuracy != null && fix.accuracy <= 50) {
+    derivedKmh = (metersBetween(prev, fix) / ((fix.at - prev.at) / 1000)) * 3.6
+    if (derivedKmh > 120) derivedKmh = null
+  }
+  if (gpsKmh != null && gpsKmh >= 2 && gpsKmh <= 120) {
+    const disagrees = derivedKmh != null && derivedKmh >= 5 && gpsKmh < derivedKmh * 0.5
+    if (!disagrees) return { speed: gps, source: 'gps' }
+  }
+  if (derivedKmh != null && derivedKmh >= 5) {
+    return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+  }
+  if (gpsKmh != null && gpsKmh <= 120) return { speed: gps, source: 'gps' }
+  return { speed: null, source: null }
+}
+
 async function acquireWakeLock(wakeLockRef, trackingRef, onState) {
   try {
     if (!navigator.wakeLock?.request) {
@@ -98,6 +137,7 @@ const DriverTrip = () => {
   const watchIdRef = useRef(null)
   const intervalRef = useRef(null)
   const fixRef = useRef(null)
+  const samplesRef = useRef([])
   const wakeLockRef = useRef(null)
   const trackingRef = useRef(false)
   const batteryRef = useRef(null)
@@ -171,7 +211,7 @@ const DriverTrip = () => {
         lat: current.lat,
         lng: current.lng,
         accuracy: current.accuracy,
-        speed: current.speed,
+        speed: current.speedSource === 'derived' ? null : current.speed,
         heading: current.heading,
         battery: batteryRef.current,
         device: deviceLabel(),
@@ -219,6 +259,7 @@ const DriverTrip = () => {
     setTrackError('')
     setTrackState('waiting')
     trackingRef.current = true
+    samplesRef.current = []
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -228,7 +269,15 @@ const DriverTrip = () => {
           accuracy: Number.isFinite(pos.coords.accuracy) ? Math.round(pos.coords.accuracy) : null,
           speed: Number.isFinite(pos.coords.speed) && pos.coords.speed >= 0 ? Math.round(pos.coords.speed * 10) / 10 : null,
           heading: Number.isFinite(pos.coords.heading) && pos.coords.heading >= 0 ? Math.round(pos.coords.heading) : null,
+          at: Date.now(),
         }
+        const speed = trustedSpeed(next, samplesRef.current)
+        next.speed = speed.speed
+        next.speedSource = speed.source
+        samplesRef.current = [
+          ...samplesRef.current.filter((sample) => next.at - sample.at <= 60 * 1000),
+          { lat: next.lat, lng: next.lng, accuracy: next.accuracy, at: next.at },
+        ]
         const first = !fixRef.current
         fixRef.current = next
         setFix(next)

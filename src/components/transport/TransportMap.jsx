@@ -76,6 +76,13 @@ function stopKindLabel(kind) {
   return 'Pickup & drop'
 }
 
+function pingSpeedKmh(ping) {
+  const kmh = Number(ping?.speedKmh)
+  if (ping?.speedKmh != null && Number.isFinite(kmh)) return Math.round(kmh)
+  const mps = Number(ping?.speed)
+  return ping?.speed != null && Number.isFinite(mps) ? Math.round(mps * 3.6) : null
+}
+
 function TransportMap({
   layers = [],
   vehicles = [],
@@ -190,6 +197,7 @@ function TransportMap({
       })
     }
 
+    const vehiclePoints = []
     for (const vehicle of vehicles) {
       const ping = vehicle.lastPing
       if (!ping || !Number.isFinite(Number(ping.lat)) || !Number.isFinite(Number(ping.lng))) continue
@@ -200,7 +208,14 @@ function TransportMap({
         zIndexOffset: selected ? 900 : 700,
         keyboard: false,
       })
-      const kmh = Number.isFinite(Number(ping.speed)) ? Math.round(Number(ping.speed) * 3.6) : null
+      const kmh = pingSpeedKmh(ping)
+      const tone = toneOf(vehicle)
+      marker.bindTooltip(
+        `${vehicle.driverName || 'Bus'}${kmh !== null ? ` · ${kmh} km/h` : ''}${
+          tone === 'online' ? '' : tone === 'off' ? ' · off' : ' · signal lost'
+        }`,
+        { permanent: true, direction: 'top', className: 'tmap-bus-label', offset: [0, -20] },
+      )
       marker.bindPopup(
         buildPopup(
           vehicle.driverName || 'Bus',
@@ -217,6 +232,7 @@ function TransportMap({
       marker.on('click', () => onSelectVehicle?.(vehicle.id))
       marker.addTo(layer)
       bounds.push(point)
+      vehiclePoints.push(point)
     }
 
     if (bounds.length) {
@@ -227,11 +243,9 @@ function TransportMap({
         if (selectedRouteId) {
           const selectedLayer = layers.find((item) => item.route?.id === selectedRouteId)
           const selectedPath = selectedLayer?.geometry
-          if (Array.isArray(selectedPath) && selectedPath.length > 1) {
-            map.fitBounds(L.latLngBounds(selectedPath).pad(0.18), { animate: false, maxZoom: 16 })
-          } else {
-            map.fitBounds(L.latLngBounds(bounds).pad(0.18), { animate: false, maxZoom: 16 })
-          }
+          // Keep the bus in view even when it has left the drawn route line.
+          const focus = [...(Array.isArray(selectedPath) ? selectedPath : []), ...vehiclePoints]
+          map.fitBounds(L.latLngBounds(focus.length ? focus : bounds).pad(0.18), { animate: false, maxZoom: 16 })
         } else {
           map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: false, maxZoom: 15 })
         }

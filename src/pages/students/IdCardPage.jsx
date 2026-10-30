@@ -65,7 +65,6 @@ export default function IdCardPage() {
   const [query, setQuery] = useState('')
   const [classFilter, setClassFilter] = useState('')
   const [selectedId, setSelectedId] = useState(() => searchParams.get('student') || '')
-  const [side, setSide] = useState('front')
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkIds, setBulkIds] = useState(() => new Set())
   const [printList, setPrintList] = useState([])
@@ -78,6 +77,12 @@ export default function IdCardPage() {
   const school = useMemo(() => schoolForCard(identity), [identity])
   const session = useMemo(() => academicSession(), [])
   const validTill = useMemo(() => cardValidTill(), [])
+
+  useEffect(() => {
+    const syncIdentity = () => setIdentity(readSchoolIdentity())
+    window.addEventListener('sms:school-identity', syncIdentity)
+    return () => window.removeEventListener('sms:school-identity', syncIdentity)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -226,7 +231,7 @@ export default function IdCardPage() {
             <h2>Student ID Card Studio</h2>
             <p>
               Generate print-ready identity cards from live student records. Choose a student, check the photo and
-              details, then print the front and reverse on A4.
+              details, then print the card on A4.
             </p>
             <div className="idc-hero__chips">
               <span>Session {session}</span>
@@ -473,26 +478,10 @@ export default function IdCardPage() {
                     {studentClassLabel(selected)} · Card {studentCardNumber(selected)}
                   </p>
                 </div>
-                <div className="idc-side-toggle" role="group" aria-label="Card side">
-                  <button
-                    type="button"
-                    className={side === 'front' ? 'is-on' : ''}
-                    onClick={() => setSide('front')}
-                  >
-                    Front
-                  </button>
-                  <button
-                    type="button"
-                    className={side === 'back' ? 'is-on' : ''}
-                    onClick={() => setSide('back')}
-                  >
-                    Back
-                  </button>
-                </div>
               </header>
 
               <div className="idc-card-wrap">
-                <StudentIdCard student={selected} school={school} side={side} />
+                <StudentIdCard student={selected} school={school} />
               </div>
 
               <div className="idc-preview__meta">
@@ -513,7 +502,7 @@ export default function IdCardPage() {
 
               <div className="idc-preview__actions">
                 <button type="button" className="idc-btn idc-btn--primary" onClick={() => handlePrint([selected])}>
-                  Print front &amp; back
+                  Print ID card
                 </button>
                 <button
                   type="button"
@@ -525,8 +514,8 @@ export default function IdCardPage() {
               </div>
 
               <p className="idc-print-hint">
-                Print sheet includes both sides for every selected student. Use A4 paper and enable double-sided
-                printing for a real card, or print on card stock and cut along the border.
+                Every selected student prints as one 85.6 × 54 mm card on A4. Print on card stock if available and cut
+                along the border.
               </p>
             </>
           ) : (

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthShell from '../../components/auth/AuthShell'
 import { driverLogin } from '../../services/auth'
-import { getAuthToken, getAuthUser } from '../../utils/session'
+import { expiredNotice, getAuthToken, getAuthUser } from '../../utils/session'
 import '../../styles/auth-premium.css'
 import '../../styles/driver-track-premium.css'
 
@@ -13,8 +13,26 @@ const DriverLogin = () => {
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
   const [error, setError] = useState('')
-  const [info] = useState(location.state?.info || '')
+  const [info, setInfo] = useState(
+    () => expiredNotice(location.search, true) || location.state?.info || '',
+  )
   const [loading, setLoading] = useState(false)
+
+  // Notifications stay on screen for 3 seconds only.
+  useEffect(() => {
+    if (!error && !info) return undefined
+    const timer = window.setTimeout(() => {
+      setError('')
+      setInfo('')
+    }, 3000)
+    return () => window.clearTimeout(timer)
+  }, [error, info])
+
+  // Drop the ?expired=1 flag from the address bar; the toast is already showing.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('expired') !== '1') return
+    window.history.replaceState(window.history.state, '', location.pathname)
+  }, [location.search, location.pathname])
 
   useEffect(() => {
     if (getAuthUser()?.role === 'driver' && getAuthToken()) {
@@ -55,7 +73,10 @@ const DriverLogin = () => {
       subtitle="Use the phone number and 6-digit PIN saved by your school office. No daily link needed."
       notice={error || info}
       noticeTone={error ? 'error' : 'success'}
-      onNoticeClose={() => setError('')}
+      onNoticeClose={() => {
+        setError('')
+        setInfo('')
+      }}
       footer={
         <>
           <span>School staff?</span>

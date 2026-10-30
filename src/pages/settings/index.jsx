@@ -7,6 +7,13 @@ import { enrollMyFace, fetchMyFace, removeMyFace } from '../../services/faceAtte
 import FaceCapturePanel from '../../components/face/FaceCapturePanel'
 import { getAuthUser, roleLabel } from '../../utils/session'
 import { CURRENCIES, getCurrency, setCurrency as saveCurrency } from '../../utils/currency'
+import {
+  emptySchoolIdentity,
+  readSchoolIdentity,
+  schoolForCard,
+  writeSchoolIdentity,
+} from '../../utils/schoolIdentity'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import { LANGUAGES, useI18n } from '../../i18n/I18nContext'
 import '../../styles/auth-face.css'
 import './Settings.css'
@@ -57,6 +64,9 @@ export default function SettingsPage() {
   const [faceEnrollOpen, setFaceEnrollOpen] = useState(false)
   const [faceEnrollError, setFaceEnrollError] = useState('')
   const [toast, setToast] = useState('')
+  const [schoolIdentity, setSchoolIdentity] = useState(readSchoolIdentity)
+  const [schoolDraft, setSchoolDraft] = useState(readSchoolIdentity)
+  const [schoolBusy, setSchoolBusy] = useState(false)
 
   const [pwOpen, setPwOpen] = useState(false)
   const [pwStage, setPwStage] = useState('request')
@@ -71,8 +81,10 @@ export default function SettingsPage() {
   const role = String(user?.role || '').toLowerCase()
   const isStaff = STAFF_ROLES.has(role)
   const canSeeSecurity = role === 'admin' || role === 'super_admin'
+  const canManageSchool = canSeeSecurity
   const displayName = user?.name || user?.username || user?.email || 'Your account'
   const initials = useMemo(() => initialsOf(displayName), [displayName])
+  const schoolPreview = useMemo(() => schoolForCard(schoolIdentity), [schoolIdentity])
 
   useEffect(() => {
     if (!toast) return undefined
@@ -89,7 +101,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     let active = true
-    setFace({ state: 'loading', data: null, error: '' })
     fetchMyFace()
       .then((data) => {
         if (active) setFace({ state: 'ready', data, error: '' })
@@ -101,6 +112,23 @@ export default function SettingsPage() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!canManageSchool) return undefined
+    let active = true
+    fetch('/api/school-profile', { headers: getApiAuthHeaders() })
+      .then((response) => (response.ok ? response.json() : null))
+      .catch(() => null)
+      .then((profile) => {
+        if (!active || !profile?.name) return
+        const next = writeSchoolIdentity(profile)
+        setSchoolIdentity(next)
+        setSchoolDraft(next)
+      })
+    return () => {
+      active = false
+    }
+  }, [canManageSchool])
 
   const applyTheme = (next) => {
     setTheme(next)
@@ -132,6 +160,50 @@ export default function SettingsPage() {
   const applyCurrency = (next) => {
     setCurrencyState(saveCurrency(next))
     setToast(t('Currency symbol updated'))
+  }
+
+  const applySchoolIdentity = async (event) => {
+    event.preventDefault()
+    if (schoolBusy) return
+    setSchoolBusy(true)
+    try {
+      const response = await fetch('/api/school-profile', {
+        method: 'PUT',
+        headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(schoolDraft),
+      })
+      const body = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(body?.error || t('School identity could not be saved.'))
+      const saved = writeSchoolIdentity(body)
+      setSchoolIdentity(saved)
+      setSchoolDraft(saved)
+      setToast(t('School identity saved — ID cards, report cards and receipts now use it'))
+    } catch (error) {
+      setToast(error?.message || t('School identity could not be saved.'))
+    } finally {
+      setSchoolBusy(false)
+    }
+  }
+
+  const resetSchoolIdentity = async () => {
+    if (schoolBusy) return
+    setSchoolBusy(true)
+    try {
+      const response = await fetch('/api/school-profile', {
+        method: 'DELETE',
+        headers: getApiAuthHeaders(),
+      })
+      if (!response.ok) throw new Error('Reset failed')
+      const empty = emptySchoolIdentity()
+      writeSchoolIdentity(empty)
+      setSchoolIdentity(empty)
+      setSchoolDraft(empty)
+      setToast(t('School identity cleared'))
+    } catch {
+      setToast(t('School identity could not be cleared. Try again.'))
+    } finally {
+      setSchoolBusy(false)
+    }
   }
 
   const openPassword = () => {
@@ -380,6 +452,98 @@ export default function SettingsPage() {
           </div>
           <p className="st-hint">{t('Pick the symbol shown with amounts. Amounts are not converted or recalculated.')}</p>
         </article>
+
+        {canManageSchool ? (
+          <article className="st-card st-card--wide">
+            <header className="st-card__head">
+              <span className="st-card__icon" aria-hidden>
+                <NavGlyph name="grid" size={16} />
+              </span>
+              <h3>{t('School identity on documents')}</h3>
+            </header>
+            <p className="st-copy">
+              {t('These details print on ID cards, report cards and fee receipts. Saved on the server, so every device — including parents’ phones — shows the same school name and contact.')}
+            </p>
+            <form className="st-school" onSubmit={applySchoolIdentity}>
+              <label className="st-field">
+                <span>{t('School name')}</span>
+                <input
+                  type="text"
+                  value={schoolDraft.name}
+                  onChange={(event) => setSchoolDraft((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder={t('e.g. Prayag Sr. Sec. School')}
+                  maxLength={70}
+                />
+              </label>
+              <label className="st-field">
+                <span>{t('Address line')}</span>
+                <input
+                  type="text"
+                  value={schoolDraft.address}
+                  onChange={(event) => setSchoolDraft((prev) => ({ ...prev, address: event.target.value }))}
+                  placeholder={t('Campus address or city')}
+                  maxLength={120}
+                />
+              </label>
+              <label className="st-field">
+                <span>{t('Office phone')}</span>
+                <input
+                  type="tel"
+                  value={schoolDraft.phone}
+                  onChange={(event) => setSchoolDraft((prev) => ({ ...prev, phone: event.target.value }))}
+                  placeholder={t('School office number')}
+                  maxLength={24}
+                />
+              </label>
+              <label className="st-field">
+                <span>{t('School email')}</span>
+                <input
+                  type="email"
+                  value={schoolDraft.email}
+                  onChange={(event) => setSchoolDraft((prev) => ({ ...prev, email: event.target.value }))}
+                  placeholder={t('office@school.example')}
+                  maxLength={120}
+                />
+              </label>
+              <label className="st-field">
+                <span>{t('Website')}</span>
+                <input
+                  type="text"
+                  value={schoolDraft.website}
+                  onChange={(event) => setSchoolDraft((prev) => ({ ...prev, website: event.target.value }))}
+                  placeholder={t('school.example')}
+                  maxLength={80}
+                />
+              </label>
+              <label className="st-field">
+                <span>{t('Principal name')}</span>
+                <input
+                  type="text"
+                  value={schoolDraft.principalName}
+                  onChange={(event) => setSchoolDraft((prev) => ({ ...prev, principalName: event.target.value }))}
+                  placeholder={t('Name printed above Principal')}
+                  maxLength={70}
+                />
+              </label>
+              <div className="st-school__actions">
+                <button type="submit" className="st-btn secondary" disabled={schoolBusy}>
+                  {schoolBusy ? t('Saving…') : t('Save school identity')}
+                </button>
+                <button type="button" className="st-btn ghost" onClick={resetSchoolIdentity} disabled={schoolBusy}>
+                  {t('Reset')}
+                </button>
+                <Link className="st-btn ghost" to="/students/id-card">
+                  {t('Open ID card studio')}
+                </Link>
+              </div>
+              <p className="st-hint st-school__hint">
+                {schoolPreview.name
+                  ? t('Documents print “{name}”. Saved for every device.', { name: schoolPreview.name })
+                  : t('No school name set yet — documents print “School name not set” until you save one.')}
+              </p>
+            </form>
+          </article>
+        ) : null}
 
         <article className="st-card st-card--wide">
           <header className="st-card__head">

@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { homePathForRole, navForRole } from '../data/roleNav'
-import { getAuthToken, getAuthUser } from '../utils/session'
+import { clearAuthStorage, getAuthToken, getAuthUser, isTokenExpired } from '../utils/session'
 
 /** Protects ERP routes — guests go to login */
 export default function RequireAuth() {
@@ -13,6 +13,17 @@ export default function RequireAuth() {
   }
 
   const role = String(user.role || 'admin').toLowerCase()
+
+  if (isTokenExpired(token)) {
+    clearAuthStorage()
+    return (
+      <Navigate
+        to={role === 'driver' ? '/driver/login?expired=1' : '/auth/login?expired=1'}
+        replace
+      />
+    )
+  }
+
   if (role === 'driver') {
     return <Navigate to="/driver" replace />
   }

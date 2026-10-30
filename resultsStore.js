@@ -1,14 +1,13 @@
 /* Exam result helpers: grade bands, subject/score validation and total
    computation. File I/O stays in server.js so Blob persistence keeps working. */
 
+/* School ladder: A+ from 85%, B 70–84.9%, C 50–69.9%, D below 50%.
+   Percentage is always total scored ÷ total max across every subject. */
 export const RESULT_GRADE_BANDS = [
-  { grade: 'A+', min: 90 },
-  { grade: 'A', min: 80 },
-  { grade: 'B+', min: 70 },
-  { grade: 'B', min: 60 },
+  { grade: 'A+', min: 85 },
+  { grade: 'B', min: 70 },
   { grade: 'C', min: 50 },
-  { grade: 'D', min: 35 },
-  { grade: 'F', min: 0 },
+  { grade: 'D', min: 0 },
 ]
 
 export const MAX_RESULT_SUBJECTS = 20
@@ -18,8 +17,8 @@ export const MAX_EXAM_TITLE = 120
 
 export function gradeFromPercent(percent) {
   const value = Number(percent)
-  if (!Number.isFinite(value)) return 'F'
-  return (RESULT_GRADE_BANDS.find((band) => value >= band.min) || { grade: 'F' }).grade
+  if (!Number.isFinite(value)) return 'D'
+  return (RESULT_GRADE_BANDS.find((band) => value >= band.min) || { grade: 'D' }).grade
 }
 
 export function normalizeExamTitle(value) {

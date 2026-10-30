@@ -82,20 +82,57 @@ export function haversineMeters(a, b) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
-/** Trust the phone's GPS speed; when missing, derive it from the last two pings.
-    Unreliable readings return null so admins see “—” rather than a fake speed. */
-export function effectiveSpeedKmh(fix, prev) {
-  if (fix.speed != null && Number.isFinite(Number(fix.speed))) {
-    const kmh = Number(fix.speed) * 3.6
-    return kmh <= MAX_PLAUSIBLE_SPEED_KMH ? kmh : null
-  }
+/** Phones report 0.0 m/s for a while after the bus starts moving — below this the
+    GPS speed is treated as unknown, not as standing still. */
+const GPS_SPEED_MIN_TRUST_KMH = 2
+/** A movement-derived speed must beat this to replace a zeroed GPS reading. */
+const DERIVED_SPEED_MIN_TRUST_KMH = 5
+/** How much one new reading moves the shown speed; the rest keeps the previous value. */
+const SPEED_SMOOTH_NEW_WEIGHT = 0.6
+/** Smoothing restarts from scratch when the previous ping is older than this. */
+const SPEED_SMOOTH_MAX_GAP_SEC = 60
+
+/** Distance covered since the previous ping, in km/h. Null when the pair is unusable. */
+export function derivedSpeedKmh(fix, prev, now = Date.now()) {
   if (!prev || !Number.isFinite(Number(prev.lat)) || !Number.isFinite(Number(prev.lng))) return null
   const prevAt = Date.parse(prev.at || '')
   if (!Number.isFinite(prevAt)) return null
-  const dtSec = (Date.now() - prevAt) / 1000
+  const dtSec = (now - prevAt) / 1000
   if (dtSec < DERIVED_MIN_GAP_SEC || dtSec > DERIVED_MAX_GAP_SEC) return null
   const accuracy = Number(fix.accuracy)
   if (!Number.isFinite(accuracy) || accuracy > DERIVED_MAX_ACCURACY_M) return null
   const kmh = (haversineMeters(prev, fix) / dtSec) * 3.6
   return kmh <= MAX_PLAUSIBLE_SPEED_KMH ? kmh : null
+}
+
+/** The speed to report for this fix, with where it came from. An implausible GPS
+    reading yields null so admins see “—” instead of a fake number. */
+export function speedReading(fix, prev, now = Date.now()) {
+  const gpsKmh =
+    fix.speed != null && Number.isFinite(Number(fix.speed)) ? Number(fix.speed) * 3.6 : null
+  const plausibleGps = gpsKmh != null && gpsKmh <= MAX_PLAUSIBLE_SPEED_KMH ? gpsKmh : null
+  const derivedKmh = derivedSpeedKmh(fix, prev, now)
+  if (plausibleGps != null && plausibleGps >= GPS_SPEED_MIN_TRUST_KMH) {
+    // A GPS number far below the distance actually covered is stale, not real.
+    const disagrees =
+      derivedKmh != null && derivedKmh >= DERIVED_SPEED_MIN_TRUST_KMH && plausibleGps < derivedKmh * 0.5
+    if (!disagrees) return { kmh: plausibleGps, source: 'gps' }
+  }
+  if (derivedKmh != null && derivedKmh >= DERIVED_SPEED_MIN_TRUST_KMH) {
+    return { kmh: derivedKmh, source: 'derived' }
+  }
+  if (plausibleGps != null) return { kmh: plausibleGps, source: 'gps' }
+  if (derivedKmh != null) return { kmh: derivedKmh, source: 'derived' }
+  return { kmh: null, source: null }
+}
+
+/** Average the new reading with the previous smoothed one so a single noisy fix
+    does not make the dashboard jump. */
+export function smoothSpeedKmh(kmh, prev, now = Date.now()) {
+  if (kmh == null) return null
+  const prevKmh = Number(prev?.speedKmh)
+  const prevAt = Date.parse(prev?.at || '')
+  if (!Number.isFinite(prevKmh) || !Number.isFinite(prevAt)) return kmh
+  if ((now - prevAt) / 1000 > SPEED_SMOOTH_MAX_GAP_SEC) return kmh
+  return prevKmh + (kmh - prevKmh) * SPEED_SMOOTH_NEW_WEIGHT
 }
