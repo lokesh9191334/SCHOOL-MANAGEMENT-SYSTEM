@@ -385,6 +385,7 @@ export const MODULE_REGISTRY = [
     columns: [
       col('title', 'Teacher'),
       col('subject', 'Subject'),
+      col('classTeacherOf', 'Class teacher of'),
       col('email', 'Email'),
       col('inviteKey', 'Account key'),
       col('status', 'Status'),
@@ -396,6 +397,8 @@ export const MODULE_REGISTRY = [
       field('email', 'Email', 'email'),
       field('phone', 'Phone'),
       field('status', 'Status', 'select', { options: ['Active', 'On leave', 'Resigned'] }),
+      field('staffRole', 'Staff role', 'select', { options: ['Teacher', 'Class Teacher'] }),
+      field('classTeacherOf', 'Class of class teacher', 'select', { options: [], dynamic: 'studentClasses', required: false }),
     ],
     seed: [
       { id: 'TCH-501', title: 'Dr. Meera Iyer', subject: 'Mathematics', email: 'm.iyer@school.edu', phone: '+91 90000 10001', status: 'Active', tone: 'success' },
@@ -423,6 +426,7 @@ export const MODULE_REGISTRY = [
     columns: [
       col('title', 'Teacher'),
       col('subject', 'Subject'),
+      col('classTeacherOf', 'Class teacher of'),
       col('email', 'Email'),
       col('inviteKey', 'Account key'),
       col('status', 'Status'),
@@ -434,6 +438,8 @@ export const MODULE_REGISTRY = [
       field('email', 'Email', 'email'),
       field('phone', 'Phone'),
       field('status', 'Status', 'select', { options: ['Active', 'On leave', 'Resigned'] }),
+      field('staffRole', 'Staff role', 'select', { options: ['Teacher', 'Class Teacher'] }),
+      field('classTeacherOf', 'Class of class teacher', 'select', { options: [], dynamic: 'studentClasses', required: false }),
     ],
     seed: [
       { id: 'TCH-501', title: 'Dr. Meera Iyer', subject: 'Mathematics', email: 'm.iyer@school.edu', phone: '+91 90000 10001', status: 'Active', tone: 'success' },
@@ -461,6 +467,7 @@ export const MODULE_REGISTRY = [
     columns: [
       col('title', 'Teacher'),
       col('subject', 'Subject'),
+      col('classTeacherOf', 'Class teacher of'),
       col('email', 'Email'),
       col('inviteKey', 'Account key'),
       col('status', 'Status'),
@@ -472,6 +479,8 @@ export const MODULE_REGISTRY = [
       field('email', 'Email', 'email'),
       field('phone', 'Phone'),
       field('status', 'Status', 'select', { options: ['Active', 'On leave', 'Resigned'] }),
+      field('staffRole', 'Staff role', 'select', { options: ['Teacher', 'Class Teacher'] }),
+      field('classTeacherOf', 'Class of class teacher', 'select', { options: [], dynamic: 'studentClasses', required: false }),
     ],
     seed: [
       { id: 'TCH-501', title: 'Dr. Meera Iyer', subject: 'Mathematics', email: 'm.iyer@school.edu', phone: '+91 90000 10001', status: 'Active', tone: 'success' },

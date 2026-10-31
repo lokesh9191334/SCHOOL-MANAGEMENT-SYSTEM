@@ -10,7 +10,8 @@ const cards = [
   { to: '/teacher/exams/marks', label: 'Marks + auto calc', note: 'Totals, % , grades, ranks' },
   { to: '/teacher/exams/report-cards', label: 'Premium report cards', note: 'Print-ready student cards' },
   { to: '/teacher/parent-communication', label: 'Parent messaging', note: 'SMS / email updates' },
-  { to: '/teacher/leave-inbox', label: 'Leave requests', note: 'Approve parent leave (via Approvals)' },
+  { to: '/teacher/leave', label: 'My leave', note: 'Apply and track admin approval' },
+  { to: '/teacher/student-leave', label: 'Student leave', note: 'Approve leave requests from parents' },
 ]
 
 export default function TeacherHome() {
@@ -37,7 +38,7 @@ export default function TeacherHome() {
       <UpcomingEvents moreTo="/teacher/events" />
       <section className="role-home__grid">
         {cards.map((card) => (
-          <Link key={card.to} to={card.to === '/teacher/leave-inbox' ? '/approvals' : card.to} className="role-home__card tone-a">
+          <Link key={card.to} to={card.to} className="role-home__card tone-a">
             <h3>{card.label}</h3>
             <p>{card.note}</p>
           </Link>

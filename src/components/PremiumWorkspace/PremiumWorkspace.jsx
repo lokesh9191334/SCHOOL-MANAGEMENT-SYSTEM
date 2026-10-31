@@ -4,6 +4,11 @@ import { Link } from 'react-router-dom'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { notifyParentAttendance, resolveParentContact } from '../../services/parentNotify'
 import { createInviteKey } from '../../services/inviteKeys'
+import {
+  fetchClassTeacherOverview,
+  removeClassTeacherAssignment,
+  saveClassTeacherAssignment,
+} from '../../services/classTeachers'
 import { getAuthUser } from '../../utils/session'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { SEED_STUDENTS } from '../../data/seed'
@@ -265,6 +270,9 @@ export default function PremiumWorkspace({ config }) {
   const [profileId, setProfileId] = useState(null)
   const authUser = getAuthUser()
   const [students] = usePersistentState(STORAGE_KEYS.students, SEED_STUDENTS)
+  const [classOptions, setClassOptions] = useState([])
+  const [classAssignments, setClassAssignments] = useState([])
+  const [assignmentBusy, setAssignmentBusy] = useState(false)
   const childIds = students
     .filter((student) => student.applicationId === authUser?.linkedId || student.id === authUser?.linkedId)
     .map((student) => student.id)
@@ -298,6 +306,24 @@ export default function PremiumWorkspace({ config }) {
   useEffect(() => {
     setAutoNotifyParents(Boolean(config.notifyParentsOnStatus))
   }, [config.notifyParentsOnStatus, config.path])
+
+  // Class options for the Class Teacher assignment come from admitted students.
+  useEffect(() => {
+    if (config.inviteRole !== 'teacher') return undefined
+    let active = true
+    fetchClassTeacherOverview()
+      .then((body) => {
+        if (!active) return
+        setClassOptions(Array.isArray(body.classes) ? body.classes : [])
+        setClassAssignments(Array.isArray(body.assignments) ? body.assignments : [])
+      })
+      .catch(() => {
+        /* server not reachable — the rest of the teacher form still works */
+      })
+    return () => {
+      active = false
+    }
+  }, [config.inviteRole])
 
   const stats = useMemo(() => {
     if (typeof config.computeStats === 'function') return config.computeStats(rows)
@@ -388,6 +414,82 @@ export default function PremiumWorkspace({ config }) {
     setToast('Record removed')
   }
 
+  const isTeacherModule = config.inviteRole === 'teacher'
+
+  const optionsForField = (field) => {
+    if (field.dynamic === 'studentClasses') return classOptions
+    return field.options?.length ? field.options : statusOptions
+  }
+
+  const selectedAssignment =
+    selected && isTeacherModule
+      ? classAssignments.find(
+          (row) =>
+            (selected.email &&
+              String(row.teacherEmail || '').toLowerCase() === String(selected.email).trim().toLowerCase()) ||
+            (selected.id && String(row.teacherRecordId || '') === String(selected.id)),
+        ) || null
+      : null
+
+  const syncAssignment = async (record) => {
+    const body = await saveClassTeacherAssignment({
+      className: record.classTeacherOf,
+      teacherName: record.title || record.name || '',
+      teacherEmail: record.email || '',
+      teacherPhone: record.phone || '',
+      teacherRecordId: record.id,
+    })
+    const assignment = body.assignment
+    const key = String(assignment.className || '').toLowerCase()
+    setClassAssignments((prev) => [
+      assignment,
+      ...prev.filter((row) => String(row.className || '').toLowerCase() !== key),
+    ])
+    setClassOptions((prev) =>
+      prev.some((label) => String(label).toLowerCase() === key) ? prev : [...prev, assignment.className],
+    )
+    return assignment
+  }
+
+  const saveSelectedAssignment = async () => {
+    if (!selected) return
+    if (String(selected.staffRole || '') !== 'Class Teacher') {
+      setToast('Set Staff role to Class Teacher first.')
+      return
+    }
+    if (!String(selected.classTeacherOf || '').trim()) {
+      setToast('Choose the class this class teacher will handle.')
+      return
+    }
+    setAssignmentBusy(true)
+    try {
+      const assignment = await syncAssignment(selected)
+      updateSelected({ classTeacherOf: assignment.className }, { silentToast: true })
+      setToast(`${assignment.teacherName} is now class teacher of ${assignment.className}.`)
+    } catch (err) {
+      setToast(err.message || 'Could not save the class teacher assignment.')
+    } finally {
+      setAssignmentBusy(false)
+    }
+  }
+
+  const removeSelectedAssignment = async () => {
+    if (!selectedAssignment) return
+    if (!window.confirm(`Remove ${selectedAssignment.teacherName} as class teacher of ${selectedAssignment.className}?`)) {
+      return
+    }
+    setAssignmentBusy(true)
+    try {
+      await removeClassTeacherAssignment(selectedAssignment.id)
+      setClassAssignments((prev) => prev.filter((row) => row.id !== selectedAssignment.id))
+      setToast('Class teacher assignment removed.')
+    } catch (err) {
+      setToast(err.message || 'Could not remove the class teacher assignment.')
+    } finally {
+      setAssignmentBusy(false)
+    }
+  }
+
   const createRecord = async (event) => {
     event.preventDefault()
     const titleField = fields.find((f) => f.key === 'title') || fields[0]
@@ -404,6 +506,18 @@ export default function PremiumWorkspace({ config }) {
     }
     if (!next.title) next.title = titleValue
 
+    if (isTeacherModule && next.staffRole === 'Class Teacher') {
+      if (!String(next.classTeacherOf || '').trim()) {
+        setToast('Choose the class this class teacher will handle.')
+        return
+      }
+      if (!String(next.email || '').includes('@')) {
+        setToast('A class teacher needs a valid email so student leave requests reach them.')
+        return
+      }
+    }
+
+    let assignmentIssue = ''
     if (config.inviteRole === 'teacher') {
       try {
         const invite = await createInviteKey({
@@ -432,6 +546,15 @@ export default function PremiumWorkspace({ config }) {
       }
     }
 
+    if (isTeacherModule && next.staffRole === 'Class Teacher') {
+      try {
+        const assignment = await syncAssignment(next)
+        next.classTeacherOf = assignment.className
+      } catch (err) {
+        assignmentIssue = err.message || 'the class teacher assignment could not be saved'
+      }
+    }
+
     setRows((prev) => [next, ...prev])
     setSelectedId(next.id)
     setEditing(false)
@@ -446,9 +569,11 @@ export default function PremiumWorkspace({ config }) {
       }
     }
     setToast(
-      next.inviteKey
-        ? `${createLabel} saved · special key ${next.inviteKey} ready for teacher signup`
-        : `${createLabel} saved`,
+      assignmentIssue
+        ? `${createLabel} saved, but the class teacher assignment failed: ${assignmentIssue}`
+        : next.inviteKey
+          ? `${createLabel} saved · special key ${next.inviteKey} ready for teacher signup`
+          : `${createLabel} saved`,
     )
   }
 
@@ -639,44 +764,52 @@ export default function PremiumWorkspace({ config }) {
                 </header>
                 <div className="pw-drawer-body">
                   <div className="pw-form-grid">
-                    {fields.map((field) => (
-                      <label key={field.key} className="pw-field">
-                        <span>{field.label}</span>
-                        {field.type === 'photo' ? (
-                          <PhotoField
-                            value={form[field.key] || ''}
-                            onChange={(value) => setForm((prev) => ({ ...prev, [field.key]: value }))}
-                          />
-                        ) : field.type === 'select' ? (
-                          <select
-                            value={form[field.key] ?? ''}
-                            onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                            required={field.required !== false}
-                          >
-                            {(field.options || statusOptions).map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        ) : field.type === 'textarea' ? (
-                          <textarea
-                            value={form[field.key] ?? ''}
-                            onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                            rows={3}
-                            required={field.required !== false}
-                          />
-                        ) : (
-                          <input
-                            type={field.type || 'text'}
-                            value={form[field.key] ?? ''}
-                            onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                            required={field.required !== false}
-                            placeholder={field.placeholder || ''}
-                          />
-                        )}
-                      </label>
-                    ))}
+                    {fields.map((field) => {
+                      if (field.key === 'classTeacherOf' && form.staffRole !== 'Class Teacher') return null
+                      const options = optionsForField(field)
+                      return (
+                        <label key={field.key} className="pw-field">
+                          <span>{field.label}</span>
+                          {field.type === 'photo' ? (
+                            <PhotoField
+                              value={form[field.key] || ''}
+                              onChange={(value) => setForm((prev) => ({ ...prev, [field.key]: value }))}
+                            />
+                          ) : field.type === 'select' ? (
+                            <select
+                              value={form[field.key] ?? ''}
+                              onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                              required={field.dynamic === 'studentClasses' ? true : field.required !== false}
+                            >
+                              {field.dynamic === 'studentClasses' ? <option value="">Select class</option> : null}
+                              {options.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          ) : field.type === 'textarea' ? (
+                            <textarea
+                              value={form[field.key] ?? ''}
+                              onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                              rows={3}
+                              required={field.required !== false}
+                            />
+                          ) : (
+                            <input
+                              type={field.type || 'text'}
+                              value={form[field.key] ?? ''}
+                              onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                              required={field.required !== false}
+                              placeholder={field.placeholder || ''}
+                            />
+                          )}
+                          {field.dynamic === 'studentClasses' && !options.length ? (
+                            <small>No admitted student classes found yet. Add a student first.</small>
+                          ) : null}
+                        </label>
+                      )
+                    })}
                   </div>
                 </div>
                 <footer className="pw-drawer-foot">
@@ -858,8 +991,10 @@ export default function PremiumWorkspace({ config }) {
                 <div>
                   <p className="pw-section-label">Details</p>
                   <div className="pw-meta-grid">
-                    {detailFields.map((field) =>
-                    field.type === 'photo' ? (
+                    {detailFields.map((field) => {
+                    if (field.key === 'classTeacherOf' && selected?.staffRole !== 'Class Teacher') return null
+                    const options = optionsForField(field)
+                    return field.type === 'photo' ? (
                       <div key={field.key} className="pw-meta pw-meta-edit">
                         <span>{field.label || field.key}</span>
                         <PhotoField
@@ -883,7 +1018,8 @@ export default function PremiumWorkspace({ config }) {
                               }
                             }}
                           >
-                            {(field.options || statusOptions).map((option) => (
+                            {field.dynamic === 'studentClasses' ? <option value="">Select class</option> : null}
+                            {options.map((option) => (
                               <option key={option} value={option}>
                                 {option}
                               </option>
@@ -905,10 +1041,50 @@ export default function PremiumWorkspace({ config }) {
                           />
                         )}
                       </label>
-                    ),
-                  )}
+                    )
+                    })}
                   </div>
                 </div>
+
+                {isTeacherModule ? (
+                  <div className="pw-invite-card">
+                    <p className="pw-section-label">Class teacher assignment</p>
+                    {selected.staffRole === 'Class Teacher' ? (
+                      <>
+                        <p className="pw-notify-copy">
+                          {selectedAssignment
+                            ? `${selectedAssignment.teacherName} is class teacher of ${selectedAssignment.className}. Student leave requests from that class come to this teacher.`
+                            : 'Not assigned on the server yet. Choose the class above, then save the assignment.'}
+                        </p>
+                        <div className="pw-invite-key-row">
+                          <button
+                            type="button"
+                            className="pw-btn pw-btn-primary pw-btn-sm"
+                            onClick={saveSelectedAssignment}
+                            disabled={assignmentBusy}
+                          >
+                            {assignmentBusy ? 'Saving…' : selectedAssignment ? 'Update assignment' : 'Save assignment'}
+                          </button>
+                          {selectedAssignment ? (
+                            <button
+                              type="button"
+                              className="pw-btn pw-btn-secondary pw-btn-sm"
+                              onClick={removeSelectedAssignment}
+                              disabled={assignmentBusy}
+                            >
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="pw-notify-copy">
+                        This teacher is not a class teacher. Set Staff role to “Class Teacher”, choose a class and save the
+                        assignment to receive student leave requests.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
 
                 <div>
                   <p className="pw-section-label">Status control</p>

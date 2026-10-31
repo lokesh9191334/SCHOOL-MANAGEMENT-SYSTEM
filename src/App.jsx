@@ -46,6 +46,11 @@ import TeacherHome from './pages/role/TeacherHome'
 import ParentHome from './pages/role/ParentHome'
 import ExamMarksStudio from './pages/teacher/ExamMarksStudio'
 import PremiumReportCard from './pages/teacher/PremiumReportCard'
+import TeacherLeavePage from './pages/teacher/TeacherLeave'
+import TeacherStudentLeavePage from './pages/teacher/StudentLeaveApprovals'
+import LeaveApprovalsPage from './pages/admin/LeaveApprovals'
+import AdminStudentLeavePage from './pages/admin/StudentLeaveApprovals'
+import ParentLeaveRequestPage from './pages/parent/LeaveRequest'
 import ParentOnlinePaymentPage from './pages/parent/OnlinePaymentPage'
 import ParentResultsPage from './pages/parent/ResultsPage'
 import EventsBuilder from './pages/admin/EventsBuilder'
@@ -79,6 +84,11 @@ const SPECIAL_PATHS = new Set([
   '/teacher/exams/results',
   '/teacher/results',
   '/teacher/exams/report-cards',
+  '/teacher/leave',
+  '/teacher/student-leave',
+  '/attendance/leave-management',
+  '/attendance/student-leave',
+  '/parent/leave-request',
   '/parent/results',
   '/ai-assistant',
   '/parent/fees/online',
@@ -178,6 +188,11 @@ function App() {
 
             <Route path="/security/login-tracks" element={<LoginTracksPage />} />
             <Route path="/attendance/staff-face" element={<StaffFaceAttendancePage />} />
+            <Route path="/teacher/leave" element={<TeacherLeavePage />} />
+            <Route path="/teacher/student-leave" element={<TeacherStudentLeavePage />} />
+            <Route path="/attendance/leave-management" element={<LeaveApprovalsPage />} />
+            <Route path="/attendance/student-leave" element={<AdminStudentLeavePage />} />
+            <Route path="/parent/leave-request" element={<ParentLeaveRequestPage />} />
             <Route path="/transport" element={<Navigate replace to="/transport/live" />} />
             <Route path="/transport/live" element={<LiveTransportPage />} />
             <Route path="/transport/routes" element={<TransportRoutesPage />} />

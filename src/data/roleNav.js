@@ -85,6 +85,8 @@ export const ADMIN_NAV = [
   section('Attendance & Library', 'clipboardCheck', [
     item('/attendance/students', 'Student Attendance', 'checkSquare'),
     item('/attendance/staff-face', 'Staff Attendance (Face)', 'faceScan'),
+    item('/attendance/leave-management', 'Leave Approvals', 'calendar'),
+    item('/attendance/student-leave', 'Student Leave', 'message'),
     item('/attendance/monthly-report', 'Attendance Report', 'calendar'),
     item('/library/books/add', 'Library', 'book'),
   ]),
@@ -113,7 +115,11 @@ export const TEACHER_NAV = [
     item('/teacher', 'Teacher Desk', 'diamond', true),
     item('/teacher/events', 'School Events', 'star'),
   ]),
-  section('My Desk', 'faceScan', [item('/attendance/staff-face', 'Face Attendance', 'faceScan')]),
+  section('My Desk', 'faceScan', [
+    item('/attendance/staff-face', 'Face Attendance', 'faceScan'),
+    item('/teacher/leave', 'My Leave', 'calendar'),
+    item('/teacher/student-leave', 'Student Leave', 'message'),
+  ]),
   section('Classroom', 'graduation', [
     item('/teacher/attendance', 'Student Attendance', 'checkSquare'),
     item('/teacher/homework', 'Homework', 'pencil'),

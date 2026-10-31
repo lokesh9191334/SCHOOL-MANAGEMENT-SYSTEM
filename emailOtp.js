@@ -658,6 +658,276 @@ export async function sendEventEmail({
   }
 }
 
+/**
+ * Leave decision sent to the teacher after the school admin approves or
+ * rejects a request. A rejection reason is shown prominently in the mail.
+ * Never throws — callers get { sent: true/false } either way.
+ */
+export async function sendLeaveDecisionEmail({
+  to,
+  teacherName,
+  status,
+  typeLabel,
+  fromDate,
+  toDate,
+  days,
+  reason,
+  note,
+  decidedByName,
+}) {
+  const approved = String(status) === 'Approved'
+  const humanDate = (value) =>
+    value
+      ? new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '—'
+  const range = fromDate === toDate ? humanDate(fromDate) : `${humanDate(fromDate)} → ${humanDate(toDate)}`
+  const headline = approved ? 'Your leave request is approved' : 'Your leave request is rejected'
+  const accent = approved ? '#0d8f7a' : '#c23b3b'
+  const accentSoft = approved ? 'rgba(23, 179, 152, 0.12)' : 'rgba(243, 93, 93, 0.12)'
+
+  const detailRow = (label, value) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:110px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Leave request · ${approved ? 'Approved' : 'Rejected'}</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">${escapeHtml(headline)}</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(teacherName || 'Teacher')}, the school office has reviewed your leave request.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Type', typeLabel || 'Leave')}
+      ${detailRow('Dates', range)}
+      ${detailRow('Days', String(days || 0))}
+      ${detailRow('Your reason', reason || '—')}
+      ${decidedByName ? detailRow('Reviewed by', decidedByName) : ''}
+    </table>
+    ${
+      note
+        ? `<div style="margin:0 0 16px;padding:14px 16px;border-radius:12px;background:${accentSoft};border:1px solid ${accent}33">
+      <p style="margin:0 0 4px;color:${accent};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">${approved ? 'Admin note' : 'Reason for rejection'}</p>
+      <p style="margin:0;color:#111b33;line-height:1.6">${escapeHtml(note)}</p>
+    </div>`
+        : ''
+    }
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">The same status ${note ? 'and note ' : ''}is available in your Teacher Desk under My Leave. Contact the school office if you need any clarification.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Leave Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    headline,
+    `Hi ${teacherName || 'Teacher'},`,
+    '',
+    `Type: ${typeLabel || 'Leave'}`,
+    `Dates: ${range}`,
+    `Days: ${days || 0}`,
+    `Reason: ${reason || '—'}`,
+    decidedByName ? `Reviewed by: ${decidedByName}` : '',
+    note ? `${approved ? 'Admin note' : 'Reason for rejection'}: ${note}` : '',
+    '',
+    'The same status is available in your Teacher Desk under My Leave.',
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Leave ${approved ? 'approved' : 'rejected'} · ${range}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'leave-decision',
+      logLabel: 'Teacher leave decision email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] teacher leave decision email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
+const studentLeaveRange = (fromDate, toDate) => {
+  const humanDate = (value) =>
+    value
+      ? new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '—'
+  return fromDate === toDate ? humanDate(fromDate) : `${humanDate(fromDate)} → ${humanDate(toDate)}`
+}
+
+/** New student leave request, mailed to the class teacher (or admin fallback). */
+export async function sendStudentLeaveRequestEmail({
+  to,
+  teacherName,
+  parentName,
+  studentName,
+  className,
+  typeLabel,
+  fromDate,
+  toDate,
+  days,
+  reason,
+}) {
+  const range = studentLeaveRange(fromDate, toDate)
+  const detailRow = (label, value) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:110px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#4157ff;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Student leave · Awaiting review</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">New leave request from ${escapeHtml(parentName || 'a parent')}</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(teacherName || 'Teacher')}, a parent has filed a leave request for a student in your class. Please review it in the Teacher Desk under Student Leave.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Student', studentName || '—')}
+      ${detailRow('Class', className || '—')}
+      ${detailRow('Type', typeLabel || 'Leave')}
+      ${detailRow('Dates', range)}
+      ${detailRow('Days', String(days || 0))}
+      ${detailRow('Reason', reason || '—')}
+      ${detailRow('Parent', parentName || '—')}
+    </table>
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">Approve or reject it from the Student Leave queue. A rejection needs a reason, and your note is emailed to the parent.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Leave Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    'Student leave request · Awaiting review',
+    `Hi ${teacherName || 'Teacher'}, a parent has filed a leave request.`,
+    '',
+    `Student: ${studentName || '—'}`,
+    `Class: ${className || '—'}`,
+    `Type: ${typeLabel || 'Leave'}`,
+    `Dates: ${range}`,
+    `Days: ${days || 0}`,
+    `Reason: ${reason || '—'}`,
+    `Parent: ${parentName || '—'}`,
+    '',
+    'Review it in the Teacher Desk under Student Leave.',
+  ].join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Student leave request · ${studentName || className || 'Student'} · ${range}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'student-leave-request',
+      logLabel: 'Student leave request email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] student leave request email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
+/** Decision on a student Leave request, mailed to the parent. */
+export async function sendStudentLeaveDecisionEmail({
+  to,
+  parentName,
+  studentName,
+  className,
+  status,
+  typeLabel,
+  fromDate,
+  toDate,
+  days,
+  reason,
+  note,
+  decidedByName,
+  decidedByTitle,
+}) {
+  const approved = String(status) === 'Approved'
+  const range = studentLeaveRange(fromDate, toDate)
+  const headline = approved ? "Your child's leave is approved" : "Your child's leave is rejected"
+  const accent = approved ? '#0d8f7a' : '#c23b3b'
+  const accentSoft = approved ? 'rgba(23, 179, 152, 0.12)' : 'rgba(243, 93, 93, 0.12)'
+
+  const detailRow = (label, value) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:110px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Student leave · ${approved ? 'Approved' : 'Rejected'}</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">${escapeHtml(headline)}</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(parentName || 'Parent')}, the leave request for ${escapeHtml(studentName || 'your child')} has been reviewed.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Student', studentName || '—')}
+      ${detailRow('Class', className || '—')}
+      ${detailRow('Type', typeLabel || 'Leave')}
+      ${detailRow('Dates', range)}
+      ${detailRow('Days', String(days || 0))}
+      ${detailRow('Your reason', reason || '—')}
+      ${decidedByName ? detailRow('Reviewed by', `${decidedByName}${decidedByTitle ? ` · ${decidedByTitle}` : ''}`) : ''}
+    </table>
+    ${
+      note
+        ? `<div style="margin:0 0 16px;padding:14px 16px;border-radius:12px;background:${accentSoft};border:1px solid ${accent}33">
+      <p style="margin:0 0 4px;color:${accent};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">${approved ? 'Note from school' : 'Reason for rejection'}</p>
+      <p style="margin:0;color:#111b33;line-height:1.6">${escapeHtml(note)}</p>
+    </div>`
+        : ''
+    }
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">The same status ${note ? 'and note ' : ''}is available in your Parent Portal under Leave Request. Contact the school office if you need any clarification.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Leave Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    headline,
+    `Hi ${parentName || 'Parent'},`,
+    '',
+    `Student: ${studentName || '—'}`,
+    `Class: ${className || '—'}`,
+    `Type: ${typeLabel || 'Leave'}`,
+    `Dates: ${range}`,
+    `Days: ${days || 0}`,
+    `Reason: ${reason || '—'}`,
+    decidedByName ? `Reviewed by: ${decidedByName}${decidedByTitle ? ` · ${decidedByTitle}` : ''}` : '',
+    note ? `${approved ? 'Note from school' : 'Reason for rejection'}: ${note}` : '',
+    '',
+    'The same status is available in your Parent Portal under Leave Request.',
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Student leave ${approved ? 'approved' : 'rejected'} · ${studentName || 'Student'} · ${range}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'student-leave-decision',
+      logLabel: 'Student leave decision email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] student leave decision email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [

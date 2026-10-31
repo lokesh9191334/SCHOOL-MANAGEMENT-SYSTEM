@@ -33,7 +33,10 @@ import {
   savePending,
   sendAdminLoginKeyEmail,
   sendEventEmail,
+  sendLeaveDecisionEmail,
   sendOtpEmail,
+  sendStudentLeaveDecisionEmail,
+  sendStudentLeaveRequestEmail,
   sendOverspeedAlertEmail,
   sendParentAttendanceEmail,
   sendResultEmail,
@@ -142,6 +145,24 @@ import {
 } from './resultsStore.js'
 import { holidayForDate } from './schoolCalendar.js'
 import { buildFeeSchedule, coverFeeSchedule } from './feeSchedule.js'
+import {
+  leaveOverlaps,
+  normalizeLeaveDecision,
+  normalizeLeavePayload,
+  publicLeaveRequest,
+} from './leaveRequests.js'
+import {
+  assignmentMatchesTeacher,
+  classKey,
+  classLabelsFromStudents,
+  normalizeClassTeacherAssignment,
+  normalizeStudentLeavePayload,
+  publicStudentLeaveRequest,
+  studentClassLabel,
+  studentLeaveSummary,
+  teacherCanDecide,
+  teacherClassKeys,
+} from './studentLeave.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -4453,6 +4474,454 @@ app.delete('/api/events/:id', requireRoles('admin', 'super_admin'), (req, res) =
   if (!rows.some((row) => row.id === id)) return res.status(404).json({ error: 'This event was not found.' })
   writeEvents(rows.filter((row) => row.id !== id))
   res.json({ deleted: id })
+})
+
+// Teacher leave requests. A teacher files a request from the Teacher Desk and
+// it lands immediately in the admin leave queue. The admin approves or rejects
+// with a note; the decision and note are saved for the teacher's My Leave page
+// and also emailed to the teacher.
+const LEAVE_FILE = join('data', 'records', 'sms_leave_requests.json')
+
+function readLeaveRequests() {
+  const rows = readJsonFile(LEAVE_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeLeaveRequests(rows) {
+  writeJsonFile(LEAVE_FILE, Array.isArray(rows) ? rows.slice(0, 1000) : [])
+}
+
+function leaveSummary(rows) {
+  return {
+    total: rows.length,
+    pending: rows.filter((row) => row.status === 'Pending').length,
+    approved: rows.filter((row) => row.status === 'Approved').length,
+    rejected: rows.filter((row) => row.status === 'Rejected').length,
+  }
+}
+
+app.get('/api/leave/requests', requireRoles('teacher', 'admin', 'super_admin'), (req, res) => {
+  const email = normalizeEmail(req.authUser.email)
+  const all = readLeaveRequests()
+    .filter((row) => row && row.id)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+  const role = String(req.authUser.role || '').toLowerCase()
+  const rows = role === 'teacher' ? all.filter((row) => normalizeEmail(row.teacherEmail) === email) : all
+  const requested = String(req.query.status || '').trim()
+  const filtered = ['Pending', 'Approved', 'Rejected'].includes(requested)
+    ? rows.filter((row) => row.status === requested)
+    : rows
+  res.json({ requests: filtered.map(publicLeaveRequest), summary: leaveSummary(rows) })
+})
+
+app.post('/api/leave/requests', requireRoles('teacher'), (req, res) => {
+  const parsed = normalizeLeavePayload(req.body)
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const email = normalizeEmail(req.authUser.email)
+  const rows = readLeaveRequests()
+  const clash = rows.find(
+    (row) =>
+      normalizeEmail(row.teacherEmail) === email &&
+      ['Pending', 'Approved'].includes(row.status) &&
+      leaveOverlaps(row, parsed.value),
+  )
+  if (clash) {
+    return res.status(409).json({
+      error: `You already have a ${String(clash.status).toLowerCase()} leave request that overlaps these dates (${clash.fromDate} to ${clash.toDate}).`,
+    })
+  }
+  const user = readJsonFile(USERS_FILE, []).find((entry) => normalizeEmail(entry.email) === email)
+  const now = new Date().toISOString()
+  const entry = {
+    id: `LV-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    teacherId: req.authUser.id,
+    teacherEmail: email,
+    teacherName: String(user?.name || user?.username || email.split('@')[0]).slice(0, 120),
+    ...parsed.value,
+    status: 'Pending',
+    createdAt: now,
+    updatedAt: now,
+    decidedAt: '',
+    decidedByEmail: '',
+    decidedByName: '',
+    decisionNote: '',
+  }
+  writeLeaveRequests([entry, ...rows])
+  res.status(201).json({ request: publicLeaveRequest(entry) })
+})
+
+app.patch('/api/leave/requests/:id', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const id = String(req.params.id || '')
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid leave request id.' })
+  }
+  const decision = normalizeLeaveDecision(req.body)
+  if (!decision.ok) return res.status(400).json({ error: decision.error })
+  const rows = readLeaveRequests()
+  const index = rows.findIndex((row) => row.id === id)
+  if (index < 0) return res.status(404).json({ error: 'This leave request was not found.' })
+  if (rows[index].status !== 'Pending') {
+    return res.status(409).json({
+      error: `This leave request was already ${String(rows[index].status).toLowerCase()}.`,
+    })
+  }
+  const adminRecord = readJsonFile(USERS_FILE, []).find((entry) => entry.id === req.authUser.id)
+  const decidedByName = String(adminRecord?.name || req.authUser.email || 'School admin').slice(0, 120)
+  const now = new Date().toISOString()
+  const updated = {
+    ...rows[index],
+    status: decision.value.status,
+    decisionNote: decision.value.note,
+    decidedAt: now,
+    decidedByEmail: normalizeEmail(req.authUser.email),
+    decidedByName,
+    updatedAt: now,
+  }
+  rows[index] = updated
+  writeLeaveRequests(rows)
+
+  const email = await sendLeaveDecisionEmail({
+    to: updated.teacherEmail,
+    teacherName: updated.teacherName,
+    status: updated.status,
+    typeLabel: updated.typeLabel,
+    fromDate: updated.fromDate,
+    toDate: updated.toDate,
+    days: updated.days,
+    reason: updated.reason,
+    note: updated.decisionNote,
+    decidedByName,
+  })
+  res.json({ request: publicLeaveRequest(updated), email })
+})
+
+// Class teachers and student leave. The admin marks a teacher as the class
+// teacher of one class; parents then file leave for their child and it lands
+// directly in that class teacher's queue. If a class has no class teacher the
+// request falls back to the school admin queue instead of being blocked.
+const CLASS_TEACHERS_FILE = join('data', 'records', 'sms_class_teachers.json')
+const STUDENT_LEAVE_FILE = join('data', 'records', 'sms_student_leave_requests.json')
+
+function readClassTeachers() {
+  const rows = readJsonFile(CLASS_TEACHERS_FILE, [])
+  return (Array.isArray(rows) ? rows : []).filter((row) => row && row.id && row.className)
+}
+
+function writeClassTeachers(rows) {
+  writeJsonFile(CLASS_TEACHERS_FILE, Array.isArray(rows) ? rows.slice(0, 500) : [])
+}
+
+function publicClassTeacher(row) {
+  return {
+    id: row.id,
+    className: row.className || '',
+    teacherName: row.teacherName || '',
+    teacherEmail: row.teacherEmail || '',
+    teacherPhone: row.teacherPhone || '',
+    teacherRecordId: row.teacherRecordId || '',
+    updatedAt: row.updatedAt || '',
+  }
+}
+
+function readStudentLeaveRequests() {
+  const rows = readJsonFile(STUDENT_LEAVE_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeStudentLeaveRequests(rows) {
+  writeJsonFile(STUDENT_LEAVE_FILE, Array.isArray(rows) ? rows.slice(0, 1000) : [])
+}
+
+function userRecordFor(authUser) {
+  return readJsonFile(USERS_FILE, []).find((entry) => String(entry.id) === String(authUser?.id)) || null
+}
+
+function teacherContext(authUser) {
+  return {
+    email: normalizeEmail(authUser?.email),
+    linkedId: String(userRecordFor(authUser)?.linkedId || ''),
+  }
+}
+
+function classTeacherFor(className) {
+  const key = classKey(className)
+  if (!key) return null
+  return readClassTeachers().find((row) => classKey(row.className) === key) || null
+}
+
+function adminAccountEmails() {
+  const users = readJsonFile(USERS_FILE, [])
+  const emails = (Array.isArray(users) ? users : [])
+    .filter((user) => ['admin', 'super_admin'].includes(String(user.role || '').toLowerCase()) && user.email)
+    .map((user) => normalizeEmail(user.email))
+  return [...new Set(emails)].slice(0, 5)
+}
+
+app.get('/api/class-teachers', requireRoles('teacher', 'admin', 'super_admin'), (req, res) => {
+  const role = String(req.authUser.role || '').toLowerCase()
+  const rows = readClassTeachers()
+  if (role === 'teacher') {
+    const context = teacherContext(req.authUser)
+    return res.json({
+      assignments: rows.filter((row) => assignmentMatchesTeacher(row, context)).map(publicClassTeacher),
+      classes: [],
+    })
+  }
+  res.json({
+    assignments: rows.map(publicClassTeacher),
+    classes: classLabelsFromStudents(readStudentRecords()),
+  })
+})
+
+app.post('/api/class-teachers', requireRoles('admin', 'super_admin'), (req, res) => {
+  const parsed = normalizeClassTeacherAssignment(req.body)
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const all = readClassTeachers()
+  const now = new Date().toISOString()
+  const existing = all.find((row) => classKey(row.className) === parsed.value.classKey)
+  // A teacher handles one class: drop an earlier assignment for the same
+  // teacher so moving them to another class does not leave a stale owner.
+  const rows = all.filter(
+    (row) =>
+      classKey(row.className) !== parsed.value.classKey &&
+      !(parsed.value.teacherRecordId && String(row.teacherRecordId || '') === parsed.value.teacherRecordId) &&
+      normalizeEmail(row.teacherEmail) !== parsed.value.teacherEmail,
+  )
+  if (existing) {
+    const updated = {
+      ...existing,
+      ...parsed.value,
+      updatedAt: now,
+      updatedBy: normalizeEmail(req.authUser.email),
+    }
+    writeClassTeachers([updated, ...rows])
+    return res.json({ assignment: publicClassTeacher(updated) })
+  }
+  const entry = {
+    id: `CT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    ...parsed.value,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: normalizeEmail(req.authUser.email),
+  }
+  writeClassTeachers([entry, ...rows])
+  res.status(201).json({ assignment: publicClassTeacher(entry) })
+})
+
+app.delete('/api/class-teachers/:id', requireRoles('admin', 'super_admin'), (req, res) => {
+  const id = String(req.params.id || '')
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(id)) return res.status(400).json({ error: 'Invalid assignment id.' })
+  const rows = readClassTeachers()
+  if (!rows.some((row) => row.id === id)) return res.status(404).json({ error: 'This class teacher assignment was not found.' })
+  writeClassTeachers(rows.filter((row) => row.id !== id))
+  res.json({ deleted: id })
+})
+
+app.get('/api/student-leave/requests', requireRoles('parent', 'teacher', 'admin', 'super_admin'), (req, res) => {
+  const role = String(req.authUser.role || '').toLowerCase()
+  const all = readStudentLeaveRequests()
+    .filter((row) => row && row.id)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+  let rows = all
+  if (role === 'parent') {
+    rows = all.filter((row) => String(row.parentUserId) === String(req.authUser.id))
+  } else if (role === 'teacher') {
+    // A class teacher only sees the class(es) the admin assigned to them right now.
+    const ownedKeys = teacherClassKeys(readClassTeachers(), teacherContext(req.authUser))
+    rows = all.filter((row) => row.assignedTo === 'teacher' && ownedKeys.has(classKey(row.className)))
+  }
+  const requested = String(req.query.status || '').trim()
+  const filtered = ['Pending', 'Approved', 'Rejected'].includes(requested)
+    ? rows.filter((row) => row.status === requested)
+    : rows
+
+  const payload = {
+    requests: filtered.map(publicStudentLeaveRequest),
+    summary: studentLeaveSummary(rows),
+  }
+
+  if (role === 'parent') {
+    const user = userRecordFor(req.authUser)
+    const linkedId = String(user?.linkedId || '')
+    const student = linkedId
+      ? readStudentRecords().find(
+          (item) => String(item.id) === linkedId || String(item.applicationId) === linkedId,
+        ) || null
+      : null
+    const className = studentClassLabel(student)
+    const classTeacher = classTeacherFor(className)
+    payload.child = student
+      ? {
+          id: student.id || '',
+          name: student.title || student.name || '',
+          className,
+          rollNo: student.rollNo || '',
+        }
+      : null
+    payload.classTeacher = classTeacher
+      ? {
+          className: classTeacher.className,
+          name: classTeacher.teacherName,
+          email: classTeacher.teacherEmail,
+        }
+      : null
+  }
+  res.json(payload)
+})
+
+app.post('/api/student-leave/requests', requireRoles('parent'), async (req, res) => {
+  const parsed = normalizeStudentLeavePayload(req.body)
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const user = userRecordFor(req.authUser)
+  const linkedId = String(user?.linkedId || '')
+  if (!linkedId) {
+    return res.status(400).json({ error: 'Your account is not linked to a student yet. Contact the school office.' })
+  }
+  const student = readStudentRecords().find(
+    (item) => String(item.id) === linkedId || String(item.applicationId) === linkedId,
+  )
+  if (!student) {
+    return res.status(404).json({ error: 'Your child record was not found. Contact the school office.' })
+  }
+  const className = studentClassLabel(student)
+  if (!className) {
+    return res.status(400).json({ error: "Your child's class is not set on the student record yet. Contact the school office." })
+  }
+
+  const rows = readStudentLeaveRequests()
+  const clash = rows.find(
+    (row) =>
+      String(row.studentId) === String(student.id || linkedId) &&
+      ['Pending', 'Approved'].includes(row.status) &&
+      leaveOverlaps(row, parsed.value),
+  )
+  if (clash) {
+    return res.status(409).json({
+      error: `A ${String(clash.status).toLowerCase()} leave request already covers these dates (${clash.fromDate} to ${clash.toDate}).`,
+    })
+  }
+
+  const assignment = classTeacherFor(className)
+  const now = new Date().toISOString()
+  const entry = {
+    id: `SLV-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    studentId: String(student.id || linkedId),
+    studentName: student.title || student.name || '',
+    className,
+    parentUserId: req.authUser.id,
+    parentEmail: normalizeEmail(req.authUser.email),
+    parentName: String(user?.name || user?.username || req.authUser.email || 'Parent').slice(0, 120),
+    assignedTo: assignment ? 'teacher' : 'admin',
+    classTeacherId: assignment?.id || '',
+    classTeacherName: assignment?.teacherName || '',
+    classTeacherEmail: assignment?.teacherEmail || '',
+    classTeacherRecordId: assignment?.teacherRecordId || '',
+    ...parsed.value,
+    status: 'Pending',
+    createdAt: now,
+    updatedAt: now,
+    decidedAt: '',
+    decidedByEmail: '',
+    decidedByName: '',
+    decisionNote: '',
+  }
+  writeStudentLeaveRequests([entry, ...rows])
+
+  let notified
+  if (assignment) {
+    notified = await sendStudentLeaveRequestEmail({
+      to: assignment.teacherEmail,
+      teacherName: assignment.teacherName,
+      parentName: entry.parentName,
+      studentName: entry.studentName,
+      className,
+      typeLabel: entry.typeLabel,
+      fromDate: entry.fromDate,
+      toDate: entry.toDate,
+      days: entry.days,
+      reason: entry.reason,
+    })
+  } else {
+    const admins = adminAccountEmails()
+    const results = await Promise.all(
+      admins.map((to) =>
+        sendStudentLeaveRequestEmail({
+          to,
+          teacherName: 'School admin',
+          parentName: entry.parentName,
+          studentName: entry.studentName,
+          className,
+          typeLabel: entry.typeLabel,
+          fromDate: entry.fromDate,
+          toDate: entry.toDate,
+          days: entry.days,
+          reason: entry.reason,
+        }),
+      ),
+    )
+    notified = {
+      sent: results.some((item) => item.sent),
+      recipients: admins,
+      error: results.find((item) => !item.sent)?.error || '',
+    }
+  }
+
+  res.status(201).json({ request: publicStudentLeaveRequest(entry), notified })
+})
+
+app.patch('/api/student-leave/requests/:id', requireRoles('teacher', 'admin', 'super_admin'), async (req, res) => {
+  const id = String(req.params.id || '')
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid leave request id.' })
+  }
+  const decision = normalizeLeaveDecision(req.body)
+  if (!decision.ok) return res.status(400).json({ error: decision.error })
+  const rows = readStudentLeaveRequests()
+  const index = rows.findIndex((row) => row.id === id)
+  if (index < 0) return res.status(404).json({ error: 'This leave request was not found.' })
+  const row = rows[index]
+  const role = String(req.authUser.role || '').toLowerCase()
+  if (role === 'teacher' && !teacherCanDecide(row, readClassTeachers(), teacherContext(req.authUser))) {
+    return res.status(403).json({ error: 'Only the class teacher of this class can decide this request.' })
+  }
+  if (row.status !== 'Pending') {
+    return res.status(409).json({ error: `This leave request was already ${String(row.status).toLowerCase()}.` })
+  }
+  const actor = userRecordFor(req.authUser)
+  const decidedByName = String(actor?.name || req.authUser.email || 'School').slice(0, 120)
+  const decidedByTitle = role === 'teacher' ? 'Class teacher' : 'School admin'
+  const now = new Date().toISOString()
+  const updated = {
+    ...row,
+    status: decision.value.status,
+    decisionNote: decision.value.note,
+    decidedAt: now,
+    decidedByEmail: normalizeEmail(req.authUser.email),
+    decidedByName,
+    decidedByRole: role,
+    updatedAt: now,
+  }
+  rows[index] = updated
+  writeStudentLeaveRequests(rows)
+
+  const email = updated.parentEmail
+    ? await sendStudentLeaveDecisionEmail({
+        to: updated.parentEmail,
+        parentName: updated.parentName,
+        studentName: updated.studentName,
+        className: updated.className,
+        status: updated.status,
+        typeLabel: updated.typeLabel,
+        fromDate: updated.fromDate,
+        toDate: updated.toDate,
+        days: updated.days,
+        reason: updated.reason,
+        note: updated.decisionNote,
+        decidedByName,
+        decidedByTitle,
+      })
+    : { sent: false, error: 'No parent email is saved on this request.' }
+  res.json({ request: publicStudentLeaveRequest(updated), email })
 })
 
 // Published academic documents (timetable + datesheet). The server builds the
