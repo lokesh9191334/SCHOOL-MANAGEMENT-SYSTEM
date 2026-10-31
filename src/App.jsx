@@ -47,6 +47,7 @@ import ParentHome from './pages/role/ParentHome'
 import ExamMarksStudio from './pages/teacher/ExamMarksStudio'
 import PremiumReportCard from './pages/teacher/PremiumReportCard'
 import TeacherLeavePage from './pages/teacher/TeacherLeave'
+import TeacherSchedulePage from './pages/teacher/TeacherSchedule'
 import TeacherStudentLeavePage from './pages/teacher/StudentLeaveApprovals'
 import LeaveApprovalsPage from './pages/admin/LeaveApprovals'
 import AdminStudentLeavePage from './pages/admin/StudentLeaveApprovals'
@@ -86,6 +87,7 @@ const SPECIAL_PATHS = new Set([
   '/teacher/exams/report-cards',
   '/teacher/leave',
   '/teacher/student-leave',
+  '/teacher/timetable',
   '/attendance/leave-management',
   '/attendance/student-leave',
   '/parent/leave-request',
@@ -190,6 +192,7 @@ function App() {
             <Route path="/attendance/staff-face" element={<StaffFaceAttendancePage />} />
             <Route path="/teacher/leave" element={<TeacherLeavePage />} />
             <Route path="/teacher/student-leave" element={<TeacherStudentLeavePage />} />
+            <Route path="/teacher/timetable" element={<TeacherSchedulePage />} />
             <Route path="/attendance/leave-management" element={<LeaveApprovalsPage />} />
             <Route path="/attendance/student-leave" element={<AdminStudentLeavePage />} />
             <Route path="/parent/leave-request" element={<ParentLeaveRequestPage />} />

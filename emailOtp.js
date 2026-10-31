@@ -928,6 +928,75 @@ export async function sendStudentLeaveDecisionEmail({
   }
 }
 
+/**
+ * Substitution duty mail. Sent to the teacher picked to cover a period for an
+ * absent colleague. One mail lists every period assigned in that decision.
+ */
+export async function sendSubstituteAssignedEmail({
+  to,
+  teacherName,
+  absentTeacherName,
+  leaveRange,
+  slots = [],
+  decidedByName,
+  assignedBy = 'auto',
+}) {
+  const rows = Array.isArray(slots) ? slots.slice(0, 40) : []
+  const count = rows.length
+  const slotRow = (slot) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:110px">${escapeHtml(slot.date || '—')}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(slot.dayLabel || '')} · ${escapeHtml(slot.periodLabel || '')}${slot.time ? ` · ${escapeHtml(slot.time)}` : ''}</td>
+      <td style="padding:8px 10px;color:#111b33">${escapeHtml(slot.className || '—')}<br><span style="color:#5c6b8c;font-size:12px">${escapeHtml(slot.subject || '—')}</span></td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Substitution duty · ${count} period${count === 1 ? '' : 's'}</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">You are covering a class</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(teacherName || 'Teacher')}, ${escapeHtml(absentTeacherName || 'a colleague')} is on approved leave${leaveRange ? ` (${escapeHtml(leaveRange)})` : ''}. You have been assigned the period${count === 1 ? '' : 's'} below because you were free in that slot.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      <tr style="background:#1b2a55;color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">
+        <td style="padding:8px 10px">Date</td><td style="padding:8px 10px">Period</td><td style="padding:8px 10px">Class &amp; subject</td>
+      </tr>
+      ${rows.map(slotRow).join('')}
+    </table>
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">The same duties are on your Teacher Desk under Class Schedule.${decidedByName ? ` Approved by ${escapeHtml(decidedByName)}.` : ''} Contact the school office if a slot cannot be covered.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Class Schedule</p>
+  </div>
+</body></html>`
+
+  const text = [
+    `Substitution duty · ${count} period${count === 1 ? '' : 's'}`,
+    `Hi ${teacherName || 'Teacher'},`,
+    `${absentTeacherName || 'A colleague'} is on approved leave${leaveRange ? ` (${leaveRange})` : ''}. You have been assigned:`,
+    '',
+    ...rows.map(
+      (slot) =>
+        `${slot.date || '—'} · ${slot.dayLabel || ''} · ${slot.periodLabel || ''}${slot.time ? ` (${slot.time})` : ''} · ${slot.className || '—'} · ${slot.subject || '—'}`,
+    ),
+    '',
+    `Assigned ${assignedBy === 'auto' ? 'automatically' : 'by the school office'}${decidedByName ? ` (${decidedByName})` : ''}.`,
+    'The same duties are on your Teacher Desk under Class Schedule.',
+  ].join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Substitute duty · ${rows[0]?.className || 'Class'} · ${rows[0]?.date || ''}${count > 1 ? ` +${count - 1} more` : ''}`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'substitute-duty',
+      logLabel: 'Substitute teacher duty email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] substitute duty email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [

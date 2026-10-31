@@ -37,6 +37,7 @@ import {
   sendOtpEmail,
   sendStudentLeaveDecisionEmail,
   sendStudentLeaveRequestEmail,
+  sendSubstituteAssignedEmail,
   sendOverspeedAlertEmail,
   sendParentAttendanceEmail,
   sendResultEmail,
@@ -163,6 +164,14 @@ import {
   teacherCanDecide,
   teacherClassKeys,
 } from './studentLeave.js'
+import {
+  DAY_LABELS,
+  dayKeyForDate,
+  normalizeScheduleConfig,
+  normalizeScheduleEntries,
+  periodLabel,
+} from './classSchedule.js'
+import { planSubstitutions, publicSubstitution, rankSubstituteCandidates } from './substitutions.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -4592,7 +4601,385 @@ app.patch('/api/leave/requests/:id', requireRoles('admin', 'super_admin'), async
     note: updated.decisionNote,
     decidedByName,
   })
-  res.json({ request: publicLeaveRequest(updated), email })
+  let substitution = null
+  if (updated.status === 'Approved') {
+    try {
+      substitution = await applySubstitutions({ leave: updated, decidedByName })
+    } catch (err) {
+      console.error('Substitution planning failed:', err?.message || err)
+      substitution = {
+        error: 'The leave was approved, but substitution planning failed. Retry from the Class Schedule page.',
+      }
+    }
+  }
+  res.json({ request: publicLeaveRequest(updated), email, substitution })
+})
+
+// Class schedule + substitute cover. The admin builds one week timetable per
+// class (subject + real teacher per period) on top of a shared bell schedule.
+// When a teacher's leave is approved, every period they would have taken gets a
+// cover teacher from the same standard ±2 who is free in that slot; the cover
+// teacher is emailed and sees the duty on their Teacher Desk. Slots without a
+// free teacher are stored for the admin to fill manually.
+const SCHEDULE_CONFIG_FILE = join('data', 'records', 'sms_schedule_config.json')
+const SCHEDULE_ENTRIES_FILE = join('data', 'records', 'sms_class_timetable.json')
+const SUBSTITUTIONS_FILE = join('data', 'records', 'sms_substitutions.json')
+const TEACHER_ROSTER_FILE = join('data', 'records', 'sms_mod__teachers.json')
+const SUBSTITUTIONS_MAX = 2000
+
+function readScheduleConfig() {
+  const stored = readJsonFile(SCHEDULE_CONFIG_FILE, null)
+  if (!stored || typeof stored !== 'object') return { periods: [], updatedAt: '' }
+  const parsed = normalizeScheduleConfig(stored)
+  return {
+    periods: parsed.ok ? parsed.value.periods : [],
+    updatedAt: String(stored.updatedAt || ''),
+  }
+}
+
+function writeScheduleConfig(periods) {
+  const record = { periods, updatedAt: new Date().toISOString() }
+  writeJsonFile(SCHEDULE_CONFIG_FILE, record)
+  return record
+}
+
+function readScheduleEntries() {
+  const rows = readJsonFile(SCHEDULE_ENTRIES_FILE, [])
+  return (Array.isArray(rows) ? rows : []).filter(
+    (row) => row && row.className && row.day && Number(row.periodNo) > 0 && row.teacherEmail,
+  )
+}
+
+function writeScheduleEntries(rows) {
+  writeJsonFile(SCHEDULE_ENTRIES_FILE, Array.isArray(rows) ? rows.slice(0, 4000) : [])
+}
+
+function readSubstitutions() {
+  const rows = readJsonFile(SUBSTITUTIONS_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeSubstitutions(rows) {
+  writeJsonFile(SUBSTITUTIONS_FILE, Array.isArray(rows) ? rows.slice(0, SUBSTITUTIONS_MAX) : [])
+}
+
+function readTeacherRoster() {
+  const rows = readJsonFile(TEACHER_ROSTER_FILE, [])
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => row && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(row.email || '').trim()))
+    .map((row) => ({
+      id: String(row.id || ''),
+      email: normalizeEmail(row.email),
+      title: String(row.title || row.name || row.email || '').slice(0, 120),
+      name: String(row.name || '').slice(0, 120),
+      subject: String(row.subject || '').slice(0, 80),
+      status: String(row.status || 'Active'),
+      classTeacherOf: String(row.classTeacherOf || '').slice(0, 60),
+      phone: String(row.phone || ''),
+    }))
+}
+
+function teacherNameMap(teachers) {
+  return new Map(teachers.map((teacher) => [teacher.email, teacher.title]))
+}
+
+function publicScheduleEntry(row, nameByEmail) {
+  const email = normalizeEmail(row.teacherEmail)
+  return {
+    id: String(row.id || ''),
+    className: row.className,
+    day: row.day,
+    dayLabel: DAY_LABELS[row.day] || row.day,
+    periodNo: Number(row.periodNo) || 0,
+    subject: row.subject || '',
+    teacherEmail: email,
+    teacherName: nameByEmail?.get(email) || row.teacherName || email,
+    room: row.room || '',
+  }
+}
+
+function publicScheduleTeacher(teacher) {
+  return {
+    id: teacher.id,
+    email: teacher.email,
+    name: teacher.title,
+    subject: teacher.subject,
+    status: teacher.status,
+    classTeacherOf: teacher.classTeacherOf,
+  }
+}
+
+function schedulePayload() {
+  const config = readScheduleConfig()
+  const teachers = readTeacherRoster()
+  const names = teacherNameMap(teachers)
+  return {
+    periods: config.periods.map((period) => ({ ...period, time: periodLabel(period) })),
+    classes: classLabelsFromStudents(readStudentRecords()),
+    teachers: teachers.map(publicScheduleTeacher),
+    entries: readScheduleEntries().map((row) => publicScheduleEntry(row, names)),
+    updatedAt: config.updatedAt,
+  }
+}
+
+/** Today's date on the IST calendar (the school's day, not the server's). */
+function istToday() {
+  return istParts(new Date()).date
+}
+
+/**
+ * Plan cover for one approved leave (all its dates, or a single date when the
+ * admin re-runs a day), email every chosen cover teacher once with all their
+ * periods, and persist the rows. Shared by the approval hook and the manual
+ * "plan this date" button so both behave identically.
+ */
+async function applySubstitutions({ leave, date = '', decidedByName = '', assignedBy = 'auto' }) {
+  const config = readScheduleConfig()
+  const entries = readScheduleEntries()
+  if (!config.periods.length || !entries.length) {
+    return {
+      created: 0,
+      assigned: 0,
+      needsAdmin: 0,
+      emailed: 0,
+      teachers: [],
+      slots: [],
+      message: 'No class schedule is saved yet, so no substitution was planned.',
+    }
+  }
+  const existing = readSubstitutions()
+  const holidays = readEvents()
+    .filter((event) => event?.type === 'holiday' && event?.status === 'published')
+    .map((event) => String(event.date || ''))
+  const planned = planSubstitutions({
+    leave,
+    date,
+    entries,
+    periods: config.periods,
+    teachers: readTeacherRoster(),
+    leaves: readLeaveRequests(),
+    substitutions: existing,
+    holidays,
+  })
+  if (!planned.length) {
+    return {
+      created: 0,
+      assigned: 0,
+      needsAdmin: 0,
+      emailed: 0,
+      teachers: [],
+      slots: [],
+      message: 'No scheduled period needed cover for this leave.',
+    }
+  }
+
+  const byTeacher = new Map()
+  for (const row of planned) {
+    if (row.status !== 'assigned') continue
+    if (!byTeacher.has(row.substituteEmail)) byTeacher.set(row.substituteEmail, [])
+    byTeacher.get(row.substituteEmail).push(row)
+  }
+  const notifiedTeachers = []
+  for (const [email, group] of byTeacher) {
+    const first = group[0]
+    const mail = await sendSubstituteAssignedEmail({
+      to: email,
+      teacherName: first.substituteName,
+      absentTeacherName: first.absentTeacherName,
+      leaveRange: leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} → ${leave.toDate}`,
+      slots: group.map((row) => ({
+        date: row.date,
+        dayLabel: row.dayLabel,
+        periodLabel: row.periodLabel,
+        time: row.time,
+        className: row.className,
+        subject: row.subject,
+      })),
+      decidedByName,
+      assignedBy,
+    })
+    const stamp = { sent: Boolean(mail.sent), at: new Date().toISOString(), error: mail.error || '' }
+    for (const row of group) row.notified = stamp
+    notifiedTeachers.push({ email, name: first.substituteName, slots: group.length, sent: Boolean(mail.sent) })
+  }
+
+  writeSubstitutions([...planned, ...existing])
+  return {
+    created: planned.length,
+    assigned: planned.filter((row) => row.status === 'assigned').length,
+    needsAdmin: planned.filter((row) => row.status === 'needs_admin').length,
+    emailed: notifiedTeachers.filter((teacher) => teacher.sent).length,
+    teachers: notifiedTeachers,
+    slots: planned.map(publicSubstitution),
+    message: '',
+  }
+}
+
+/** Fresh candidate list for a stored slot, used by the manual assign dropdown. */
+function candidatesForSlot(row, substitutions = readSubstitutions()) {
+  return rankSubstituteCandidates({
+    date: row.date,
+    periodNo: row.periodNo,
+    className: row.className,
+    subject: row.subject,
+    entries: readScheduleEntries(),
+    teachers: readTeacherRoster(),
+    leaves: readLeaveRequests(),
+    substitutions: substitutions.filter((other) => other.id !== row.id),
+    absentEmail: row.absentTeacherEmail,
+  })
+}
+
+app.get('/api/schedule', requireRoles('admin', 'super_admin'), (_req, res) => {
+  res.json(schedulePayload())
+})
+
+app.put('/api/schedule', requireRoles('admin', 'super_admin'), (req, res) => {
+  const config = normalizeScheduleConfig(req.body)
+  if (!config.ok) return res.status(400).json({ error: config.error })
+  const classes = classLabelsFromStudents(readStudentRecords())
+  const teachers = readTeacherRoster()
+  const parsed = normalizeScheduleEntries(req.body?.entries, {
+    teachers,
+    classes,
+    periods: config.value.periods,
+  })
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const saved = writeScheduleConfig(config.value.periods)
+  writeScheduleEntries(parsed.value)
+  res.json({
+    ...schedulePayload(),
+    saved: true,
+    counts: { periods: saved.periods.length, entries: parsed.value.length },
+  })
+})
+
+app.get('/api/schedule/my', requireRoles('teacher'), (req, res) => {
+  const email = normalizeEmail(req.authUser.email)
+  const config = readScheduleConfig()
+  const names = teacherNameMap(readTeacherRoster())
+  const entries = readScheduleEntries()
+    .filter((row) => normalizeEmail(row.teacherEmail) === email)
+    .map((row) => publicScheduleEntry(row, names))
+  const today = istToday()
+  const day = dayKeyForDate(today)
+  const all = readSubstitutions()
+  const forTeacher = (row) =>
+    row && row.id && String(row.date || '') >= today && normalizeEmail(row.substituteEmail) === email
+  const coveredForTeacher = (row) =>
+    row && row.id && String(row.date || '') >= today && normalizeEmail(row.absentTeacherEmail) === email
+  res.json({
+    date: today,
+    day,
+    dayLabel: DAY_LABELS[day] || '',
+    periods: config.periods,
+    week: entries,
+    today: entries.filter((row) => row.day === day),
+    duties: all
+      .filter((row) => row.status === 'assigned' && forTeacher(row))
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)) || Number(a.periodNo) - Number(b.periodNo))
+      .map(publicSubstitution),
+    absences: all
+      .filter(coveredForTeacher)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)) || Number(a.periodNo) - Number(b.periodNo))
+      .map(publicSubstitution),
+  })
+})
+
+app.get('/api/substitutions', requireRoles('admin', 'super_admin'), (req, res) => {
+  const date = String(req.query.date || '').trim()
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Invalid date.' })
+  const all = readSubstitutions()
+  const rows = all
+    .filter((row) => row && row.id && (!date || String(row.date || '') === date))
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || Number(a.periodNo) - Number(b.periodNo))
+  res.json({
+    date,
+    today: istToday(),
+    substitutions: rows.map(publicSubstitution),
+    summary: {
+      total: rows.length,
+      assigned: rows.filter((row) => row.status === 'assigned').length,
+      needsAdmin: rows.filter((row) => row.status !== 'assigned').length,
+    },
+  })
+})
+
+app.get('/api/substitutions/:id/candidates', requireRoles('admin', 'super_admin'), (req, res) => {
+  const row = readSubstitutions().find((entry) => entry.id === String(req.params.id || ''))
+  if (!row) return res.status(404).json({ error: 'This substitution slot was not found.' })
+  res.json({ candidates: candidatesForSlot(row) })
+})
+
+app.post('/api/substitutions/:id/assign', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const rows = readSubstitutions()
+  const index = rows.findIndex((entry) => entry.id === String(req.params.id || ''))
+  if (index < 0) return res.status(404).json({ error: 'This substitution slot was not found.' })
+  const row = rows[index]
+  const email = normalizeEmail(req.body?.teacherEmail)
+  const chosen = candidatesForSlot(row, rows).find((candidate) => candidate.email === email)
+  if (!chosen) {
+    return res.status(400).json({
+      error: 'That teacher is not free in this period, is on leave, or is outside the ±2 standard range for this class.',
+    })
+  }
+  const adminRecord = readJsonFile(USERS_FILE, []).find((entry) => entry.id === req.authUser.id)
+  const decidedByName = String(adminRecord?.name || req.authUser.email || 'School admin').slice(0, 120)
+  const mail = await sendSubstituteAssignedEmail({
+    to: chosen.email,
+    teacherName: chosen.name,
+    absentTeacherName: row.absentTeacherName,
+    leaveRange: row.date,
+    slots: [
+      {
+        date: row.date,
+        dayLabel: row.dayLabel,
+        periodLabel: row.periodLabel,
+        time: row.time,
+        className: row.className,
+        subject: row.subject,
+      },
+    ],
+    decidedByName,
+    assignedBy: 'admin',
+  })
+  const updated = {
+    ...row,
+    substituteEmail: chosen.email,
+    substituteName: chosen.name,
+    substituteSubject: chosen.subject,
+    status: 'assigned',
+    reason: '',
+    decidedByName,
+    notified: { sent: Boolean(mail.sent), at: new Date().toISOString(), error: mail.error || '' },
+    updatedAt: new Date().toISOString(),
+  }
+  rows[index] = updated
+  writeSubstitutions(rows)
+  res.json({ substitution: publicSubstitution(updated), email: mail })
+})
+
+app.post('/api/substitutions/run', requireRoles('admin', 'super_admin'), async (req, res) => {
+  const date = String(req.body?.date || '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Choose a valid date (YYYY-MM-DD).' })
+  const approved = readLeaveRequests().filter(
+    (row) =>
+      row?.status === 'Approved' &&
+      String(row.fromDate || '') <= date &&
+      date <= String(row.toDate || ''),
+  )
+  if (!approved.length) {
+    return res.json({ date, results: [], message: 'No approved teacher leave covers this date.' })
+  }
+  const results = []
+  for (const leave of approved) {
+    results.push({
+      leaveRequestId: leave.id,
+      teacherName: leave.teacherName,
+      ...(await applySubstitutions({ leave, date, decidedByName: 'School admin' })),
+    })
+  }
+  res.json({ date, results })
 })
 
 // Class teachers and student leave. The admin marks a teacher as the class

@@ -56,7 +56,7 @@ export const ADMIN_NAV = [
   section('Academics', 'bookOpen', [
     item('/academics/subjects/add', 'Subjects', 'book'),
     item('/academics/subject-assignment', 'Subject Assignment', 'swap'),
-    item('/academics/timetable', 'Timetable', 'table'),
+    item('/academics/timetable', 'Class Schedule', 'table'),
     item('/academics/datesheet', 'Exam Datesheet', 'calendar'),
     item('/academics/documents', 'Published Documents', 'fileText'),
     item('/examination/create', 'Exams', 'plus'),
@@ -125,7 +125,7 @@ export const TEACHER_NAV = [
     item('/teacher/homework', 'Homework', 'pencil'),
     item('/teacher/homework/upload', 'Upload Homework', 'upload'),
     item('/teacher/assignments', 'Assignments', 'list'),
-    item('/teacher/timetable', 'Timetable', 'table'),
+    item('/teacher/timetable', 'Class Schedule', 'table'),
     item('/teacher/remarks', 'Student Remarks', 'message'),
     item('/teacher/parent-communication', 'Parent Communication', 'phone'),
   ]),

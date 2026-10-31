@@ -40,6 +40,16 @@ function emailLine(email) {
   return ` The teacher email could not be sent: ${email.error || 'email delivery is not configured on this server.'}`
 }
 
+function substitutionLine(substitution) {
+  if (!substitution) return ''
+  if (substitution.error) return ` ${substitution.error}`
+  if (!substitution.created) return substitution.message ? ` ${substitution.message}` : ''
+  const assigned = substitution.assigned || 0
+  const needsAdmin = substitution.needsAdmin || 0
+  const emailed = substitution.emailed || 0
+  return ` Substitutes: ${substitution.created} period(s) planned, ${assigned} assigned automatically, ${needsAdmin} need manual cover (see Class Schedule), ${emailed} teacher mail(s) sent.`
+}
+
 export default function LeaveApprovals() {
   const isAdmin = ['admin', 'super_admin'].includes(String(getAuthUser()?.role || '').toLowerCase())
   const [filter, setFilter] = useState('Pending')
@@ -113,7 +123,9 @@ export default function LeaveApprovals() {
     try {
       const body = await decideLeaveRequest(decision.row.id, { status: decision.status, note: trimmed })
       const verb = decision.status === 'Approved' ? 'approved' : 'rejected'
-      setNotice(`${body.request?.teacherName || 'Leave request'} ${verb}.${emailLine(body.email)}`)
+      setNotice(
+        `${body.request?.teacherName || 'Leave request'} ${verb}.${emailLine(body.email)}${substitutionLine(body.substitution)}`,
+      )
       setDecision(null)
       setNote('')
       await load(filter)
