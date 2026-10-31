@@ -185,6 +185,39 @@ export default function SettingsPage() {
     }
   }
 
+  const LOGO_MAX_SIZE = 320
+
+  const applySchoolLogoFile = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+      setToast(t('Use a PNG, JPG or WebP image for the school logo.'))
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(1, LOGO_MAX_SIZE / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(img.width * scale))
+        canvas.height = Math.max(1, Math.round(img.height * scale))
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+        setSchoolDraft((prev) => ({ ...prev, logoData: canvas.toDataURL('image/png') }))
+        setToast(t('Logo ready — press "Save school identity" to apply it everywhere.'))
+      }
+      img.onerror = () => setToast(t('That image could not be read. Try another file.'))
+      img.src = String(reader.result || '')
+    }
+    reader.onerror = () => setToast(t('That image could not be read. Try another file.'))
+    reader.readAsDataURL(file)
+  }
+
+  const removeSchoolLogo = () => {
+    setSchoolDraft((prev) => ({ ...prev, logoData: '' }))
+  }
+
   const resetSchoolIdentity = async () => {
     if (schoolBusy) return
     setSchoolBusy(true)
@@ -465,6 +498,24 @@ export default function SettingsPage() {
               {t('These details print on ID cards, report cards and fee receipts. Saved on the server, so every device — including parents’ phones — shows the same school name and contact.')}
             </p>
             <form className="st-school" onSubmit={applySchoolIdentity}>
+              <div className="st-field st-field--logo">
+                <span>{t('School logo')}</span>
+                <div className="st-logo-row">
+                  <span className="st-logo-preview">
+                    {schoolDraft.logoData ? <img src={schoolDraft.logoData} alt={t('School logo preview')} /> : <em>{t('No logo yet')}</em>}
+                  </span>
+                  <label className="st-btn secondary st-logo-upload">
+                    {t('Upload logo')}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={applySchoolLogoFile} hidden />
+                  </label>
+                  {schoolDraft.logoData ? (
+                    <button type="button" className="st-btn ghost" onClick={removeSchoolLogo} disabled={schoolBusy}>
+                      {t('Remove logo')}
+                    </button>
+                  ) : null}
+                </div>
+                <p className="st-hint">{t('Shown on fee receipts and report cards. Square images look best; it is resized automatically.')}</p>
+              </div>
               <label className="st-field">
                 <span>{t('School name')}</span>
                 <input

@@ -15,6 +15,18 @@ const STATUS_CLASS = {
   'Verification pending': 'is-pending',
 }
 
+const INSTALLMENT_CLASS = {
+  paid: 'is-verified',
+  due: 'is-rejected',
+  upcoming: 'is-pending',
+}
+
+const INSTALLMENT_LABEL = {
+  paid: 'Paid',
+  due: 'Due now',
+  upcoming: 'Upcoming',
+}
+
 function formatRupees(value) {
   if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '—'
   return `${currencySymbol()}${Number(value).toLocaleString('en-IN')}`
@@ -24,6 +36,12 @@ function formatDateTime(value) {
   const date = new Date(value)
   if (!value || Number.isNaN(date.getTime())) return '—'
   return date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
+function formatDate(value) {
+  const date = new Date(`${value}T00:00:00`)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) || Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 export default function ParentOnlinePaymentPage() {
@@ -46,8 +64,17 @@ export default function ParentOnlinePaymentPage() {
   const child = entry?.student || null
   const history = entry?.history || []
   const linkedStudentId = user?.linkedId || null
-  const autoAmount = entry && entry.balance !== null && entry.balance > 0 ? String(entry.balance) : ''
+  const installments = Array.isArray(entry?.installments) ? entry.installments : []
+  const scheduleActive = installments.length > 0
+  const dueNow = Number(entry?.dueNow) || 0
+  // No-skip rule: when installments are pending, the combined due amount is
+  // suggested instead of the whole balance.
+  const autoAmount = entry && scheduleActive && dueNow > 0
+    ? String(dueNow)
+    : entry && entry.balance !== null && entry.balance > 0 ? String(entry.balance) : ''
   const amountValue = amountTouched ? amount : autoAmount
+
+  const blocksDueAmount = (value) => scheduleActive && dueNow > 0 && value < dueNow - 0.005
 
   const receiptSettings = useMemo(() => ({
     ...settings,
@@ -102,6 +129,11 @@ export default function ParentOnlinePaymentPage() {
       setMessageTone('is-error')
       return
     }
+    if (blocksDueAmount(value)) {
+      setMessage(`Earlier installments are pending — pay ${currencySymbol()}${dueNow.toLocaleString('en-IN')} or more in one payment.`)
+      setMessageTone('is-error')
+      return
+    }
     if (!settings.upiId.trim()) {
       setMessage('School payment UPI ID is not configured. Ask the admin to add it first.')
       setMessageTone('is-error')
@@ -120,6 +152,11 @@ export default function ParentOnlinePaymentPage() {
     const value = Number(amountValue)
     if (!Number.isFinite(value) || value <= 0) {
       setMessage('Enter a valid payment amount.')
+      setMessageTone('is-error')
+      return
+    }
+    if (blocksDueAmount(value)) {
+      setMessage(`Earlier installments are pending — pay ${currencySymbol()}${dueNow.toLocaleString('en-IN')} or more in one payment.`)
       setMessageTone('is-error')
       return
     }
@@ -229,6 +266,26 @@ export default function ParentOnlinePaymentPage() {
               : <small>Pay this amount to clear the balance.</small>}
         </article>
       </div>
+      {scheduleActive ? <article className="panel-card parent-fee-history">
+        <div className="history-head">
+          <div><p className="panel-kicker">Installment plan · {entry.feePlan || '—'}</p><h3>Fee schedule</h3></div>
+          {dueNow > 0 ? <span className="history-count">{formatRupees(dueNow)} due now</span> : null}
+        </div>
+        <p className="payment-note">Missed installments cannot be skipped — the next payment must cover every pending installment together.</p>
+        <div className="history-table-wrap">
+          <table className="history-table">
+            <thead><tr><th>#</th><th>Due date</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              {installments.map((item) => <tr key={item.index}>
+                <td>{item.index}</td>
+                <td>{formatDate(item.dueDate)}</td>
+                <td>{formatRupees(item.amount)}</td>
+                <td><span className={`payment-status ${INSTALLMENT_CLASS[item.state] || ''}`}>{INSTALLMENT_LABEL[item.state] || item.state}</span></td>
+              </tr>)}
+            </tbody>
+          </table>
+        </div>
+      </article> : null}
       <div className="parent-payment-grid">
         <article className="panel-card parent-payment-card">
           <p className="panel-kicker">Payment details</p>

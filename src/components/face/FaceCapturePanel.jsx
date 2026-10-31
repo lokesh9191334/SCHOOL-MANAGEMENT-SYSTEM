@@ -367,16 +367,20 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
           setPhase('submitting')
           const payload = { descriptors: samplesRef.current }
           if (mode === 'enroll') payload.photoThumb = captureThumb(video)
+          let failed = false
           try {
             await onSubmit(payload)
           } catch {
-            /* the parent renders the failure message */
+            failed = true
           }
           if (cancelled || !aliveRef.current) return
           submitRef.current = false
           samplesRef.current = []
           setCount(0)
-          setPhase(streamRef.current ? 'scanning' : 'idle')
+          lastSampleAtRef.current = 0
+          /* Stop auto-retrying after a failed save — the parent shows the
+             reason and the user chooses when to try again. */
+          setPhase(failed && streamRef.current ? 'paused' : streamRef.current ? 'scanning' : 'idle')
         }
       } catch {
         /* keep scanning */
@@ -394,8 +398,19 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
     if (phase === 'idle') return null
     if (phase === 'starting') return 'Starting camera…'
     if (phase === 'submitting') return mode === 'enroll' ? 'Saving your face profile…' : 'Matching your face…'
+    if (phase === 'paused') return 'Face was not saved — check the message below, then tap Try again.'
     return null
   })()
+
+  const retrySubmit = () => {
+    setCamError('')
+    setSoftNote('')
+    samplesRef.current = []
+    setCount(0)
+    lastSampleAtRef.current = 0
+    submitRef.current = false
+    setPhase(streamRef.current ? 'scanning' : 'idle')
+  }
 
   return (
     <div className="af-panel">
@@ -419,6 +434,11 @@ const FaceCapturePanel = ({ mode = 'verify', hint, error = '', onSubmit }) => {
             {engineState === 'ready' && phase === 'idle' ? (
               <button type="button" className="af-start" onClick={start}>
                 Start camera
+              </button>
+            ) : null}
+            {engineState === 'ready' && phase === 'paused' ? (
+              <button type="button" className="af-start" onClick={retrySubmit}>
+                Try again
               </button>
             ) : null}
           </div>

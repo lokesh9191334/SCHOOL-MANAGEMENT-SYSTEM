@@ -181,6 +181,8 @@
   height: 54px;
   border-radius: 14px;
   flex: 0 0 auto;
+  object-fit: contain;
+  background: #fff;
 }
 
 .rc-head__school {

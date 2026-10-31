@@ -125,6 +125,12 @@ function sectionCaption(doc, x, y, width, text) {
   doc.line(start, y - 0.9, x + width, y - 0.9)
 }
 
+function logoFormat(dataUrl) {
+  const match = /^data:image\/(png|jpeg|webp);base64,/.exec(String(dataUrl || ''))
+  if (!match) return ''
+  return match[1] === 'jpeg' ? 'JPEG' : match[1].toUpperCase()
+}
+
 export async function buildReceipt(payment, config = {}) {
   const fontBase64 = await loadFont()
   const doc = new jsPDF({ unit: 'mm', format: 'a5' })
@@ -172,30 +178,38 @@ export async function buildReceipt(payment, config = {}) {
   const hLeft = 16
   const hRight = 131
 
+  const logoFormatName = logoFormat(config.schoolLogo)
+  const textX = logoFormatName ? 36 : hLeft
+  const textWidth = logoFormatName ? 54 : 74
+  if (logoFormatName) {
+    doc.addImage(String(config.schoolLogo), logoFormatName, 14, 13.5, 17, 17)
+  }
+
   doc.setFontSize(6.3)
   doc.setTextColor(...GOLD)
-  doc.text(schoolName ? 'FEE PAYMENT RECEIPT' : 'OFFICIAL DOCUMENT', hLeft, 15.6)
+  doc.text(schoolName ? 'FEE PAYMENT RECEIPT' : 'OFFICIAL DOCUMENT', textX, 15.6)
 
-  const titleFit = wrapText(doc, schoolName || 'Fee Payment Receipt', 74, 13, 1)
+  const titleFit = wrapText(doc, schoolName || 'Fee Payment Receipt', textWidth, 13, 1)
   doc.setFontSize(titleFit.size)
   doc.setTextColor(255, 255, 255)
-  doc.text(titleFit.lines[0] || 'Fee Payment Receipt', hLeft, 22.6)
+  doc.text(titleFit.lines[0] || 'Fee Payment Receipt', textX, 22.6)
 
   let headY = 28.8
   if (schoolAddress) {
-    const addressFit = wrapText(doc, schoolAddress, 74, 6.7, 2)
+    const addressFit = wrapText(doc, schoolAddress, textWidth, 6.7, 2)
     doc.setFontSize(addressFit.size)
     doc.setTextColor(190, 201, 224)
-    doc.text(addressFit.lines, hLeft, headY, { lineHeightFactor: 1.25 })
+    doc.text(addressFit.lines, textX, headY, { lineHeightFactor: 1.25 })
     headY += addressFit.lines.length * 3.5 + 0.9
   }
 
   const contactLine = [schoolPhone, schoolEmail, schoolWebsite].filter(Boolean).join('  ·  ')
   if (contactLine) {
-    const contactFit = wrapText(doc, contactLine, 74, 6.6, 1)
+    const contactFit = wrapText(doc, contactLine, textWidth, 6.6, logoFormatName ? 2 : 1)
+    const contactLines = contactFit.lines.map((line) => line.replace(/\s*·\s*$/, ''))
     doc.setFontSize(contactFit.size)
     doc.setTextColor(208, 217, 236)
-    doc.text(contactFit.lines[0], hLeft, Math.max(headY, 29.4))
+    doc.text(contactLines, textX, Math.max(headY, 29.4), { lineHeightFactor: 1.18 })
   }
 
   doc.setFontSize(5.9)

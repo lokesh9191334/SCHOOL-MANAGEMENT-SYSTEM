@@ -14,6 +14,7 @@ import {
 } from '../services/aadhar'
 import { createInviteKey, generateLocalInviteKey } from '../services/inviteKeys'
 import { currencySymbol } from '../utils/currency'
+import { FEE_PLAN_OPTIONS } from '../../feeSchedule.js'
 import './PremiumAdmissionForm.css'
 import './AdmissionWizard.css'
 
@@ -1837,11 +1838,9 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
               <div className="form-group">
                 <label>Installment Plan</label>
                 <select value={formData.installmentPlan} onChange={(e) => handleInputChange('installmentPlan', e.target.value)}>
-                  <option value="One Time">One Time</option>
-                  <option value="2 Installments">2 Installments</option>
-                  <option value="3 Installments">3 Installments</option>
-                  <option value="Monthly">Monthly</option>
+                  {FEE_PLAN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
+                <small className="form-hint">Missed installments must be paid together — parents cannot skip ahead.</small>
               </div>
               <div className="form-group">
                 <label>Due Date</label>

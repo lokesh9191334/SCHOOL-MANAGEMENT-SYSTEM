@@ -7,10 +7,16 @@ const EMPTY_IDENTITY = {
   email: '',
   website: '',
   principalName: '',
+  logoData: '',
 }
 
 function clean(value) {
   return String(value ?? '').trim()
+}
+
+function cleanLogo(value) {
+  const raw = clean(value)
+  return /^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(raw) ? raw : ''
 }
 
 function normalize(identity) {
@@ -21,6 +27,7 @@ function normalize(identity) {
     email: clean(identity?.email),
     website: clean(identity?.website),
     principalName: clean(identity?.principalName),
+    logoData: cleanLogo(identity?.logoData),
   }
 }
 
@@ -57,6 +64,8 @@ export function schoolForCard(identity) {
     address: next.address,
     phone: next.phone,
     website: next.website,
+    principalName: next.principalName,
+    logoData: next.logoData,
   }
 }
 

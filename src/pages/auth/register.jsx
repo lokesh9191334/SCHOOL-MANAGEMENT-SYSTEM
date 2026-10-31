@@ -45,6 +45,7 @@ const RegisterPage = () => {
   const [resendIn, setResendIn] = useState(0)
 
   const [faceStep, setFaceStep] = useState(false)
+  const [enrollOpen, setEnrollOpen] = useState(false)
   const [enrollError, setEnrollError] = useState('')
   const [pendingHome, setPendingHome] = useState('/')
 
@@ -151,7 +152,7 @@ const RegisterPage = () => {
         return
       }
       auth.saveSession(res)
-      /* Face enrollment is mandatory for every role (admin, teacher, parent). */
+      /* Optional face offer — account is already created and usable without it. */
       setPendingHome(homePathForRole(res?.user?.role))
       setFaceStep(true)
     } catch (err) {
@@ -187,10 +188,10 @@ const RegisterPage = () => {
       mode="register"
       stageClassName={faceStep ? 'auth-stage--login-verify' : ''}
       kicker="Create secure account"
-      title={faceStep ? 'Enroll your face' : otpStep ? 'Verify email OTP' : 'Create your SMS account'}
+      title={faceStep ? 'Add face sign-in' : otpStep ? 'Verify email OTP' : 'Create your SMS account'}
       subtitle={
         faceStep
-          ? 'One-time face setup — required for every account. It is saved as your profile and lets you sign in with your face.'
+          ? 'Optional — skip for now and add your face anytime from Settings → My Face.'
           : otpStep
             ? `We emailed a 6-digit code to ${maskedEmail}. Account is created only after successful OTP verification.`
             : 'Create your school account. Teachers and parents need an admin-issued key.'
@@ -203,22 +204,40 @@ const RegisterPage = () => {
       }
     >
       {faceStep ? (
-        <div className="af-setup">
-          <FaceCapturePanel
-            mode="enroll"
-            error={enrollError}
-            onSubmit={async ({ descriptors, photoThumb }) => {
-              setEnrollError('')
-              try {
-                await enrollMyFace({ descriptors, photoThumb })
-                navigate(pendingHome)
-              } catch (err) {
-                setEnrollError(err.message || String(err))
-                throw err
-              }
-            }}
-          />
-        </div>
+        enrollOpen ? (
+          <div className="af-setup">
+            <FaceCapturePanel
+              mode="enroll"
+              error={enrollError}
+              onSubmit={async ({ descriptors, photoThumb }) => {
+                setEnrollError('')
+                try {
+                  await enrollMyFace({ descriptors, photoThumb })
+                  navigate(pendingHome)
+                } catch (err) {
+                  setEnrollError(err.message || String(err))
+                  throw err
+                }
+              }}
+            />
+            <button type="button" className="auth-text-button" onClick={() => navigate(pendingHome)}>
+              Skip for now
+            </button>
+          </div>
+        ) : (
+          <div className="auth-form-stack">
+            <p className="auth-helper">
+              Your account is ready. Add your face now to sign in with your face later, or skip and do it
+              anytime from Settings → My Face.
+            </p>
+            <button type="button" className="auth-submit" onClick={() => setEnrollOpen(true)}>
+              Add face now
+            </button>
+            <button type="button" className="auth-text-button" onClick={() => navigate(pendingHome)}>
+              Skip for now — go to my workspace
+            </button>
+          </div>
+        )
       ) : !otpStep ? (
         <form className="auth-form-stack" onSubmit={startRegister}>
           <label className="auth-field">

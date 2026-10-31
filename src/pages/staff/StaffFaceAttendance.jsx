@@ -300,10 +300,13 @@ const StaffFaceAttendance = () => {
             setEnrollState('idle')
             stopScan()
           } catch (err) {
+            /* Do not re-enter the capture loop automatically — a rejected
+               save would otherwise retry forever ("Saving…" flicker loop). */
             setEnrollError(err?.message || 'Enrollment could not be saved.')
-            setEnrollState('capturing')
+            setEnrollState('idle')
             setSampleCount(0)
             samplesRef.current = []
+            lastSampleAtRef.current = 0
           } finally {
             markingRef.current = false
           }

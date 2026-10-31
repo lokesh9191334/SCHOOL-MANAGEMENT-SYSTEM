@@ -419,6 +419,51 @@
   grid-column: 1 / -1;
 }
 
+.st-field--logo {
+  grid-column: 1 / -1;
+}
+
+.st-logo-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.st-logo-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  border: 1px dashed #c3cddc;
+  background: #f4f6fb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.st-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.st-logo-preview em {
+  font-size: 0.62rem;
+  font-style: normal;
+  color: #74819c;
+  text-align: center;
+  padding: 4px;
+}
+
+.st-logo-upload {
+  cursor: pointer;
+}
+
+.st-logo-upload input {
+  display: none;
+}
+
 .st-pw__actions {
   display: flex;
   flex-wrap: wrap;

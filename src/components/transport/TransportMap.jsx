@@ -1,9 +1,30 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-const TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-const ATTRIBUTION = '&copy; OpenStreetMap contributors'
+const BASE_TILES = {
+  map: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
+  },
+}
+const SATELLITE_LABELS = {
+  url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+  attribution: 'Labels &copy; Esri',
+}
+const VIEW_KEY = 'sms_map_view'
+
+function storedView() {
+  try {
+    return window.localStorage.getItem(VIEW_KEY) === 'satellite' ? 'satellite' : 'map'
+  } catch {
+    return 'map'
+  }
+}
 
 const KIND_COLOR = { pickup: '#0f766e', drop: '#b45309', both: '#1b2a55' }
 
@@ -98,6 +119,7 @@ function TransportMap({
   const layerRef = useRef(null)
   const fitKeyRef = useRef('')
   const focusKeyRef = useRef('')
+  const [view, setView] = useState(storedView)
 
   const highlightKey = useMemo(() => (Array.isArray(highlightStopIds) ? highlightStopIds.join('|') : ''), [highlightStopIds])
   const highlightSet = useMemo(() => new Set(highlightKey ? highlightKey.split('|') : []), [highlightKey])
@@ -110,7 +132,6 @@ function TransportMap({
       worldCopyJump: true,
       zoomControl: true,
     })
-    L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(map)
     layerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
     const timer = window.setTimeout(() => map.invalidateSize(), 180)
@@ -124,6 +145,30 @@ function TransportMap({
       layerRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return undefined
+    const settings = BASE_TILES[view] || BASE_TILES.map
+    const base = L.tileLayer(settings.url, { attribution: settings.attribution, maxZoom: 19 })
+    base.addTo(map)
+    const labels =
+      view === 'satellite'
+        ? L.tileLayer(SATELLITE_LABELS.url, { attribution: SATELLITE_LABELS.attribution, maxZoom: 19 }).addTo(map)
+        : null
+    return () => {
+      if (map.hasLayer(base)) map.removeLayer(base)
+      if (labels && map.hasLayer(labels)) map.removeLayer(labels)
+    }
+  }, [view])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_KEY, view)
+    } catch {
+      /* storage blocked — the choice just won't persist */
+    }
+  }, [view])
 
   useEffect(() => {
     const map = mapRef.current
@@ -270,6 +315,24 @@ function TransportMap({
   return (
     <div className={`tmap-shell ${className}`.trim()}>
       <div ref={containerRef} className="tmap-canvas" role="application" aria-label="Bus route map" />
+      <div className="tmap-view-switch" role="group" aria-label="Map type">
+        <button
+          type="button"
+          className={view === 'map' ? 'is-active' : ''}
+          aria-pressed={view === 'map'}
+          onClick={() => setView('map')}
+        >
+          Map
+        </button>
+        <button
+          type="button"
+          className={view === 'satellite' ? 'is-active' : ''}
+          aria-pressed={view === 'satellite'}
+          onClick={() => setView('satellite')}
+        >
+          Satellite
+        </button>
+      </div>
       <div className="tmap-legend" aria-hidden>
         <span><i className="tmap-legend__dot tmap-legend__dot--live" /> Live bus</span>
         <span><i className="tmap-legend__dot tmap-legend__dot--pickup" /> Pickup</span>

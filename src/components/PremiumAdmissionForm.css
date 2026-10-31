@@ -119,6 +119,12 @@
   content: attr(data-required);
 }
 
+.form-group .form-hint {
+  font-size: 0.72rem;
+  color: #7a86a3;
+  margin-top: 2px;
+}
+
 /* Input Elements */
 .form-group input,
 .form-group select,

@@ -67,11 +67,12 @@ function ReportCardSheet({ result, student, school, teacherPhone, remarks }) {
   const grade = gradeFromPercent(percent)
   const schoolLine = [school.phone, school.email, school.website].filter(Boolean).join(' · ')
   const teacherName = text(result.teacherName) || DASH
+  const crestSrc = school.logoData || '/brand/sms-mark.svg'
 
   return (
     <article className="rc-sheet">
       <header className="rc-head">
-        <img className="rc-crest" src="/brand/sms-mark.svg" alt="" />
+        <img className="rc-crest" src={crestSrc} alt="" />
         <div className="rc-head__school">
           <h2>{school.name || 'School name not set'}</h2>
           <p>{school.address || 'Add the school address in Settings'}</p>

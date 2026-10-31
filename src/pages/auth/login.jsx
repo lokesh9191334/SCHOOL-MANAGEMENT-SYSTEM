@@ -4,7 +4,6 @@ import AuthShell from '../../components/auth/AuthShell'
 import OtpInput from '../../components/auth/OtpInput'
 import FaceCapturePanel from '../../components/face/FaceCapturePanel'
 import * as auth from '../../services/auth'
-import { enrollMyFace, fetchMyFace } from '../../services/faceAttendance'
 import { describeDevice } from '../../utils/faceEngine'
 import { homePathForRole } from '../../data/roleNav'
 import { expiredNotice } from '../../utils/session'
@@ -68,9 +67,6 @@ const LoginPage = () => {
   const [authMode, setAuthMode] = useState('password')
   const [faceError, setFaceError] = useState('')
   const [faceVerified, setFaceVerified] = useState(null)
-  const [faceSetup, setFaceSetup] = useState(false)
-  const [enrollError, setEnrollError] = useState('')
-  const [pendingHome, setPendingHome] = useState('/')
   const [attendance, setAttendance] = useState(null)
 
   const geoRef = useRef(null)
@@ -333,24 +329,6 @@ const LoginPage = () => {
         return
       }
 
-      /* Every role must finish face enrollment before entering (server flags
-         it; fetch is only a fallback for older responses). */
-      if (res.faceLogin !== true && res.faceSetupRequired !== false) {
-        let needsFace = res.faceSetupRequired === true
-        if (!needsFace) {
-          try {
-            const face = await fetchMyFace()
-            needsFace = !face.enrolled
-          } catch {
-            /* enrollment check failed — do not lock the user out */
-          }
-        }
-        if (needsFace) {
-          setPendingHome(home)
-          setFaceSetup(true)
-          return
-        }
-      }
       navigate(home)
     } catch (err) {
       setError(err.message || String(err))
@@ -389,7 +367,7 @@ const LoginPage = () => {
   return (
     <AuthShell
       mode="login"
-      stageClassName={otpStep || faceSetup || attendance ? 'auth-stage--login-verify' : ''}
+      stageClassName={otpStep || attendance ? 'auth-stage--login-verify' : ''}
       notice={error || info}
       noticeTone={error ? 'error' : 'success'}
       onNoticeClose={() => {
@@ -400,26 +378,22 @@ const LoginPage = () => {
       title={
         attendance
           ? 'Attendance marked'
-          : faceSetup
-            ? 'Set up your face'
-            : otpStep
-              ? (isAdminDual ? 'Verify your sign-in' : 'Confirm your email')
-              : authMode === 'face'
-                ? 'Face sign-in'
-                : ''
+          : otpStep
+            ? (isAdminDual ? 'Verify your sign-in' : 'Confirm your email')
+            : authMode === 'face'
+              ? 'Face sign-in'
+              : ''
       }
       subtitle={
         attendance
           ? attendance.message
-          : faceSetup
-            ? 'Your account needs a face profile before entering. It is saved once and lets you sign in with your face.'
-            : otpStep
-              ? isAdminDual
-                ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
-                : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
-              : authMode === 'face'
-                ? 'Look at the camera — your face is matched strictly, then an email OTP confirms the sign-in.'
-                : 'Sign in to continue to your school workspace.'
+          : otpStep
+            ? isAdminDual
+              ? `Enter both the 6-digit OTP and the 7-character special key emailed to ${maskedEmail}.`
+              : `Enter the 6-digit code sent to ${maskedEmail}. Access opens only after OTP verification.`
+            : authMode === 'face'
+              ? 'Look at the camera — your face is matched strictly, then an email OTP confirms the sign-in.'
+              : 'Sign in to continue to your school workspace.'
       }
       footer={
         <>
@@ -441,23 +415,6 @@ const LoginPage = () => {
             </p>
           ) : null}
           <p className="af-result-note">Opening your workspace…</p>
-        </div>
-      ) : faceSetup ? (
-        <div className="af-setup">
-          <FaceCapturePanel
-            mode="enroll"
-            error={enrollError}
-            onSubmit={async ({ descriptors, photoThumb }) => {
-              setEnrollError('')
-              try {
-                await enrollMyFace({ descriptors, photoThumb })
-                navigate(pendingHome)
-              } catch (err) {
-                setEnrollError(err.message || String(err))
-                throw err
-              }
-            }}
-          />
         </div>
       ) : !otpStep ? (
         authMode === 'face' ? (
@@ -615,10 +572,7 @@ const LoginPage = () => {
                 setFaceVerified(null)
                 setAuthMode('password')
                 setFaceError('')
-                setFaceSetup(false)
-                setEnrollError('')
                 setAttendance(null)
-                setPendingHome('/')
               }}
             >
               <span aria-hidden="true">←</span>

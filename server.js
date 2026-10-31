@@ -141,6 +141,7 @@ import {
   sanitizeSubjects,
 } from './resultsStore.js'
 import { holidayForDate } from './schoolCalendar.js'
+import { buildFeeSchedule, coverFeeSchedule } from './feeSchedule.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
 const INVITE_ROLES = new Set(['teacher', 'parent'])
@@ -3503,6 +3504,9 @@ const SCHOOL_PROFILE_FIELDS = {
   email: 120,
   website: 80,
   principalName: 70,
+  // School crest as a downscaled data URL (Settings upload canvas). Whitespace
+  // must survive, so it is handled separately from the squashed text fields.
+  logoData: 500000,
 }
 const EMPTY_SCHOOL_PROFILE = {
   name: '',
@@ -3511,13 +3515,21 @@ const EMPTY_SCHOOL_PROFILE = {
   email: '',
   website: '',
   principalName: '',
+  logoData: '',
+}
+
+function normalizeSchoolLogo(value) {
+  const raw = String(value ?? '').trim()
+  return /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=\r\n]+$/.test(raw) ? raw : ''
 }
 
 function readSchoolProfile() {
   const stored = readJsonFile(SCHOOL_PROFILE_FILE, {})
   const profile = {}
   for (const [key, limit] of Object.entries(SCHOOL_PROFILE_FIELDS)) {
-    profile[key] = String(stored?.[key] ?? '').trim().slice(0, limit)
+    profile[key] = key === 'logoData'
+      ? normalizeSchoolLogo(stored?.[key])
+      : String(stored?.[key] ?? '').trim().slice(0, limit)
   }
   profile.updatedAt = String(stored?.updatedAt || '')
   return profile
@@ -3531,7 +3543,9 @@ app.put('/api/school-profile', requireRoles('admin', 'super_admin'), (req, res) 
   const body = req.body && typeof req.body === 'object' ? req.body : {}
   const profile = {}
   for (const [key, limit] of Object.entries(SCHOOL_PROFILE_FIELDS)) {
-    profile[key] = String(body[key] ?? '').trim().replace(/\s+/g, ' ').slice(0, limit)
+    profile[key] = key === 'logoData'
+      ? normalizeSchoolLogo(body[key])
+      : String(body[key] ?? '').trim().replace(/\s+/g, ' ').slice(0, limit)
   }
   if (!profile.name) return res.status(400).json({ error: 'School name is required.' })
   if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
@@ -3563,6 +3577,7 @@ app.get('/api/payment-config', (_req, res) => {
     schoolEmail: school.email,
     schoolWebsite: school.website,
     principalName: school.principalName,
+    schoolLogo: school.logoData,
   })
 })
 
@@ -3612,6 +3627,14 @@ app.get('/api/payments/summary', (req, res) => {
     const rawTotal = student?.totalFee
     const totalFee = rawTotal === null || rawTotal === undefined || rawTotal === '' || !Number.isFinite(Number(rawTotal)) ? null : Number(rawTotal)
     const classTeacher = classTeacherOf(student)
+    // Installment schedule from the admission-time plan. No-skip rule: missed
+    // installments stack up and must be paid together in the next payment.
+    const schedule = totalFee === null ? null : buildFeeSchedule({
+      plan: student?.installmentPlan,
+      totalFee,
+      startDate: student?.admissionDate,
+    })
+    const coverage = schedule ? coverFeeSchedule(schedule, history, new Date().toISOString().slice(0, 10)) : null
     return {
       student: student
         ? { id: student.id, name: student.title || student.name || '', className: student.subtitle || student.className || '', rollNo: student.rollNo || '' }
@@ -3622,6 +3645,9 @@ app.get('/api/payments/summary', (req, res) => {
       balance: totalFee === null ? null : Math.max(0, totalFee - paid),
       classTeacherName: classTeacher.name,
       classTeacherPhone: classTeacher.phone,
+      feePlan: schedule ? schedule.plan : '',
+      installments: coverage ? coverage.installments : [],
+      dueNow: coverage ? coverage.dueNow : 0,
       history,
     }
   }
@@ -3656,6 +3682,26 @@ app.post('/api/payments', (req, res) => {
     payment.parentName = user.name
     payment.status = 'Verification pending'
     payment.reviewedAt = null
+    // No-skip rule: when installments are due, the payment must cover every
+    // missed installment together — a single later installment is not accepted.
+    const child = readStudentRecords().find((item) => (
+      String(item.id) === String(user.linkedId) || String(item.applicationId) === String(user.linkedId)
+    ))
+    const schedule = buildFeeSchedule({
+      plan: child?.installmentPlan,
+      totalFee: child?.totalFee,
+      startDate: child?.admissionDate,
+    })
+    if (schedule) {
+      const existing = readJsonFile(join('data', 'payments.json'), [])
+      const coverage = coverFeeSchedule(schedule, existing, new Date().toISOString().slice(0, 10))
+      if (coverage && coverage.dueNow > 0 && amount < coverage.dueNow) {
+        return res.status(400).json({
+          error: `Earlier installments are pending. Pay the combined due amount of ${coverage.dueNow} or more in one payment.`,
+          dueNow: coverage.dueNow,
+        })
+      }
+    }
   }
   const payments = readJsonFile(join('data', 'payments.json'), [])
   writeJsonFile(join('data', 'payments.json'), [payment, ...payments].slice(0, 500))
