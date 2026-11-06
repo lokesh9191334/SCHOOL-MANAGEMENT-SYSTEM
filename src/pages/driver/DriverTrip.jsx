@@ -62,27 +62,54 @@ function trustedSpeed(fix, samples) {
   const gps = fix.speed
   const gpsKmh = gps == null ? null : gps * 3.6
   let prev = null
+  // Prefer a 10 s baseline: phone position noise averages out and weaker
+  // accuracy (inside a bus) is still usable. Fall back to 5 s right after start.
   for (let i = samples.length - 1; i >= 0; i -= 1) {
     const gapSec = (fix.at - samples[i].at) / 1000
-    if (gapSec > 60) break
-    if (gapSec >= 5) {
+    if (gapSec > 120) break
+    if (gapSec >= 10) {
       prev = samples[i]
       break
     }
   }
+  if (!prev) {
+    for (let i = samples.length - 1; i >= 0; i -= 1) {
+      const gapSec = (fix.at - samples[i].at) / 1000
+      if (gapSec > 120) break
+      if (gapSec >= 5) {
+        prev = samples[i]
+        break
+      }
+    }
+  }
   let derivedKmh = null
-  if (prev && fix.accuracy != null && fix.accuracy <= 50) {
-    derivedKmh = (metersBetween(prev, fix) / ((fix.at - prev.at) / 1000)) * 3.6
-    if (derivedKmh > 120) derivedKmh = null
+  if (prev) {
+    const dtSec = (fix.at - prev.at) / 1000
+    const known = [fix.accuracy, prev.accuracy].filter((value) => value != null).map(Number)
+    const accuracy = known.length ? Math.max(...known) : null
+    // A longer gap averages position noise out, so it tolerates weaker accuracy.
+    const limit = dtSec >= 10 ? 150 : 50
+    if ((accuracy == null && dtSec >= 10) || (accuracy != null && accuracy <= limit)) {
+      const distance = metersBetween(prev, fix)
+      const noiseFloor = Math.min(accuracy == null ? 40 : accuracy, 40) * 0.5
+      derivedKmh = distance < noiseFloor ? 0 : (distance / dtSec) * 3.6
+      if (derivedKmh > 120) derivedKmh = null
+    }
   }
   if (gpsKmh != null && gpsKmh >= 2 && gpsKmh <= 120) {
     const disagrees = derivedKmh != null && derivedKmh >= 5 && gpsKmh < derivedKmh * 0.5
     if (!disagrees) return { speed: gps, source: 'gps' }
   }
   if (derivedKmh != null && derivedKmh >= 5) {
-    return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+    const gpsZeroed = gpsKmh != null && gpsKmh < 2
+    if (!gpsZeroed) return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+    const noiseM = Number.isFinite(fix.accuracy) ? Math.max(15, Number(fix.accuracy) * 0.75) : 15
+    if (metersBetween(prev, fix) > noiseM) {
+      return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+    }
   }
   if (gpsKmh != null && gpsKmh <= 120) return { speed: gps, source: 'gps' }
+  if (derivedKmh != null) return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
   return { speed: null, source: null }
 }
 

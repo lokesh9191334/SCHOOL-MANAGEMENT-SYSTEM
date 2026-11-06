@@ -29,7 +29,7 @@ import '../../styles/live-transport-premium.css'
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
   if (Number.isNaN(diff) || diff < 0) return 'just now'
-  if (diff < 60000) return 'just now'
+  if (diff < 60000) return `${Math.max(1, Math.round(diff / 1000))}s ago`
   const mins = Math.floor(diff / 60000)
   if (mins < 60) return `${mins}m ago`
   const hours = Math.floor(mins / 60)
@@ -255,9 +255,11 @@ function LiveTransport() {
 
   useEffect(() => {
     if (!autoRefresh) return undefined
+    // The driver pings every 15 s; poll faster so the speed on screen is never
+    // two ping cycles behind the bus.
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') setLiveToken((value) => value + 1)
-    }, 15000)
+    }, 8000)
     return () => window.clearInterval(timer)
   }, [autoRefresh])
 

@@ -58,6 +58,71 @@ async function acquireWakeLock(wakeLockRef, trackingRef, onState) {
   }
 }
 
+function metersBetween(a, b) {
+  const R = 6371000
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+/** Same rule as the server: trust device speed, fall back to distance travelled
+    when the phone reports no speed reading. */
+function trustedSpeed(fix, samples) {
+  const gps = fix.speed
+  const gpsKmh = gps == null ? null : gps * 3.6
+  let prev = null
+  // Prefer a 10 s baseline: phone position noise averages out and weaker
+  // accuracy (inside a bus) is still usable. Fall back to 5 s right after start.
+  for (let i = samples.length - 1; i >= 0; i -= 1) {
+    const gapSec = (fix.at - samples[i].at) / 1000
+    if (gapSec > 120) break
+    if (gapSec >= 10) {
+      prev = samples[i]
+      break
+    }
+  }
+  if (!prev) {
+    for (let i = samples.length - 1; i >= 0; i -= 1) {
+      const gapSec = (fix.at - samples[i].at) / 1000
+      if (gapSec > 120) break
+      if (gapSec >= 5) {
+        prev = samples[i]
+        break
+      }
+    }
+  }
+  let derivedKmh = null
+  if (prev) {
+    const dtSec = (fix.at - prev.at) / 1000
+    const known = [fix.accuracy, prev.accuracy].filter((value) => value != null).map(Number)
+    const accuracy = known.length ? Math.max(...known) : null
+    const limit = dtSec >= 10 ? 150 : 50
+    if ((accuracy == null && dtSec >= 10) || (accuracy != null && accuracy <= limit)) {
+      const distance = metersBetween(prev, fix)
+      const noiseFloor = Math.min(accuracy == null ? 40 : accuracy, 40) * 0.5
+      derivedKmh = distance < noiseFloor ? 0 : (distance / dtSec) * 3.6
+      if (derivedKmh > 120) derivedKmh = null
+    }
+  }
+  if (gpsKmh != null && gpsKmh >= 2 && gpsKmh <= 120) {
+    const disagrees = derivedKmh != null && derivedKmh >= 5 && gpsKmh < derivedKmh * 0.5
+    if (!disagrees) return { speed: gps, source: 'gps' }
+  }
+  if (derivedKmh != null && derivedKmh >= 5) {
+    const gpsZeroed = gpsKmh != null && gpsKmh < 2
+    if (!gpsZeroed) return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+    const noiseM = Number.isFinite(fix.accuracy) ? Math.max(15, Number(fix.accuracy) * 0.75) : 15
+    if (metersBetween(prev, fix) > noiseM) {
+      return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+    }
+  }
+  if (gpsKmh != null && gpsKmh <= 120) return { speed: gps, source: 'gps' }
+  if (derivedKmh != null) return { speed: Math.round((derivedKmh / 3.6) * 10) / 10, source: 'derived' }
+  return { speed: null, source: null }
+}
+
 const DriverTrack = () => {
   const { key = '' } = useParams()
 
@@ -77,6 +142,7 @@ const DriverTrack = () => {
   const watchIdRef = useRef(null)
   const intervalRef = useRef(null)
   const fixRef = useRef(null)
+  const samplesRef = useRef([])
   const wakeLockRef = useRef(null)
   const trackingRef = useRef(false)
   const batteryRef = useRef(null)
@@ -113,7 +179,7 @@ const DriverTrack = () => {
         lat: current.lat,
         lng: current.lng,
         accuracy: current.accuracy,
-        speed: current.speed,
+        speed: current.speedSource === 'derived' ? null : current.speed,
         heading: current.heading,
         battery: batteryRef.current,
         device: deviceLabel(),
@@ -165,6 +231,7 @@ const DriverTrack = () => {
     setTrackError('')
     setTrackState('waiting')
     trackingRef.current = true
+    samplesRef.current = []
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -174,7 +241,15 @@ const DriverTrack = () => {
           accuracy: Number.isFinite(pos.coords.accuracy) ? Math.round(pos.coords.accuracy) : null,
           speed: Number.isFinite(pos.coords.speed) && pos.coords.speed >= 0 ? Math.round(pos.coords.speed * 10) / 10 : null,
           heading: Number.isFinite(pos.coords.heading) && pos.coords.heading >= 0 ? Math.round(pos.coords.heading) : null,
+          at: Date.now(),
         }
+        const speed = trustedSpeed(next, samplesRef.current)
+        next.speed = speed.speed
+        next.speedSource = speed.source
+        samplesRef.current = [
+          ...samplesRef.current.filter((sample) => next.at - sample.at <= 120 * 1000),
+          { lat: next.lat, lng: next.lng, accuracy: next.accuracy, at: next.at },
+        ]
         const first = !fixRef.current
         fixRef.current = next
         setFix(next)

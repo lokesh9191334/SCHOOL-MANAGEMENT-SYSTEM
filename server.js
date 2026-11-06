@@ -3342,8 +3342,9 @@ async function handleTrackPing(req, res, record) {
   if (prev && Date.now() - Date.parse(prev.at) < TRACK_MIN_PING_GAP_MS) {
     return res.json({ ok: true, throttled: true })
   }
-  const reading = speedReading(fix, prev)
-  const shownKmh = smoothSpeedKmh(reading.kmh, prev)
+  const now = Date.now()
+  const reading = speedReading(fix, prev, now)
+  const shownKmh = smoothSpeedKmh(reading.kmh, prev, now)
   const speedSource = shownKmh == null ? null : reading.source
   const ist = istParts()
   const entry = {

@@ -62,10 +62,14 @@ export function trailPoint(fix) {
 export const OVERSPEED_LIMIT_KMH = Number(process.env.OVERSPEED_LIMIT_KMH) >= 20 ? Number(process.env.OVERSPEED_LIMIT_KMH) : 55
 /** No school bus genuinely reaches this; anything above is a GPS artifact, not a real reading. */
 export const MAX_PLAUSIBLE_SPEED_KMH = 120
-/** Derived speed is only trusted with a tight accuracy and a sane gap between pings. */
+/** Derived speed is only trusted with a sane accuracy and a sane gap between pings. */
 const DERIVED_MIN_GAP_SEC = 5
 const DERIVED_MAX_GAP_SEC = 120
+/** Inside a moving bus phones often report 50–150 m accuracy; a longer gap averages
+    that position noise out, so the accuracy gate widens with the ping gap. */
 const DERIVED_MAX_ACCURACY_M = 50
+const DERIVED_LONG_GAP_SEC = 10
+const DERIVED_MAX_ACCURACY_LONG_M = 150
 /** A repeat detection within this window updates the open alert instead of raising a new one. */
 export const OVERSPEED_EVENT_WINDOW_MS = 5 * 60 * 1000
 /** Below-limit movement for this long marks an open alert as ended. */
@@ -87,10 +91,17 @@ export function haversineMeters(a, b) {
 const GPS_SPEED_MIN_TRUST_KMH = 2
 /** A movement-derived speed must beat this to replace a zeroed GPS reading. */
 const DERIVED_SPEED_MIN_TRUST_KMH = 5
-/** How much one new reading moves the shown speed; the rest keeps the previous value. */
+/** How much one new reading moves the shown speed when pings arrive closer than the
+    normal 15 s cadence; a normal cadence shows the measured value exactly. */
 const SPEED_SMOOTH_NEW_WEIGHT = 0.6
 /** Smoothing restarts from scratch when the previous ping is older than this. */
 const SPEED_SMOOTH_MAX_GAP_SEC = 60
+/** At/after this gap the reading is the current speed, not an extra sample to blend. */
+const SPEED_IMMEDIATE_GAP_SEC = 10
+
+function derivedAccuracyLimit(dtSec) {
+  return dtSec >= DERIVED_LONG_GAP_SEC ? DERIVED_MAX_ACCURACY_LONG_M : DERIVED_MAX_ACCURACY_M
+}
 
 /** Distance covered since the previous ping, in km/h. Null when the pair is unusable. */
 export function derivedSpeedKmh(fix, prev, now = Date.now()) {
@@ -99,9 +110,19 @@ export function derivedSpeedKmh(fix, prev, now = Date.now()) {
   if (!Number.isFinite(prevAt)) return null
   const dtSec = (now - prevAt) / 1000
   if (dtSec < DERIVED_MIN_GAP_SEC || dtSec > DERIVED_MAX_GAP_SEC) return null
-  const accuracy = Number(fix.accuracy)
-  if (!Number.isFinite(accuracy) || accuracy > DERIVED_MAX_ACCURACY_M) return null
-  const kmh = (haversineMeters(prev, fix) / dtSec) * 3.6
+  // Number(null) is 0 — an unknown accuracy must not pass the accuracy gate.
+  const accuracy = fix.accuracy == null ? null : Number(fix.accuracy)
+  if (accuracy != null) {
+    if (!Number.isFinite(accuracy) || accuracy > derivedAccuracyLimit(dtSec)) return null
+  } else if (dtSec < DERIVED_LONG_GAP_SEC) {
+    // Without an accuracy figure a short gap is too noisy; a longer gap still averages out.
+    return null
+  }
+  const distance = haversineMeters(prev, fix)
+  // Movement smaller than the position noise is the bus standing still, not a speed.
+  const noiseFloor = Math.min(accuracy == null ? 40 : accuracy, 40) * 0.5
+  if (distance < noiseFloor) return 0
+  const kmh = (distance / dtSec) * 3.6
   return kmh <= MAX_PLAUSIBLE_SPEED_KMH ? kmh : null
 }
 
@@ -119,20 +140,28 @@ export function speedReading(fix, prev, now = Date.now()) {
     if (!disagrees) return { kmh: plausibleGps, source: 'gps' }
   }
   if (derivedKmh != null && derivedKmh >= DERIVED_SPEED_MIN_TRUST_KMH) {
-    return { kmh: derivedKmh, source: 'derived' }
+    // A zeroed GPS reading is only replaced when the bus actually moved beyond
+    // position noise; otherwise a parked phone's drift becomes a fake speed.
+    const gpsZeroed = plausibleGps != null && plausibleGps < GPS_SPEED_MIN_TRUST_KMH
+    if (!gpsZeroed) return { kmh: derivedKmh, source: 'derived' }
+    const accuracy = fix.accuracy == null ? NaN : Number(fix.accuracy)
+    const noiseM = Number.isFinite(accuracy) ? Math.max(15, accuracy * 0.75) : 15
+    if (haversineMeters(prev, fix) > noiseM) return { kmh: derivedKmh, source: 'derived' }
   }
   if (plausibleGps != null) return { kmh: plausibleGps, source: 'gps' }
   if (derivedKmh != null) return { kmh: derivedKmh, source: 'derived' }
   return { kmh: null, source: null }
 }
 
-/** Average the new reading with the previous smoothed one so a single noisy fix
-    does not make the dashboard jump. */
+/** Blend a noisy extra ping into the previous reading. At the normal 15 s cadence
+    the measured speed is shown as-is, so the dashboard never trails the bus. */
 export function smoothSpeedKmh(kmh, prev, now = Date.now()) {
   if (kmh == null) return null
   const prevKmh = Number(prev?.speedKmh)
   const prevAt = Date.parse(prev?.at || '')
   if (!Number.isFinite(prevKmh) || !Number.isFinite(prevAt)) return kmh
-  if ((now - prevAt) / 1000 > SPEED_SMOOTH_MAX_GAP_SEC) return kmh
+  const gapSec = (now - prevAt) / 1000
+  if (gapSec > SPEED_SMOOTH_MAX_GAP_SEC) return kmh
+  if (gapSec >= SPEED_IMMEDIATE_GAP_SEC) return kmh
   return prevKmh + (kmh - prevKmh) * SPEED_SMOOTH_NEW_WEIGHT
 }
