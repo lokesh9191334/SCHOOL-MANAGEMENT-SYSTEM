@@ -3355,7 +3355,14 @@ async function handleTrackPing(req, res, record) {
   const now = Date.now()
   const reading = speedReading(fix, prev, now)
   const shownKmh = smoothSpeedKmh(reading.kmh, prev, now)
-  const speedSource = shownKmh == null ? null : reading.source
+  // The driver page derives speed from its own 1–2 s fixes, which stays accurate
+  // when the ping cadence stretches out; keep that honest label.
+  const speedSource =
+    shownKmh == null
+      ? null
+      : reading.source === 'gps' && req.body?.speedSource === 'derived'
+        ? 'derived'
+        : reading.source
   const ist = istParts()
   const entry = {
     ...fix,
