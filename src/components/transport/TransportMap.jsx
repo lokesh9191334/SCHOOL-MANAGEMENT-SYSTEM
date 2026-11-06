@@ -255,8 +255,9 @@ function TransportMap({
       })
       const kmh = pingSpeedKmh(ping)
       const tone = toneOf(vehicle)
+      const speedText = tone === 'online' && kmh !== null ? ` · ${kmh} km/h` : ''
       marker.bindTooltip(
-        `${vehicle.driverName || 'Bus'}${kmh !== null ? ` · ${kmh} km/h` : ''}${
+        `${vehicle.driverName || 'Bus'}${speedText}${
           tone === 'online' ? '' : tone === 'off' ? ' · off' : ' · signal lost'
         }`,
         { permanent: true, direction: 'top', className: 'tmap-bus-label', offset: [0, -20] },

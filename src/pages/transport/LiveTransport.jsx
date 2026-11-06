@@ -961,7 +961,7 @@ function LiveTransport() {
                     <b>{vehicle.lastPing ? timeAgo(vehicle.lastPing.at) : '—'}</b> last update
                   </span>
                   <span>
-                    <b>{kmh != null ? `${kmh} km/h` : '—'}</b> speed
+                    <b>{tone === 'online' && kmh != null ? `${kmh} km/h` : '—'}</b> speed
                   </span>
                   <span>
                     <b>{vehicle.lastPing?.accuracy != null ? `±${vehicle.lastPing.accuracy} m` : '—'}</b> accuracy

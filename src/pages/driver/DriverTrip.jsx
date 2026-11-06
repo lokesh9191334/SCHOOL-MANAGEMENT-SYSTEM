@@ -402,6 +402,11 @@ const DriverTrip = () => {
   const routePaused = route?.status === 'Paused'
   const canTrack = Boolean(route && tracking && tracking.active !== false && !routePaused && !holidayActive)
   const trackingActive = trackState === 'live' || trackState === 'waiting'
+  // "Live" must mean the school actually received a recent update, not just
+  // that the phone's GPS watch is running.
+  const sendAgeSec = lastSentAt ? Math.max(1, Math.round((Date.now() - lastSentAt) / 1000)) : null
+  const sendsFresh = sendAgeSec != null && sendAgeSec <= 90
+  const gpsWeak = fix?.accuracy != null && Number(fix.accuracy) > 150
 
   let blockedReason = ''
   if (holidayActive) {
@@ -415,7 +420,11 @@ const DriverTrip = () => {
     ? { tone: 'holiday', text: 'Holiday today — tracking paused' }
     : trackingActive
       ? trackState === 'live'
-        ? { tone: 'ok', text: 'Live — the school can see your bus' }
+        ? sendsFresh
+          ? { tone: 'ok', text: 'Live — the school can see your bus' }
+          : lastSentAt == null
+            ? { tone: 'warn', text: 'Sending first update…' }
+            : { tone: 'danger', text: 'Not reaching the school — check internet' }
         : { tone: 'warn', text: 'Getting GPS fix…' }
       : trackState === 'error'
         ? { tone: 'danger', text: 'Tracking problem' }
@@ -454,7 +463,11 @@ const DriverTrip = () => {
               {blockedReason
                 ? blockedReason
                 : trackState === 'live'
-                  ? `A position is sent to the school every ${PING_EVERY_MS / 1000} seconds.`
+                  ? sendsFresh
+                    ? `A position is sent to the school every ${PING_EVERY_MS / 1000} seconds.`
+                    : lastSentAt == null
+                      ? 'Waiting for the first update to reach the school.'
+                      : `Last update reached the school ${sendAgeSec}s ago. Check internet and keep this page open.`
                   : 'Tap the button below so the school can follow this bus.'}
             </p>
           </div>
@@ -486,6 +499,13 @@ const DriverTrip = () => {
         )}
 
         {trackError ? <p className="drv-error">{trackError}</p> : null}
+
+        {gpsWeak ? (
+          <p className="drv-error">
+            GPS signal is weak (±{fix.accuracy} m). This device is using network location — real speed needs a
+            phone with GPS and a clear view of the sky.
+          </p>
+        ) : null}
 
         <div className="drv-stats">
           <div className="drv-stat">
