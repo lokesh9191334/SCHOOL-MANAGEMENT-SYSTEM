@@ -23,12 +23,50 @@ function buildErrorMessage(body, res) {
   return body.error || body.message || JSON.stringify(body)
 }
 
-async function safeFetch(url, options) {
-  try {
-    return await fetch(url, options)
-  } catch {
-    throw new Error('Cannot reach API server. Check the internet connection or run “npm run server”.')
+const REQUEST_TIMEOUT_MS = 25000
+const RETRY_DELAY_MS = 800
+
+function networkErrorMessage(cause) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'You are offline. Reconnect to the internet and try again.'
   }
+  if (cause?.name === 'AbortError') {
+    return 'The school server is taking too long to respond. Please try again.'
+  }
+  if (import.meta.env.DEV) {
+    return 'Cannot reach the API server. Check the internet connection or run “npm run server”.'
+  }
+  return 'Could not reach the school server. Check your internet connection and try again.'
+}
+
+async function fetchOnce(url, options) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function safeFetch(url, options, { retry } = {}) {
+  const method = String(options?.method || 'GET').toUpperCase()
+  // Only retry requests that are safe to repeat. Writes such as sending a
+  // WhatsApp message must never fire twice because a reply was lost.
+  const canRetry = retry ?? (method === 'GET' || method === 'HEAD')
+  let lastError = null
+  const attempts = canRetry ? 2 : 1
+  // Deploys, cold starts and mobile network blips drop a single request far
+  // more often than they fail two in a row, so retry once before surfacing it.
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fetchOnce(url, options)
+    } catch (error) {
+      lastError = error
+      if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    }
+  }
+  throw new Error(networkErrorMessage(lastError))
 }
 
 export async function fetchTrackingKeys() {
@@ -39,22 +77,35 @@ export async function fetchTrackingKeys() {
 }
 
 export async function createTrackingKey(payload) {
-  const res = await safeFetch(`${API}/tracking-keys`, {
-    method: 'POST',
-    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(payload),
-  })
+  // Same id on the retry so a lost reply cannot create a second link.
+  const clientRequestId =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+  const res = await safeFetch(
+    `${API}/tracking-keys`,
+    {
+      method: 'POST',
+      headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ ...payload, clientRequestId }),
+    },
+    { retry: true },
+  )
   const body = await parseResponse(res)
   if (!res.ok) throw new Error(buildErrorMessage(body, res))
   return body
 }
 
 export async function updateTrackingKey(id, patch) {
-  const res = await safeFetch(`${API}/tracking-keys/${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(patch),
-  })
+  const res = await safeFetch(
+    `${API}/tracking-keys/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: getApiAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(patch),
+    },
+    { retry: true },
+  )
   const body = await parseResponse(res)
   if (!res.ok) throw new Error(buildErrorMessage(body, res))
   return body
@@ -155,11 +206,15 @@ export async function fetchTrackInfo(key) {
 }
 
 export async function sendTrackPing(key, fix) {
-  const res = await safeFetch(`/api/track/${encodeURIComponent(key)}/ping`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(fix),
-  })
+  const res = await safeFetch(
+    `/api/track/${encodeURIComponent(key)}/ping`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fix),
+    },
+    { retry: true },
+  )
   const body = await parseResponse(res)
   if (!res.ok) {
     const error = new Error(buildErrorMessage(body, res))

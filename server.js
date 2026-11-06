@@ -2143,8 +2143,10 @@ function trackingLinkFor(req, record) {
 }
 
 function trackingKeyView(record) {
+  const view = { ...record }
+  delete view.clientRequestId
   return {
-    ...record,
+    ...view,
     autoSend: record.autoSend === true,
     phone: record.phone || '',
     phoneMasked: maskWhatsAppPhone(record.phone),
@@ -3013,7 +3015,14 @@ app.post('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (
   if (autoSend && !phone) {
     return res.status(400).json({ error: 'A valid WhatsApp number is required for daily auto-send.' })
   }
+  const clientRequestId = String(req.body?.clientRequestId || '').trim().slice(0, 64)
   const keys = readTrackingKeys()
+  // A retried create (lost reply on flaky mobile data) must reuse the link
+  // that already exists instead of adding a duplicate.
+  if (clientRequestId) {
+    const existing = keys.find((item) => item.clientRequestId === clientRequestId)
+    if (existing) return res.json(trackingKeyView(existing))
+  }
   const record = {
     id: `trk_${Date.now().toString(36)}`,
     key: generateTrackingKey(),
@@ -3026,6 +3035,7 @@ app.post('/api/transport/tracking-keys', requireRoles('admin', 'super_admin'), (
     autoSend,
     createdAt: istParts().iso,
     createdBy: req.authUser?.email || '',
+    ...(clientRequestId ? { clientRequestId } : {}),
   }
   writeTrackingKeys([record, ...keys].slice(0, TRACKING_KEYS_MAX))
   if (routeId) {
