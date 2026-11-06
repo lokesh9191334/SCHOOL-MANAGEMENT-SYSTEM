@@ -693,6 +693,8 @@
 
   .sms-nav-backdrop {
     display: block;
+    /* Above map controls (Leaflet view switch uses z-index 620). */
+    z-index: 890;
   }
 
   .sms-sidebar {
@@ -701,7 +703,7 @@
     left: 0;
     bottom: 0;
     width: min(320px, 88vw);
-    z-index: 50;
+    z-index: 900;
     border-radius: 0 24px 24px 0;
     transform: translateX(-105%);
     transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
