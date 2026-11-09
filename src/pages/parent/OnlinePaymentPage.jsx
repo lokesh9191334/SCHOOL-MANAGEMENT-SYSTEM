@@ -72,6 +72,36 @@ export default function ParentOnlinePaymentPage() {
 
   const blocksDueAmount = (value) => scheduleActive && dueNow > 0 && value < dueNow - 0.005
 
+  const upiLink = useMemo(() => {
+    const note = `${child?.name || 'School fee'} ${child?.className || ''}`.trim().slice(0, 40)
+    return `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName || 'School')}&am=${encodeURIComponent(amountValue || 0)}&cu=INR&tn=${encodeURIComponent(note)}`
+  }, [settings, amountValue, child])
+
+  const amountInvalid = (value) => {
+    if (!Number.isFinite(value) || value <= 0) return 'Enter a valid payment amount.'
+    if (value > 100000) return `A single payment cannot exceed ${currencySymbol()}1,00,000. Split larger amounts into multiple payments.`
+    if (blocksDueAmount(value)) return `Earlier installments are pending — pay ${currencySymbol()}${dueNow.toLocaleString('en-IN')} or more in one payment.`
+    return ''
+  }
+
+  const payNow = () => {
+    if (!entry) return
+    const problem = amountInvalid(Number(amountValue))
+    if (problem) {
+      setMessage(problem)
+      setMessageTone('is-error')
+      return
+    }
+    if (!settings.upiId.trim()) {
+      setMessage('School payment UPI ID is not configured. Ask the admin to add it first.')
+      setMessageTone('is-error')
+      return
+    }
+    window.location.href = upiLink
+    setMessage('Google Pay / PhonePe opens with the amount and the school UPI ID already filled. Complete the payment there, then copy the UTR / transaction ID from the payment details and paste it in the next panel.')
+    setMessageTone('is-info')
+  }
+
   const receiptSettings = useMemo(() => ({
     ...settings,
     classTeacherName: entry?.classTeacherName || '',
@@ -110,18 +140,9 @@ export default function ParentOnlinePaymentPage() {
     event.preventDefault()
     if (!entry) return
     const value = Number(amountValue)
-    if (!Number.isFinite(value) || value <= 0) {
-      setMessage('Enter a valid payment amount.')
-      setMessageTone('is-error')
-      return
-    }
-    if (value > 100000) {
-      setMessage(`A single payment cannot exceed ${currencySymbol()}1,00,000. Split larger amounts into multiple payments.`)
-      setMessageTone('is-error')
-      return
-    }
-    if (blocksDueAmount(value)) {
-      setMessage(`Earlier installments are pending — pay ${currencySymbol()}${dueNow.toLocaleString('en-IN')} or more in one payment.`)
+    const problem = amountInvalid(value)
+    if (problem) {
+      setMessage(problem)
       setMessageTone('is-error')
       return
     }
@@ -254,8 +275,9 @@ export default function ParentOnlinePaymentPage() {
             {settings.mobile ? <span>Mobile: {settings.mobile}</span> : null}
             {settings.bankName || settings.bankAccount ? <span>Bank: {[settings.bankName, settings.bankAccount ? `A/C ${settings.bankAccount}` : '', settings.bankIfsc ? `IFSC ${settings.bankIfsc}` : ''].filter(Boolean).join(' · ')}</span> : null}
           </div>
-          <p className="payment-note">Open your own UPI / banking app, pay the school account above, note the UTR reference shown after the payment, then submit it in the next panel.</p>
+          <p className="payment-note">Open your own UPI / banking app, pay the school account above, note the UTR reference shown after the payment, then submit it in the next panel. On a phone, the button below opens Google Pay / PhonePe directly with the amount filled:</p>
           <label className="form-field"><span>Amount ({currencySymbol()})</span><input type="number" min="1" max="100000" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
+          <button type="button" className="header-action primary" onClick={payNow}>{Number(amountValue) > 0 ? `Pay ${currencySymbol()}${Number(amountValue).toLocaleString('en-IN')} via GPay / PhonePe` : 'Pay via GPay / PhonePe'}</button>
         </article>
         <article className="panel-card parent-payment-card">
           <p className="panel-kicker">Confirm transfer</p>

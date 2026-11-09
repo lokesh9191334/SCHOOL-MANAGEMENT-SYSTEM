@@ -6,6 +6,7 @@ import { usePersistentState } from '../../hooks/usePersistentState'
 import { STORAGE_KEYS } from '../../utils/constants'
 import { buildAdmissionRecord, buildStudentRecord } from '../../utils/recordBuilders'
 import { getAuthUser } from '../../utils/session'
+import { getApiAuthHeaders } from '../../services/apiAuth'
 import { currencySymbol } from '../../utils/currency'
 import { AreaTrendChart, BarClusterChart, DonutChart, HorizontalBars, Sparkline } from './ExecCharts'
 import './ExecutiveDashboard.css'
@@ -98,6 +99,7 @@ const DashboardPage = () => {
   const [formMode, setFormMode] = useState('admission')
   const [toast, setToast] = useState('')
   const [chartTab, setChartTab] = useState('attendance')
+  const [onlinePayments, setOnlinePayments] = useState([])
 
   const user = getAuthUser()
   const firstName = String(user?.name || user?.email || 'Admin')
@@ -109,6 +111,24 @@ const DashboardPage = () => {
     const timer = window.setTimeout(() => setToast(''), 3200)
     return () => window.clearTimeout(timer)
   }, [toast])
+
+  // Real UPI submissions from parents (server), so payments waiting for
+  // confirmation surface here instead of only inside the sidebar page.
+  useEffect(() => {
+    let active = true
+    fetch('/api/payments', { headers: getApiAuthHeaders() })
+      .then((response) => response.json().catch(() => null).then((body) => {
+        if (!active || !response.ok) return
+        setOnlinePayments(Array.isArray(body) ? body : [])
+      }))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const pendingOnline = onlinePayments.filter((payment) => payment.status === 'Verification pending')
+  const pendingOnlineTotal = sumBy(pendingOnline, (payment) => parseAmount(payment.amount))
 
   // —— Metrics below are derived only from real records. Where history does
   // not exist the chart/series is marked not `ready` and the panel shows an
@@ -295,6 +315,15 @@ const DashboardPage = () => {
   ]
 
   const priorityAlerts = [
+    {
+      icon: <IconRupee />,
+      title: 'UPI payments to confirm',
+      detail: pendingOnline.length
+        ? `${pendingOnline.length} parent payment${pendingOnline.length === 1 ? '' : 's'} (${currencySymbol()}${Math.round(pendingOnlineTotal).toLocaleString('en-IN')}) waiting for verification.`
+        : 'No parent UPI payment is waiting for confirmation.',
+      tone: pendingOnline.length ? 'warning' : 'success',
+      to: '/fees/online-payments',
+    },
     {
       icon: <IconRupee />,
       title: 'Fee follow-up',
@@ -580,6 +609,45 @@ const DashboardPage = () => {
       </div>
 
       <div className="exec-lower">
+        <Slide>
+          <section className="exec-panel">
+            <header className="exec-panel__head exec-panel__head--compact">
+              <div>
+                <p className="exec-kicker">Fees</p>
+                <h3>UPI payments awaiting confirmation</h3>
+              </div>
+              <Link className="exec-link" to="/fees/online-payments">
+                Review &amp; verify →
+              </Link>
+            </header>
+            {pendingOnline.length ? (
+              <div className="exec-alert-list">
+                {pendingOnline.slice(0, 4).map((payment) => (
+                  <Link key={payment.id} to="/fees/online-payments" className="exec-alert tone-warning">
+                    <span className="exec-alert__icon">{<IconRupee />}</span>
+                    <span className="exec-alert__body">
+                      <strong>
+                        {payment.studentName || 'Student'} · {currencySymbol()}{Number(payment.amount || 0).toLocaleString('en-IN')}
+                      </strong>
+                      <p>
+                        UTR {payment.reference || '—'} · {payment.className || '—'} · {payment.createdAt ? new Date(payment.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </p>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="exec-empty exec-empty--slim">
+                <strong>No payment waiting for confirmation</strong>
+                <p>When a parent submits a UPI payment, it appears here and on the Payment Verification page instantly.</p>
+                <Link className="exec-empty__cta" to="/fees/online-payments">
+                  Open payment verification
+                </Link>
+              </div>
+            )}
+          </section>
+        </Slide>
+
         <Slide>
           <section className="exec-panel">
             <header className="exec-panel__head exec-panel__head--compact">
