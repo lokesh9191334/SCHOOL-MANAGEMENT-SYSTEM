@@ -40,6 +40,7 @@ import {
   sendSubstituteAssignedEmail,
   sendOverspeedAlertEmail,
   sendParentAttendanceEmail,
+  sendParentPaymentSubmittedEmail,
   sendResultEmail,
   verifyOtpHash,
 } from './emailOtp.js'
@@ -3711,7 +3712,7 @@ app.get('/api/payments/summary', (req, res) => {
   res.json({ students: list.map((item) => build(item, item.applicationId)) })
 })
 
-app.post('/api/payments', (req, res) => {
+app.post('/api/payments', async (req, res) => {
   const payment = req.body && typeof req.body === 'object' ? { ...req.body, id: req.body.id || `PAY-${Date.now()}` } : null
   const amount = Number(payment?.amount)
   if (
@@ -3721,6 +3722,9 @@ app.post('/api/payments', (req, res) => {
     amount <= 0
   ) {
     return res.status(400).json({ error: 'Student, amount and payment reference are required.' })
+  }
+  if (amount > 100000) {
+    return res.status(400).json({ error: 'A single payment cannot exceed ₹1,00,000. Split larger amounts into multiple payments.' })
   }
   if (req.authUser.role === 'parent') {
     const user = readJsonFile(USERS_FILE, []).find((item) => item.id === req.authUser.id)
@@ -3753,6 +3757,33 @@ app.post('/api/payments', (req, res) => {
   }
   const payments = readJsonFile(join('data', 'payments.json'), [])
   writeJsonFile(join('data', 'payments.json'), [payment, ...payments].slice(0, 500))
+  // Instant notice to the school office with receipt + student details. The
+  // email is awaited on Vercel so it delivers before the response ends, but a
+  // delivery failure must never fail the payment itself.
+  if (req.authUser.role === 'parent') {
+    try {
+      const ist = istParts()
+      await sendParentPaymentSubmittedEmail({
+        to: overspeedAdminEmails(),
+        event: {
+          id: payment.id,
+          receiptNo: payment.receiptNo,
+          studentName: payment.studentName,
+          className: payment.className,
+          rollNo: payment.rollNo,
+          amount,
+          reference: payment.reference,
+          method: payment.method,
+          parentName: payment.parentName,
+          parentEmail: req.authUser.email,
+          submittedAtIST: `${ist.date} ${ist.time}`,
+          status: payment.status,
+        },
+      })
+    } catch (err) {
+      console.error('[payments] admin notice failed:', err?.message || err)
+    }
+  }
   res.status(201).json(payment)
 })
 

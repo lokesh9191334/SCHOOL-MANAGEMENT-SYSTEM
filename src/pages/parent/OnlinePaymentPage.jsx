@@ -129,6 +129,11 @@ export default function ParentOnlinePaymentPage() {
       setMessageTone('is-error')
       return
     }
+    if (value > 100000) {
+      setMessage(`A single payment cannot exceed ${currencySymbol()}1,00,000. Split larger amounts into multiple payments.`)
+      setMessageTone('is-error')
+      return
+    }
     if (blocksDueAmount(value)) {
       setMessage(`Earlier installments are pending — pay ${currencySymbol()}${dueNow.toLocaleString('en-IN')} or more in one payment.`)
       setMessageTone('is-error')
@@ -152,6 +157,11 @@ export default function ParentOnlinePaymentPage() {
     const value = Number(amountValue)
     if (!Number.isFinite(value) || value <= 0) {
       setMessage('Enter a valid payment amount.')
+      setMessageTone('is-error')
+      return
+    }
+    if (value > 100000) {
+      setMessage(`A single payment cannot exceed ${currencySymbol()}1,00,000. Split larger amounts into multiple payments.`)
       setMessageTone('is-error')
       return
     }
@@ -200,7 +210,7 @@ export default function ParentOnlinePaymentPage() {
       setSecondsLeft(0)
       try {
         await downloadPaymentReceipt(saved, receiptSettings)
-        setMessage(`Payment submitted. Receipt ${saved.receiptNo || saved.id} downloaded — status: Verification pending. The balance updates after the school verifies the payment.`)
+        setMessage(`Payment submitted. Receipt ${saved.receiptNo || saved.id} downloaded and the school office has been notified by email. The balance updates after the school verifies the payment.`)
         setMessageTone('is-success')
       } catch {
         setMessage(`Payment submitted, but the receipt PDF could not be generated on this device. Use the "Receipt PDF" button in the history table below.`)
@@ -234,7 +244,7 @@ export default function ParentOnlinePaymentPage() {
       <div>
         <p className="admin-kicker">Parent portal · Fees</p>
         <h2>Pay school fees online</h2>
-        <p>Scan the school UPI QR, transfer the amount and submit the UTR reference. The receipt PDF downloads instantly and your child's balance updates after the school verifies the payment.</p>
+        <p>Enter any amount from {currencySymbol()}1 to {currencySymbol()}1,00,000, scan the school UPI QR and transfer it, then submit the UTR reference. The receipt PDF downloads instantly, the school office gets an email with the receipt and your child's details, and the balance updates after the school verifies the payment.</p>
       </div>
       <Link className="link-pill" to="/parent">Parent portal home</Link>
     </header>
@@ -297,7 +307,7 @@ export default function ParentOnlinePaymentPage() {
             {settings.mobile ? <span>Mobile: {settings.mobile}</span> : null}
             {settings.bankName || settings.bankAccount ? <span>Bank: {[settings.bankName, settings.bankAccount ? `A/C ${settings.bankAccount}` : '', settings.bankIfsc ? `IFSC ${settings.bankIfsc}` : ''].filter(Boolean).join(' · ')}</span> : null}
           </div>
-          <label className="form-field"><span>Amount ({currencySymbol()})</span><input type="number" min="1" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
+          <label className="form-field"><span>Amount ({currencySymbol()})</span><input type="number" min="1" max="100000" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
           <button type="button" className="header-action primary" onClick={startQr}>Show QR for 2 minutes</button>
           {qr ? <div className="payment-qr"><img src={secondsLeft ? qr : ''} alt="UPI payment QR" />{secondsLeft ? <strong>Expires in {secondsLeft}s</strong> : <strong>QR expired. Generate a new QR.</strong>}</div> : null}
         </article>

@@ -421,6 +421,78 @@ export async function sendOverspeedAlertEmail({ to, event }) {
 }
 
 /**
+ * Instant notice to the school office when a parent submits a fee payment.
+ * Never throws — a failed notice must not fail the payment itself.
+ */
+export async function sendParentPaymentSubmittedEmail({ to, event }) {
+  const row = (label, value) => `
+    <tr>
+      <td style="padding:10px 14px;color:#8b97b3;font-size:13px;border-bottom:1px solid #faf3e6;white-space:nowrap">${escapeHtml(label)}</td>
+      <td style="padding:10px 14px;color:#111b33;font-size:13px;font-weight:600;border-bottom:1px solid #faf3e6">${value}</td>
+    </tr>`
+  const amount = Number.isFinite(Number(event?.amount)) ? `₹${Number(event.amount).toLocaleString('en-IN')}` : '—'
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#fdf7ef;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:0;border:1px solid #f3e2c4;overflow:hidden">
+    <div style="background:#1b2a55;padding:22px 28px">
+      <p style="margin:0;color:#c9d4f0;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">SMS · Fee Payment Submitted</p>
+      <h2 style="margin:6px 0 0;color:#fff;font-size:20px">${amount} · ${escapeHtml(event?.studentName || 'Student')}</h2>
+    </div>
+    <div style="padding:22px 28px">
+      <p style="color:#5c6b8c;line-height:1.5;margin:0 0 16px">
+        A parent has submitted a fee payment through the parent portal. The receipt PDF was generated instantly for the parent. Please verify the UTR reference against your bank / UPI statement and mark the payment Verified or Rejected in the dashboard.
+      </p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #faf3e6;border-radius:12px;overflow:hidden">
+        ${row('Receipt no', escapeHtml(event?.receiptNo || event?.id || '—'))}
+        ${row('Student', escapeHtml(event?.studentName || '—'))}
+        ${row('Class', escapeHtml(event?.className || '—'))}
+        ${row('Roll no', escapeHtml(event?.rollNo || '—'))}
+        ${row('Amount', escapeHtml(amount))}
+        ${row('UTR / reference', escapeHtml(event?.reference || '—'))}
+        ${row('Method', escapeHtml(event?.method || 'UPI'))}
+        ${row('Submitted by', escapeHtml(event?.parentName || '—'))}
+        ${row('Parent email', escapeHtml(event?.parentEmail || '—'))}
+        ${row('Submitted at', escapeHtml(event?.submittedAtIST || '—'))}
+        ${row('Status', escapeHtml(event?.status || 'Verification pending'))}
+      </table>
+      <p style="color:#8b97b3;font-size:12px;margin:18px 0 0">Open the Payments / Fees section in the admin dashboard to verify this payment. The parent's balance updates only after verification.</p>
+      <p style="color:#1b2a55;font-weight:700;margin-top:16px">School Management System · Accounts Desk</p>
+    </div>
+  </div>
+</body></html>`
+
+  const text = [
+    'SMS FEE PAYMENT SUBMITTED — please verify',
+    `Receipt no: ${event?.receiptNo || event?.id || '—'}`,
+    `Student: ${event?.studentName || '—'} (${event?.className || '—'}, Roll ${event?.rollNo || '—'})`,
+    `Amount: ${amount}`,
+    `UTR / reference: ${event?.reference || '—'}`,
+    `Method: ${event?.method || 'UPI'}`,
+    `Submitted by: ${event?.parentName || '—'} (${event?.parentEmail || 'no email'})`,
+    `Submitted at: ${event?.submittedAtIST || '—'} IST`,
+    `Status: ${event?.status || 'Verification pending'}`,
+    'Verify this payment in the admin dashboard (Payments / Fees).',
+  ].join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `SMS Fee Payment · ${amount} from ${event?.studentName || 'parent'} — verification pending`,
+      html,
+      text,
+      demoCode: null,
+      purpose: 'parent-payment-submitted',
+      logLabel: 'Parent payment notice',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] parent payment notice failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
+/**
  * Attendance alert to a parent/guardian. Sent from the school's own SMTP
  * account. Never throws — callers get { sent: true/false } either way.
  */
