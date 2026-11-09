@@ -5,7 +5,7 @@ import { fetchTrackInfo, sendTrackPing } from '../../services/transportLive'
 import '../../styles/driver-track-premium.css'
 
 const IST_TZ = 'Asia/Kolkata'
-const PING_EVERY_MS = 15 * 1000
+const PING_EVERY_MS = 5 * 1000
 
 function istClock() {
   try {

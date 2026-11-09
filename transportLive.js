@@ -97,7 +97,7 @@ const SPEED_SMOOTH_NEW_WEIGHT = 0.6
 /** Smoothing restarts from scratch when the previous ping is older than this. */
 const SPEED_SMOOTH_MAX_GAP_SEC = 60
 /** At/after this gap the reading is the current speed, not an extra sample to blend. */
-const SPEED_IMMEDIATE_GAP_SEC = 10
+const SPEED_IMMEDIATE_GAP_SEC = 5
 
 function derivedAccuracyLimit(dtSec) {
   return dtSec >= DERIVED_LONG_GAP_SEC ? DERIVED_MAX_ACCURACY_LONG_M : DERIVED_MAX_ACCURACY_M

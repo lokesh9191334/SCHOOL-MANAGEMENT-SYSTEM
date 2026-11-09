@@ -3306,7 +3306,7 @@ app.get('/api/driver/me', requireDriver, (req, res) => {
     tracking: tracking
       ? {
           active: tracking.active !== false,
-          pingEverySec: 15,
+          pingEverySec: 5,
           lastPingAt: live?.at || '',
           lastPingAtIST: live?.atIST || '',
           staleAfterSec: Math.round(TRACK_STALE_MS / 1000),
@@ -3339,7 +3339,7 @@ app.get('/api/track/:key', (req, res) => {
     vehicleLabel: record.vehicleLabel,
     routeLabel: record.routeLabel,
     active: true,
-    pingEverySec: 15,
+    pingEverySec: 5,
   })
 })
 
