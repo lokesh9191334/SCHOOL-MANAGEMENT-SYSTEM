@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import QRCode from 'qrcode'
 import { Link } from 'react-router-dom'
 import { getAuthUser } from '../../utils/session'
 import { getApiAuthHeaders } from '../../services/apiAuth'
@@ -52,9 +51,6 @@ export default function ParentOnlinePaymentPage() {
   const [amount, setAmount] = useState('')
   const [amountTouched, setAmountTouched] = useState(false)
   const [reference, setReference] = useState('')
-  const [qr, setQr] = useState('')
-  const [expiresAt, setExpiresAt] = useState(0)
-  const [secondsLeft, setSecondsLeft] = useState(0)
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('is-info')
   const [submitting, setSubmitting] = useState(false)
@@ -110,47 +106,6 @@ export default function ParentOnlinePaymentPage() {
     loadSummary()
   }, [loadSummary])
 
-  useEffect(() => {
-    if (!expiresAt) return undefined
-    const timer = window.setInterval(() => setSecondsLeft(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000))), 1000)
-    return () => window.clearInterval(timer)
-  }, [expiresAt])
-
-  const upiLink = useMemo(
-    () => `upi://pay?pa=${encodeURIComponent(settings.upiId)}&pn=${encodeURIComponent(settings.holderName || 'School')}&am=${encodeURIComponent(amountValue || 0)}&cu=INR`,
-    [settings, amountValue],
-  )
-
-  const startQr = async () => {
-    if (!entry) return
-    const value = Number(amountValue)
-    if (!Number.isFinite(value) || value <= 0) {
-      setMessage('Enter a valid payment amount.')
-      setMessageTone('is-error')
-      return
-    }
-    if (value > 100000) {
-      setMessage(`A single payment cannot exceed ${currencySymbol()}1,00,000. Split larger amounts into multiple payments.`)
-      setMessageTone('is-error')
-      return
-    }
-    if (blocksDueAmount(value)) {
-      setMessage(`Earlier installments are pending — pay ${currencySymbol()}${dueNow.toLocaleString('en-IN')} or more in one payment.`)
-      setMessageTone('is-error')
-      return
-    }
-    if (!settings.upiId.trim()) {
-      setMessage('School payment UPI ID is not configured. Ask the admin to add it first.')
-      setMessageTone('is-error')
-      return
-    }
-    setQr(await QRCode.toDataURL(upiLink, { width: 260, margin: 2 }))
-    setExpiresAt(Date.now() + 120000)
-    setSecondsLeft(120)
-    setMessage('Scan the QR, pay the amount, then submit the UTR reference below.')
-    setMessageTone('is-info')
-  }
-
   const submitPayment = async (event) => {
     event.preventDefault()
     if (!entry) return
@@ -172,11 +127,6 @@ export default function ParentOnlinePaymentPage() {
     }
     if (!reference.trim()) {
       setMessage('Enter the UPI / bank UTR reference of your payment.')
-      setMessageTone('is-error')
-      return
-    }
-    if (secondsLeft === 0) {
-      setMessage('The QR session expired. Generate a fresh QR and pay again before submitting.')
       setMessageTone('is-error')
       return
     }
@@ -205,9 +155,6 @@ export default function ParentOnlinePaymentPage() {
       setAmountTouched(false)
       setAmount('')
       setReference('')
-      setQr('')
-      setExpiresAt(0)
-      setSecondsLeft(0)
       try {
         await downloadPaymentReceipt(saved, receiptSettings)
         setMessage(`Payment submitted. Receipt ${saved.receiptNo || saved.id} downloaded and the school office has been notified by email. The balance updates after the school verifies the payment.`)
@@ -244,7 +191,7 @@ export default function ParentOnlinePaymentPage() {
       <div>
         <p className="admin-kicker">Parent portal · Fees</p>
         <h2>Pay school fees online</h2>
-        <p>Enter any amount from {currencySymbol()}1 to {currencySymbol()}1,00,000, scan the school UPI QR and transfer it, then submit the UTR reference. The receipt PDF downloads instantly, the school office gets an email with the receipt and your child's details, and the balance updates after the school verifies the payment.</p>
+        <p>The school's UPI / bank account details are below. Pay any amount from {currencySymbol()}1 to {currencySymbol()}1,00,000 from your own UPI or banking app, then submit the UTR reference of that payment here. The receipt PDF downloads instantly, the school office gets an email with the receipt and your child's details, and the balance updates after the school verifies the payment.</p>
       </div>
       <Link className="link-pill" to="/parent">Parent portal home</Link>
     </header>
@@ -298,7 +245,7 @@ export default function ParentOnlinePaymentPage() {
       </article> : null}
       <div className="parent-payment-grid">
         <article className="panel-card parent-payment-card">
-          <p className="panel-kicker">Payment details</p>
+          <p className="panel-kicker">School account · pay from your own app</p>
           <h3>{child?.name || 'Linked student'}</h3>
           <p className="fee-subline">{child?.className || '—'} · Roll {child?.rollNo || '—'}</p>
           <div className="payment-recipient">
@@ -307,9 +254,8 @@ export default function ParentOnlinePaymentPage() {
             {settings.mobile ? <span>Mobile: {settings.mobile}</span> : null}
             {settings.bankName || settings.bankAccount ? <span>Bank: {[settings.bankName, settings.bankAccount ? `A/C ${settings.bankAccount}` : '', settings.bankIfsc ? `IFSC ${settings.bankIfsc}` : ''].filter(Boolean).join(' · ')}</span> : null}
           </div>
+          <p className="payment-note">Open your own UPI / banking app, pay the school account above, note the UTR reference shown after the payment, then submit it in the next panel.</p>
           <label className="form-field"><span>Amount ({currencySymbol()})</span><input type="number" min="1" max="100000" value={amountValue} onChange={(event) => { setAmountTouched(true); setAmount(event.target.value) }} /></label>
-          <button type="button" className="header-action primary" onClick={startQr}>Show QR for 2 minutes</button>
-          {qr ? <div className="payment-qr"><img src={secondsLeft ? qr : ''} alt="UPI payment QR" />{secondsLeft ? <strong>Expires in {secondsLeft}s</strong> : <strong>QR expired. Generate a new QR.</strong>}</div> : null}
         </article>
         <article className="panel-card parent-payment-card">
           <p className="panel-kicker">Confirm transfer</p>
@@ -319,7 +265,7 @@ export default function ParentOnlinePaymentPage() {
             <button type="submit" className="header-action primary" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit & download receipt'}</button>
           </form>
           {message ? <p className={`payment-message ${messageTone}`}>{message}</p> : null}
-          <p className="payment-note">A receipt PDF is generated only for payments you actually submit — the amount, transaction ID, UTR, bank and UPI details are picked up from the saved payment record.</p>
+          <p className="payment-note">Submit only after the money has actually been transferred — the UTR is checked against the school account before the payment is marked Verified.</p>
         </article>
       </div>
       <article className="panel-card parent-fee-history">
