@@ -259,7 +259,7 @@ function LiveTransport() {
     // two ping cycles behind the bus.
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') setLiveToken((value) => value + 1)
-    }, 8000)
+    }, 5000)
     return () => window.clearInterval(timer)
   }, [autoRefresh])
 
