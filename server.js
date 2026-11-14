@@ -34,6 +34,9 @@ import {
   sendAdminLoginKeyEmail,
   sendEventEmail,
   sendLeaveDecisionEmail,
+  sendLiveSessionCancelledByParentEmail,
+  sendLiveSessionDecisionEmail,
+  sendLiveSessionRequestEmail,
   sendOtpEmail,
   sendStudentLeaveDecisionEmail,
   sendStudentLeaveRequestEmail,
@@ -172,6 +175,22 @@ import {
   normalizeScheduleEntries,
   periodLabel,
 } from './classSchedule.js'
+import {
+  addDaysIso,
+  buildLiveSlots,
+  isIsoDate,
+  LIVE_SESSION_MAX_DAYS_AHEAD,
+  liveSessionDateLabel,
+  liveSessionMatchesTeacher,
+  liveSessionSummary,
+  liveSessionTimeRange,
+  newMeetingUrl,
+  normalizeLiveSessionCancellation,
+  normalizeLiveSessionDecision,
+  normalizeLiveSessionRequest,
+  publicLiveSession,
+  teachersForClass,
+} from './liveSessions.js'
 import { planSubstitutions, publicSubstitution, rankSubstituteCandidates } from './substitutions.js'
 
 const ALLOWED_REGISTER_ROLES = new Set(['super_admin', 'admin', 'teacher', 'parent'])
@@ -5358,6 +5377,357 @@ app.patch('/api/student-leave/requests/:id', requireRoles('teacher', 'admin', 's
       })
     : { sent: false, error: 'No parent email is saved on this request.' }
   res.json({ request: publicStudentLeaveRequest(updated), email })
+})
+
+// Live (video) sessions: a parent books a free 15-minute slot with a teacher
+// who really teaches their child's class. The request lands on the teacher's
+// desk and in their inbox; a rejection needs a reason that is emailed back to
+// the parent and shown in the Parent Portal. The meeting link is a private
+// Jitsi room shared only after the teacher accepts.
+const LIVE_SESSIONS_FILE = join('data', 'records', 'sms_live_sessions.json')
+const LIVE_SESSIONS_MAX = 4000
+
+function readLiveSessions() {
+  const rows = readJsonFile(LIVE_SESSIONS_FILE, [])
+  return Array.isArray(rows) ? rows : []
+}
+
+function writeLiveSessions(rows) {
+  writeJsonFile(LIVE_SESSIONS_FILE, Array.isArray(rows) ? rows.slice(0, LIVE_SESSIONS_MAX) : [])
+}
+
+function liveSessionTeachers(className) {
+  return teachersForClass({
+    className,
+    entries: readScheduleEntries(),
+    roster: readTeacherRoster(),
+    assignments: readClassTeachers(),
+  })
+}
+
+function liveSessionSlots({ teacherEmail, date }) {
+  const email = normalizeEmail(teacherEmail)
+  const day = dayKeyForDate(date)
+  return buildLiveSlots({
+    date,
+    periods: readScheduleConfig().periods,
+    dayEntries: readScheduleEntries().filter(
+      (row) => normalizeEmail(row.teacherEmail) === email && row.day === day,
+    ),
+    booked: readLiveSessions().filter(
+      (row) =>
+        normalizeEmail(row.teacherEmail) === email &&
+        row.date === date &&
+        ['Pending', 'Accepted'].includes(row.status),
+    ),
+    holiday: holidayForDate(new Date(`${date}T12:00:00+05:30`), readEvents()),
+    todayIso: istToday(),
+    teacherOnLeave: readLeaveRequests().some(
+      (row) =>
+        normalizeEmail(row.teacherEmail) === email &&
+        row.status === 'Approved' &&
+        String(row.fromDate || '') <= date &&
+        date <= String(row.toDate || ''),
+    ),
+  })
+}
+
+function parentChildren(user) {
+  const students = readStudentRecords()
+  const linkedId = String(user?.linkedId || '')
+  const matches = []
+  if (linkedId) {
+    const linked = students.find(
+      (item) => String(item.id) === linkedId || String(item.applicationId) === linkedId,
+    )
+    if (linked) matches.push(linked)
+  }
+  if (!matches.length && user?.email) {
+    const email = normalizeEmail(user.email)
+    if (email) {
+      for (const student of students) {
+        const emails = ['guardianEmail', 'fatherEmail', 'motherEmail']
+          .map((field) => normalizeEmail(student?.[field]))
+          .filter(Boolean)
+        if (emails.includes(email)) matches.push(student)
+      }
+    }
+  }
+  const seen = new Set()
+  return matches
+    .filter((student) => {
+      const key = String(student?.id || student?.applicationId || '')
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 5)
+}
+
+function liveSessionChildView(student) {
+  return {
+    id: String(student?.id || student?.applicationId || ''),
+    name: String(student?.title || student?.name || ''),
+    className: studentClassLabel(student),
+    rollNo: String(student?.rollNo || ''),
+  }
+}
+
+app.get('/api/live-sessions/meta', requireRoles('parent'), (req, res) => {
+  const user = userRecordFor(req.authUser)
+  const children = parentChildren(user).map((student) => {
+    const child = liveSessionChildView(student)
+    return { ...child, teachers: liveSessionTeachers(child.className) }
+  })
+  res.json({ children, maxDaysAhead: LIVE_SESSION_MAX_DAYS_AHEAD, today: istToday() })
+})
+
+app.get('/api/live-sessions/slots', requireRoles('parent'), (req, res) => {
+  const user = userRecordFor(req.authUser)
+  const studentId = String(req.query.studentId || '')
+  const child = parentChildren(user)
+    .map(liveSessionChildView)
+    .find((row) => row.id === studentId)
+  if (!child) {
+    return res.status(404).json({ error: 'Your child record was not found. Contact the school office.' })
+  }
+  if (!child.className) {
+    return res.status(400).json({ error: "Your child's class is not set on the student record yet." })
+  }
+  const teacherEmail = normalizeEmail(req.query.teacherEmail)
+  const teacher = liveSessionTeachers(child.className).find((row) => row.email === teacherEmail)
+  if (!teacher) {
+    return res.status(403).json({
+      error: `This teacher does not teach ${child.name || 'your child'}'s class, so a session cannot be booked.`,
+    })
+  }
+  const date = String(req.query.date || '')
+  if (!isIsoDate(date)) return res.status(400).json({ error: 'Choose a valid meeting date.' })
+  const payload = liveSessionSlots({ teacherEmail, date })
+  if (!payload.ok) return res.status(400).json({ error: payload.error })
+  res.json({
+    date,
+    dateLabel: liveSessionDateLabel(date),
+    child,
+    teacher: {
+      email: teacher.email,
+      name: teacher.name,
+      subjectLabel: teacher.subjectLabel,
+      isClassTeacher: teacher.isClassTeacher,
+    },
+    slots: payload.slots,
+    note: payload.note || '',
+    holiday: payload.holiday || null,
+  })
+})
+
+app.get('/api/live-sessions', requireRoles('parent', 'teacher', 'admin', 'super_admin'), (req, res) => {
+  const role = String(req.authUser.role || '').toLowerCase()
+  const email = normalizeEmail(req.authUser.email)
+  const user = userRecordFor(req.authUser)
+  const linkedId = String(user?.linkedId || '')
+  const all = readLiveSessions()
+    .filter((row) => row && row.id)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+  let rows = all
+  if (role === 'parent') {
+    rows = all.filter(
+      (row) =>
+        String(row.parentUserId) === String(req.authUser.id) ||
+        (email && normalizeEmail(row.parentEmail) === email),
+    )
+  } else if (role === 'teacher') {
+    rows = all.filter((row) => liveSessionMatchesTeacher(row, { email, linkedId }))
+  }
+  const summary = liveSessionSummary(rows)
+  let notice = null
+  if (role === 'parent') {
+    const cutoff = addDaysIso(istToday(), -14)
+    notice =
+      rows.find(
+        (row) =>
+          row.status === 'Rejected' &&
+          row.decidedByRole === 'teacher' &&
+          String(row.decidedAt || '').slice(0, 10) >= cutoff,
+      ) || null
+  }
+  res.json({
+    sessions: rows.map((row) => publicLiveSession(row, { includeJoin: true })),
+    summary,
+    notice: notice ? publicLiveSession(notice) : null,
+    me:
+      role === 'teacher'
+        ? { email, name: readTeacherRoster().find((row) => row.email === email)?.title || '' }
+        : null,
+  })
+})
+
+app.post('/api/live-sessions', requireRoles('parent'), async (req, res) => {
+  const parsed = normalizeLiveSessionRequest(req.body)
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const user = userRecordFor(req.authUser)
+  const child = parentChildren(user)
+    .map(liveSessionChildView)
+    .find((row) => row.id === parsed.value.studentId)
+  if (!child) {
+    return res.status(404).json({ error: 'Your child record was not found. Contact the school office.' })
+  }
+  if (!child.className) {
+    return res.status(400).json({ error: "Your child's class is not set on the student record yet." })
+  }
+  const teacher = liveSessionTeachers(child.className).find(
+    (row) => row.email === parsed.value.teacherEmail,
+  )
+  if (!teacher) {
+    return res.status(403).json({
+      error: `This teacher does not teach ${child.name || 'your child'}'s class, so a session cannot be booked.`,
+    })
+  }
+  const payload = liveSessionSlots({ teacherEmail: teacher.email, date: parsed.value.date })
+  if (!payload.ok) return res.status(400).json({ error: payload.error })
+  if (!payload.slots.some((slot) => slot.startTime === parsed.value.startTime)) {
+    return res.status(409).json({
+      error: `That time is not free for ${teacher.name} on ${liveSessionDateLabel(parsed.value.date)}. ${payload.note || 'Choose another slot.'}`.trim(),
+      refreshSlots: true,
+    })
+  }
+  const rows = readLiveSessions()
+  const clash = rows.find(
+    (row) =>
+      String(row.parentUserId) === String(req.authUser.id) &&
+      row.date === parsed.value.date &&
+      row.startTime === parsed.value.startTime &&
+      ['Pending', 'Accepted'].includes(row.status),
+  )
+  if (clash) {
+    return res.status(409).json({ error: 'You already have a live session at this time.' })
+  }
+
+  const now = new Date().toISOString()
+  const entry = {
+    id: `LSV-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    studentId: child.id,
+    studentName: child.name,
+    className: child.className,
+    parentUserId: req.authUser.id,
+    parentEmail: normalizeEmail(req.authUser.email),
+    parentName: String(user?.name || user?.username || req.authUser.email || 'Parent').slice(0, 120),
+    teacherEmail: teacher.email,
+    teacherName: teacher.name,
+    teacherSubject: teacher.subjectLabel || '',
+    teacherRecordId: teacher.teacherRecordId || '',
+    ...parsed.value,
+    meetingUrl: newMeetingUrl(),
+    status: 'Pending',
+    createdAt: now,
+    updatedAt: now,
+    decidedAt: '',
+    decidedByEmail: '',
+    decidedByName: '',
+    decidedByRole: '',
+    decisionNote: '',
+  }
+  writeLiveSessions([entry, ...rows])
+
+  const notified = await sendLiveSessionRequestEmail({
+    to: teacher.email,
+    teacherName: teacher.name,
+    parentName: entry.parentName,
+    studentName: entry.studentName,
+    className: entry.className,
+    dateLabel: liveSessionDateLabel(entry.date),
+    timeRange: liveSessionTimeRange(entry.startTime, entry.endTime),
+    agenda: entry.agenda,
+  })
+
+  res.status(201).json({ session: publicLiveSession(entry), notified })
+})
+
+app.patch('/api/live-sessions/:id', requireRoles('parent', 'teacher'), async (req, res) => {
+  const id = String(req.params.id || '')
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid live session id.' })
+  }
+  const rows = readLiveSessions()
+  const index = rows.findIndex((row) => row.id === id)
+  if (index < 0) return res.status(404).json({ error: 'This live session was not found.' })
+  const row = rows[index]
+  const role = String(req.authUser.role || '').toLowerCase()
+  const actor = userRecordFor(req.authUser)
+  const now = new Date().toISOString()
+
+  if (role === 'parent') {
+    const owns =
+      String(row.parentUserId) === String(req.authUser.id) ||
+      normalizeEmail(row.parentEmail) === normalizeEmail(req.authUser.email)
+    if (!owns) return res.status(403).json({ error: 'This live session does not belong to your account.' })
+    if (!['Pending', 'Accepted'].includes(row.status)) {
+      return res.status(409).json({ error: `This live session is already ${String(row.status).toLowerCase()}.` })
+    }
+    const cancelled = normalizeLiveSessionCancellation(req.body)
+    if (!cancelled.ok) return res.status(400).json({ error: cancelled.error })
+    const updated = {
+      ...row,
+      status: 'Cancelled',
+      decisionNote: cancelled.value.note,
+      decidedAt: now,
+      decidedByEmail: normalizeEmail(req.authUser.email),
+      decidedByName: String(actor?.name || actor?.username || req.authUser.email || 'Parent').slice(0, 120),
+      decidedByRole: 'parent',
+      updatedAt: now,
+    }
+    rows[index] = updated
+    writeLiveSessions(rows)
+    const email = updated.teacherEmail
+      ? await sendLiveSessionCancelledByParentEmail({
+          to: updated.teacherEmail,
+          teacherName: updated.teacherName,
+          parentName: updated.parentName,
+          studentName: updated.studentName,
+          className: updated.className,
+          dateLabel: liveSessionDateLabel(updated.date),
+          timeRange: liveSessionTimeRange(updated.startTime, updated.endTime),
+          note: updated.decisionNote,
+        })
+      : { sent: false, error: 'No teacher email is saved on this session.' }
+    return res.json({ session: publicLiveSession(updated), email })
+  }
+
+  const decision = normalizeLiveSessionDecision(req.body)
+  if (!decision.ok) return res.status(400).json({ error: decision.error })
+  if (!liveSessionMatchesTeacher(row, teacherContext(req.authUser))) {
+    return res.status(403).json({ error: 'Only the teacher of this session can accept or reject it.' })
+  }
+  if (row.status !== 'Pending') {
+    return res.status(409).json({ error: `This live session is already ${String(row.status).toLowerCase()}.` })
+  }
+  const updated = {
+    ...row,
+    status: decision.value.status,
+    decisionNote: decision.value.note,
+    decidedAt: now,
+    decidedByEmail: normalizeEmail(req.authUser.email),
+    decidedByName: String(actor?.name || req.authUser.email || 'Teacher').slice(0, 120),
+    decidedByRole: 'teacher',
+    updatedAt: now,
+  }
+  rows[index] = updated
+  writeLiveSessions(rows)
+  const email = updated.parentEmail
+    ? await sendLiveSessionDecisionEmail({
+        to: updated.parentEmail,
+        parentName: updated.parentName,
+        teacherName: updated.decidedByName || updated.teacherName,
+        studentName: updated.studentName,
+        className: updated.className,
+        status: updated.status,
+        dateLabel: liveSessionDateLabel(updated.date),
+        timeRange: liveSessionTimeRange(updated.startTime, updated.endTime),
+        note: updated.decisionNote,
+        meetingUrl: updated.meetingUrl,
+      })
+    : { sent: false, error: 'No parent email is saved on this session.' }
+  res.json({ session: publicLiveSession(updated), email })
 })
 
 // Published academic documents (timetable + datesheet). The server builds the

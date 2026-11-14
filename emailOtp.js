@@ -1069,6 +1069,228 @@ export async function sendSubstituteAssignedEmail({
   }
 }
 
+/** Live session request, mailed to the teacher who was picked by the parent. */
+export async function sendLiveSessionRequestEmail({
+  to,
+  teacherName,
+  parentName,
+  studentName,
+  className,
+  dateLabel,
+  timeRange,
+  agenda,
+}) {
+  const detailRow = (label, value) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:120px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#4157ff;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Live session · Awaiting your response</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">${escapeHtml(parentName || 'A parent')} wants a live session</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(teacherName || 'Teacher')}, a parent of ${escapeHtml(studentName || 'a student')} in ${escapeHtml(className || 'your class')} has requested a 15-minute live video session. Accept or reject it from the Teacher Desk under Live Session.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Student', studentName || '—')}
+      ${detailRow('Class', className || '—')}
+      ${detailRow('Parent', parentName || '—')}
+      ${detailRow('Date', dateLabel || '—')}
+      ${detailRow('Time (IST)', timeRange || '—')}
+      ${detailRow('Agenda', agenda || '—')}
+    </table>
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">If you reject the request you must write a short reason — it is emailed to the parent and shown in their Parent Portal.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Live Session Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    'Live session request · Awaiting your response',
+    `Hi ${teacherName || 'Teacher'}, a parent has requested a live session.`,
+    '',
+    `Student: ${studentName || '—'}`,
+    `Class: ${className || '—'}`,
+    `Parent: ${parentName || '—'}`,
+    `Date: ${dateLabel || '—'}`,
+    `Time (IST): ${timeRange || '—'}`,
+    `Agenda: ${agenda || '—'}`,
+    '',
+    'Accept or reject it from the Teacher Desk under Live Session. A rejection needs a reason.',
+  ].join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Live session request · ${studentName || className || 'Student'} · ${dateLabel || ''} ${timeRange || ''}`.trim(),
+      html,
+      text,
+      demoCode: null,
+      purpose: 'live-session-request',
+      logLabel: 'Live session request email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] live session request email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
+/** Accept/reject decision on a live session, mailed to the parent. */
+export async function sendLiveSessionDecisionEmail({
+  to,
+  parentName,
+  teacherName,
+  studentName,
+  className,
+  status,
+  dateLabel,
+  timeRange,
+  note,
+  meetingUrl,
+}) {
+  const accepted = String(status) === 'Accepted'
+  const headline = accepted ? 'Your live session is confirmed' : 'Your live session was cancelled by teacher'
+  const accent = accepted ? '#0d8f7a' : '#c23b3b'
+  const accentSoft = accepted ? 'rgba(23, 179, 152, 0.12)' : 'rgba(243, 93, 93, 0.12)'
+
+  const detailRow = (label, value) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:120px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#8b97b3;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Live session · ${accepted ? 'Confirmed' : 'Cancelled by teacher'}</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">${escapeHtml(headline)}</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(parentName || 'Parent')}, ${escapeHtml(teacherName || 'the teacher')} has ${accepted ? 'accepted' : 'cancelled'} the live session for ${escapeHtml(studentName || 'your child')}.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Student', studentName || '—')}
+      ${detailRow('Class', className || '—')}
+      ${detailRow('Teacher', teacherName || '—')}
+      ${detailRow('Date', dateLabel || '—')}
+      ${detailRow('Time (IST)', timeRange || '—')}
+    </table>
+    ${
+      note
+        ? `<div style="margin:0 0 16px;padding:14px 16px;border-radius:12px;background:${accentSoft};border:1px solid ${accent}33">
+      <p style="margin:0 0 4px;color:${accent};font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">${accepted ? 'Note from teacher' : 'Reason from teacher'}</p>
+      <p style="margin:0;color:#111b33;line-height:1.6">${escapeHtml(note)}</p>
+    </div>`
+        : ''
+    }
+    ${
+      accepted && meetingUrl
+        ? `<p style="margin:0 0 16px"><a href="${escapeHtml(meetingUrl)}" style="display:inline-block;padding:12px 20px;border-radius:12px;background:#1b2a55;color:#fff;font-weight:700;text-decoration:none">Join the live session</a></p>
+    <p style="margin:0 0 12px;color:#5c6b8c;font-size:13px;word-break:break-all">${escapeHtml(meetingUrl)}</p>`
+        : ''
+    }
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">The same status ${note ? 'and note ' : ''}is available in your Parent Portal under Live Session.${accepted ? ' Open the link a minute early and allow camera and microphone access.' : ' You can book another slot at any time.'}</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Live Session Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    headline,
+    `Hi ${parentName || 'Parent'},`,
+    '',
+    `Student: ${studentName || '—'}`,
+    `Class: ${className || '—'}`,
+    `Teacher: ${teacherName || '—'}`,
+    `Date: ${dateLabel || '—'}`,
+    `Time (IST): ${timeRange || '—'}`,
+    note ? `${accepted ? 'Note from teacher' : 'Reason from teacher'}: ${note}` : '',
+    accepted && meetingUrl ? `Join link: ${meetingUrl}` : '',
+    '',
+    'The same status is available in your Parent Portal under Live Session.',
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Live session ${accepted ? 'confirmed' : 'cancelled by teacher'} · ${studentName || 'Student'} · ${dateLabel || ''}`.trim(),
+      html,
+      text,
+      demoCode: null,
+      purpose: 'live-session-decision',
+      logLabel: 'Live session decision email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] live session decision email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
+/** Parent cancelled a booked live session — tell the teacher. */
+export async function sendLiveSessionCancelledByParentEmail({
+  to,
+  teacherName,
+  parentName,
+  studentName,
+  className,
+  dateLabel,
+  timeRange,
+  note,
+}) {
+  const detailRow = (label, value) => `<tr>
+      <td style="padding:8px 10px;background:#f4f6fb;color:#8b97b3;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;width:120px">${label}</td>
+      <td style="padding:8px 10px;color:#111b33;font-weight:600">${escapeHtml(value)}</td>
+    </tr>`
+
+  const html = `<!doctype html>
+<html><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fb;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e6ebf5">
+    <p style="margin:0;color:#c23b3b;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase">Live session · Cancelled by parent</p>
+    <h2 style="margin:6px 0 4px;color:#111b33">The parent cancelled this live session</h2>
+    <p style="margin:0 0 16px;color:#5c6b8c">Hi ${escapeHtml(teacherName || 'Teacher')}, ${escapeHtml(parentName || 'the parent')} has cancelled the live session for ${escapeHtml(studentName || 'their child')}.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 14px;border-radius:12px;overflow:hidden">
+      ${detailRow('Student', studentName || '—')}
+      ${detailRow('Class', className || '—')}
+      ${detailRow('Parent', parentName || '—')}
+      ${detailRow('Date', dateLabel || '—')}
+      ${detailRow('Time (IST)', timeRange || '—')}
+      ${note ? detailRow('Parent note', note) : ''}
+    </table>
+    <p style="color:#5c6b8c;line-height:1.6;margin:0">No action is needed from you. The slot is free again on your Live Session desk.</p>
+    <p style="color:#1b2a55;font-weight:700;margin-top:18px">School Management System · Live Session Desk</p>
+  </div>
+</body></html>`
+
+  const text = [
+    'Live session · Cancelled by parent',
+    `Hi ${teacherName || 'Teacher'}, ${parentName || 'the parent'} has cancelled the live session.`,
+    '',
+    `Student: ${studentName || '—'}`,
+    `Class: ${className || '—'}`,
+    `Date: ${dateLabel || '—'}`,
+    `Time (IST): ${timeRange || '—'}`,
+    note ? `Parent note: ${note}` : '',
+    '',
+    'No action is needed. The slot is free again on your Live Session desk.',
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
+
+  try {
+    const mail = await deliverMail({
+      to,
+      subject: `Live session cancelled by parent · ${studentName || 'Student'} · ${dateLabel || ''}`.trim(),
+      html,
+      text,
+      demoCode: null,
+      purpose: 'live-session-cancelled',
+      logLabel: 'Live session parent cancellation email',
+    })
+    return { sent: true, delivery: mail.delivery }
+  } catch (err) {
+    console.error('[email] live session cancellation email failed:', err?.message || err)
+    return { sent: false, error: err?.message || String(err) }
+  }
+}
+
 function saveDemoDelivery({ to, otp, purpose, mailSubject, html, text, smtpError = null }) {
   const outbox = readJson(OUTBOX_FILE, [])
   writeJson(OUTBOX_FILE, [

@@ -52,8 +52,10 @@ import TeacherStudentLeavePage from './pages/teacher/StudentLeaveApprovals'
 import LeaveApprovalsPage from './pages/admin/LeaveApprovals'
 import AdminStudentLeavePage from './pages/admin/StudentLeaveApprovals'
 import ParentLeaveRequestPage from './pages/parent/LeaveRequest'
+import ParentLiveSessionPage from './pages/parent/LiveSession'
 import ParentOnlinePaymentPage from './pages/parent/OnlinePaymentPage'
 import ParentResultsPage from './pages/parent/ResultsPage'
+import TeacherLiveSessionPage from './pages/teacher/LiveSessionDesk'
 import EventsBuilder from './pages/admin/EventsBuilder'
 import EventsBoard from './pages/shared/EventsBoard'
 import AIAssistantPage from './pages/ai-assistant'
@@ -88,9 +90,11 @@ const SPECIAL_PATHS = new Set([
   '/teacher/leave',
   '/teacher/student-leave',
   '/teacher/timetable',
+  '/teacher/live-session',
   '/attendance/leave-management',
   '/attendance/student-leave',
   '/parent/leave-request',
+  '/parent/live-session',
   '/parent/results',
   '/ai-assistant',
   '/parent/fees/online',
@@ -192,10 +196,12 @@ function App() {
             <Route path="/attendance/staff-face" element={<StaffFaceAttendancePage />} />
             <Route path="/teacher/leave" element={<TeacherLeavePage />} />
             <Route path="/teacher/student-leave" element={<TeacherStudentLeavePage />} />
+            <Route path="/teacher/live-session" element={<TeacherLiveSessionPage />} />
             <Route path="/teacher/timetable" element={<TeacherSchedulePage />} />
             <Route path="/attendance/leave-management" element={<LeaveApprovalsPage />} />
             <Route path="/attendance/student-leave" element={<AdminStudentLeavePage />} />
             <Route path="/parent/leave-request" element={<ParentLeaveRequestPage />} />
+            <Route path="/parent/live-session" element={<ParentLiveSessionPage />} />
             <Route path="/transport" element={<Navigate replace to="/transport/live" />} />
             <Route path="/transport/live" element={<LiveTransportPage />} />
             <Route path="/transport/routes" element={<TransportRoutesPage />} />

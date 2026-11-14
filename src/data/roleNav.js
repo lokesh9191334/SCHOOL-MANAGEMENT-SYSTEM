@@ -128,6 +128,7 @@ export const TEACHER_NAV = [
     item('/teacher/timetable', 'Class Schedule', 'table'),
     item('/teacher/remarks', 'Student Remarks', 'message'),
     item('/teacher/parent-communication', 'Parent Communication', 'phone'),
+    item('/teacher/live-session', 'Live Session', 'camera'),
   ]),
   section('Student Records', 'folder', [
     item('/teacher/students/personal', 'Personal Details', 'user'),
@@ -169,6 +170,7 @@ export const PARENT_NAV = [
     item('/parent/notices', 'Notices', 'bell'),
     item('/parent/events', 'Events', 'calendar'),
     item('/parent/leave-request', 'Leave Request', 'message'),
+    item('/parent/live-session', 'Live Session', 'camera'),
   ]),
   section('Fees', 'rupee', [
     item('/parent/fees/installments', 'Installments', 'rows'),
