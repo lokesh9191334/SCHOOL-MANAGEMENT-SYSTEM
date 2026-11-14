@@ -41,6 +41,9 @@ function lastMonthWindow(count) {
 
 const sumBy = (rows, pick) => rows.reduce((sum, row) => sum + pick(row), 0)
 
+const normClass = (value) => String(value || '').replace(/^class\s+/i, '').trim().toLowerCase()
+const classText = (row) => String(row?.subtitle || row?.className || row?.group || '').trim()
+
 const IconGraduation = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M22 10 12 5 2 10l10 5 10-5Z" />
@@ -99,6 +102,8 @@ const DashboardPage = () => {
   const [formMode, setFormMode] = useState('admission')
   const [toast, setToast] = useState('')
   const [chartTab, setChartTab] = useState('attendance')
+  const [attendanceClass, setAttendanceClass] = useState('')
+  const [genderClass, setGenderClass] = useState('')
   const [onlinePayments, setOnlinePayments] = useState([])
 
   const user = getAuthUser()
@@ -141,15 +146,42 @@ const DashboardPage = () => {
   const pendingFees = feeRows.filter((r) => r.status !== 'Paid').length
   const collectionRate = feeTotal ? Math.round((paidRevenue / feeTotal) * 100) : 0
 
+  const classOptions = useMemo(() => {
+    const map = new Map()
+    students.forEach((s) => {
+      const raw = classText(s)
+      if (!raw || raw === '—') return
+      const key = normClass(raw)
+      if (!key || key === 'n/a' || key === 'unassigned') return
+      if (!map.has(key)) map.set(key, raw.replace(/^class\s+/i, '').trim())
+    })
+    return [...map.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
+  }, [students])
+
+  const selectedClassName = classOptions.find((option) => option.value === attendanceClass)?.label || ''
+  const selectedGenderClassName = classOptions.find((option) => option.value === genderClass)?.label || ''
+
+  // Attendance charts follow the class picked beside them; without a pick
+  // they read every marked row exactly as before.
+  const attendanceSource = useMemo(
+    () =>
+      attendanceClass
+        ? attendanceRows.filter((row) => normClass(row.className || row.group) === attendanceClass)
+        : attendanceRows,
+    [attendanceRows, attendanceClass],
+  )
+
   const datedDays = useMemo(
     () =>
-      [...new Set(attendanceRows.map((r) => String(r.date || '').slice(0, 10)).filter(Boolean))].sort(),
-    [attendanceRows],
+      [...new Set(attendanceSource.map((r) => String(r.date || '').slice(0, 10)).filter(Boolean))].sort(),
+    [attendanceSource],
   )
   const latestDay = datedDays[datedDays.length - 1] || null
   const latestRows = useMemo(
-    () => (latestDay ? attendanceRows.filter((r) => String(r.date || '').slice(0, 10) === latestDay) : []),
-    [attendanceRows, latestDay],
+    () => (latestDay ? attendanceSource.filter((r) => String(r.date || '').slice(0, 10) === latestDay) : []),
+    [attendanceSource, latestDay],
   )
   const latestPresent = latestRows.filter((r) => r.status === 'Present').length
   const latestLate = latestRows.filter((r) => r.status === 'Late').length
@@ -158,6 +190,14 @@ const DashboardPage = () => {
 
   const maleCount = students.filter((s) => String(s.gender).toLowerCase() === 'male').length
   const femaleCount = students.filter((s) => String(s.gender).toLowerCase() === 'female').length
+
+  const genderPool = useMemo(
+    () => (genderClass ? students.filter((s) => normClass(classText(s)) === genderClass) : students),
+    [students, genderClass],
+  )
+  const scopedBoys = genderPool.filter((s) => String(s.gender).toLowerCase() === 'male').length
+  const scopedGirls = genderPool.filter((s) => String(s.gender).toLowerCase() === 'female').length
+  const scopedGenderTotal = scopedBoys + scopedGirls
 
   const classStrength = useMemo(() => {
     const map = {}
@@ -175,7 +215,7 @@ const DashboardPage = () => {
 
   const attendanceTrend = useMemo(() => {
     const days = datedDays.slice(-6)
-    const rowsFor = (day) => attendanceRows.filter((r) => String(r.date || '').slice(0, 10) === day)
+    const rowsFor = (day) => attendanceSource.filter((r) => String(r.date || '').slice(0, 10) === day)
     return {
       labels: days.map(dayLabel),
       present: days.map((day) => {
@@ -186,7 +226,7 @@ const DashboardPage = () => {
       absent: days.map((day) => rowsFor(day).filter((r) => r.status === 'Absent').length),
       ready: days.length >= 2,
     }
-  }, [attendanceRows, datedDays])
+  }, [attendanceSource, datedDays])
 
   const feeTrend = useMemo(() => {
     const byMonth = monthWindow.map(({ key, label }) => {
@@ -359,7 +399,9 @@ const DashboardPage = () => {
   const chartConfig = {
     attendance: {
       title: 'Attendance trend',
-      subtitle: 'Present % vs absent count · recent recorded days',
+      subtitle: attendanceClass
+        ? `Present % vs absent count · Class ${selectedClassName} · recent recorded days`
+        : 'Present % vs absent count · recent recorded days',
       ready: attendanceTrend.ready,
       emptyTitle: 'No attendance history yet',
       emptyMessage: 'The trend builds itself as attendance is marked day by day.',
@@ -410,6 +452,11 @@ const DashboardPage = () => {
     { label: 'Present', value: latestPresent, color: '#17b398' },
     { label: 'Late', value: latestLate, color: '#e08a2c' },
     { label: 'Absent', value: latestAbsent, color: '#d64545' },
+  ]
+
+  const genderSegments = [
+    { label: 'Boys', value: scopedBoys, color: '#4157ff' },
+    { label: 'Girls', value: scopedGirls, color: '#e0568a' },
   ]
 
   const openAdmission = () => {
@@ -512,6 +559,29 @@ const DashboardPage = () => {
                 ))}
               </div>
             </header>
+            {chartTab === 'attendance' ? (
+              <div className="exec-filter-row">
+                <label htmlFor="exec-attendance-class">View class</label>
+                <select
+                  id="exec-attendance-class"
+                  className="exec-class-select"
+                  value={attendanceClass}
+                  onChange={(event) => setAttendanceClass(event.target.value)}
+                >
+                  <option value="">All classes</option>
+                  {classOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      Class {option.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="exec-filter-note">
+                  {attendanceClass
+                    ? `${attendanceSource.length} mark${attendanceSource.length === 1 ? '' : 's'} recorded for Class ${selectedClassName}`
+                    : `${attendanceSource.length} mark${attendanceSource.length === 1 ? '' : 's'} across all classes`}
+                </span>
+              </div>
+            ) : null}
             {activeChart.ready ? (
               <AreaTrendChart
                 seriesA={activeChart.seriesA}
@@ -549,6 +619,19 @@ const DashboardPage = () => {
                   <p className="exec-kicker">Today</p>
                   <h3>Attendance mix</h3>
                 </div>
+                <select
+                  className="exec-class-select"
+                  aria-label="Class for attendance mix"
+                  value={attendanceClass}
+                  onChange={(event) => setAttendanceClass(event.target.value)}
+                >
+                  <option value="">All classes</option>
+                  {classOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      Class {option.label}
+                    </option>
+                  ))}
+                </select>
               </header>
               {latestRows.length ? (
                 <div className="exec-donut-block">
@@ -689,6 +772,65 @@ const DashboardPage = () => {
                 <strong>{teachers.length}</strong>
               </div>
             </div>
+          </section>
+        </Slide>
+
+        <Slide>
+          <section className="exec-panel">
+            <header className="exec-panel__head exec-panel__head--compact">
+              <div>
+                <p className="exec-kicker">Registry</p>
+                <h3>Boys &amp; Girls</h3>
+                <p>
+                  {genderClass
+                    ? `Class ${selectedGenderClassName} · ${genderPool.length} student${genderPool.length === 1 ? '' : 's'}`
+                    : `Whole school · ${students.length} student${students.length === 1 ? '' : 's'}`}
+                </p>
+              </div>
+              <select
+                className="exec-class-select"
+                aria-label="Class for boys and girls chart"
+                value={genderClass}
+                onChange={(event) => setGenderClass(event.target.value)}
+              >
+                <option value="">All classes</option>
+                {classOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    Class {option.label}
+                  </option>
+                ))}
+              </select>
+            </header>
+            {scopedGenderTotal ? (
+              <div className="exec-donut-block">
+                <DonutChart
+                  segments={genderSegments}
+                  centerValue={scopedGenderTotal}
+                  centerLabel="Students"
+                />
+                <ul className="exec-donut-legend">
+                  {genderSegments.map((segment) => (
+                    <li key={segment.label}>
+                      <i style={{ background: segment.color }} />
+                      <span>{segment.label}</span>
+                      <strong>{segment.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="exec-empty exec-empty--slim">
+                <strong>{genderClass ? 'No gender recorded for this class' : 'No students on roll yet'}</strong>
+                <p>
+                  {genderClass
+                    ? 'Add gender while admitting students and this chart fills up.'
+                    : 'Admit the first student and the boys / girls split appears here.'}
+                </p>
+                <Link className="exec-empty__cta" to="/students/add">
+                  New admission
+                </Link>
+              </div>
+            )}
           </section>
         </Slide>
 

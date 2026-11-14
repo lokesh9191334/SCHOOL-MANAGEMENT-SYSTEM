@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { usePersistentState } from '../../hooks/usePersistentState'
+import { STORAGE_KEYS } from '../../utils/constants'
 import { currencySymbol } from '../../utils/currency'
 import './StudentProfilePremium.css'
 
@@ -50,6 +52,8 @@ const DOCUMENTS = [
 ]
 
 const StudentProfileOverlay = ({ student, onClose }) => {
+  const [attendanceRows] = usePersistentState(STORAGE_KEYS.attendance, [])
+
   useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') onClose()
@@ -64,6 +68,52 @@ const StudentProfileOverlay = ({ student, onClose }) => {
   }, [onClose])
 
   if (!student) return null
+
+  const normClass = (value) => String(value || '').replace(/^class\s+/i, '').trim().toLowerCase()
+  const myName = String(student.title || '').trim().toLowerCase()
+  const myClass = normClass(student.subtitle || student.className)
+  const studentAttendance = (Array.isArray(attendanceRows) ? attendanceRows : [])
+    .filter((row) => {
+      if (!myName) return false
+      if (String(row.title || row.name || '').trim().toLowerCase() !== myName) return false
+      const rowClass = normClass(row.className || row.group)
+      return !rowClass || !myClass || rowClass === myClass
+    })
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+
+  const attendanceTotal = studentAttendance.length
+  const countStatus = (status) => studentAttendance.filter((row) => String(row.status || '').toLowerCase() === status).length
+  const presentCount = countStatus('present')
+  const lateCount = countStatus('late')
+  const absentCount = countStatus('absent')
+  const leaveCount = countStatus('leave')
+  const presentRate = attendanceTotal ? Math.round((presentCount / attendanceTotal) * 100) : 0
+
+  const ringParts = []
+  let ringCursor = 0
+  ;[
+    [presentCount, '#17b398'],
+    [lateCount, '#e08a2c'],
+    [absentCount, '#d64545'],
+    [leaveCount, '#8b97b3'],
+  ].forEach(([count, color]) => {
+    if (!count || !attendanceTotal) return
+    const next = ringCursor + (count / attendanceTotal) * 100
+    ringParts.push(`${color} ${ringCursor.toFixed(2)}% ${next.toFixed(2)}%`)
+    ringCursor = next
+  })
+
+  const dayMap = new Map()
+  studentAttendance.forEach((row) => {
+    const day = String(row.date || '').slice(0, 10)
+    if (!day) return
+    const entry = dayMap.get(day) || { date: day, present: 0, late: 0, absent: 0, leave: 0 }
+    const status = String(row.status || '').toLowerCase()
+    if (status in entry) entry[status] += 1
+    dayMap.set(day, entry)
+  })
+  const recentDays = [...dayMap.values()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).reverse()
+  const dayLabel = (date) => new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
 
   const sections = [
     {
@@ -241,6 +291,73 @@ const StudentProfileOverlay = ({ student, onClose }) => {
               </div>
             </section>
           ))}
+
+          <section className="sprof-section">
+            <h3>
+              <span aria-hidden>📊</span> Attendance
+            </h3>
+            {attendanceTotal ? (
+              <div className="sprof-attendance">
+                <div
+                  className="sprof-ring"
+                  style={{ background: ringParts.length ? `conic-gradient(${ringParts.join(', ')})` : '#e6eaf5' }}
+                  role="img"
+                  aria-label={`Present ${presentCount} of ${attendanceTotal} marked days`}
+                >
+                  <div className="sprof-ring__center">
+                    <strong>{presentRate}%</strong>
+                    <span>Present</span>
+                  </div>
+                </div>
+                <ul className="sprof-attendance__legend">
+                  {[
+                    ['Present', presentCount, '#17b398'],
+                    ['Late', lateCount, '#e08a2c'],
+                    ['Absent', absentCount, '#d64545'],
+                    ['Leave', leaveCount, '#8b97b3'],
+                  ].map(([label, count, color]) => (
+                    <li key={label}>
+                      <i style={{ background: color }} />
+                      <span>{label}</span>
+                      <strong>{count}</strong>
+                    </li>
+                  ))}
+                </ul>
+                <ul className="sprof-attendance__legend sprof-attendance__legend--total">
+                  <li>
+                    <span>Marked days</span>
+                    <strong>{attendanceTotal}</strong>
+                  </li>
+                  <li>
+                    <span>Present rate</span>
+                    <strong>{presentRate}%</strong>
+                  </li>
+                </ul>
+                {recentDays.length ? (
+                  <div className="sprof-attendance__recent">
+                    <p>Last marked days</p>
+                    <div className="sprof-attendance__days">
+                      {recentDays.map((day) => (
+                        <div className="sprof-attendance__day" key={day.date}>
+                          <strong>{dayLabel(day.date)}</strong>
+                          <span>
+                            {day.present ? `${day.present}P ` : ''}
+                            {day.late ? `${day.late}L ` : ''}
+                            {day.absent ? `${day.absent}A ` : ''}
+                            {day.leave ? `${day.leave}Lv` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="sprof-attendance__empty">
+                No attendance has been marked for this student yet.
+              </p>
+            )}
+          </section>
 
           <section className="sprof-section">
             <h3>

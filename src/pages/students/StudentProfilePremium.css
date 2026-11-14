@@ -218,6 +218,163 @@
   word-break: break-word;
 }
 
+/* Attendance summary inside the profile */
+
+.sprof-attendance {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) minmax(180px, 1fr);
+  align-items: center;
+  gap: 18px 26px;
+}
+
+.sprof-ring {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.sprof-ring::after {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #edf0f8;
+}
+
+.sprof-ring__center {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.sprof-ring__center strong {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111b33;
+  line-height: 1.1;
+}
+
+.sprof-ring__center span {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9aa6c2;
+  margin-top: 3px;
+}
+
+.sprof-attendance__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.sprof-attendance__legend li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.85rem;
+  color: #45527a;
+}
+
+.sprof-attendance__legend li i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.sprof-attendance__legend li span {
+  flex: 1;
+  font-weight: 600;
+}
+
+.sprof-attendance__legend li strong {
+  font-weight: 800;
+  color: #111b33;
+}
+
+.sprof-attendance__legend--total {
+  padding-top: 8px;
+  border-top: 1px dashed #e3e8f3;
+}
+
+.sprof-attendance__recent {
+  grid-column: 1 / -1;
+}
+
+.sprof-attendance__recent > p {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9aa6c2;
+}
+
+.sprof-attendance__days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sprof-attendance__day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: #f7f8fc;
+  border: 1px solid #e9edf6;
+  min-width: 78px;
+}
+
+.sprof-attendance__day strong {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #1b2a55;
+}
+
+.sprof-attendance__day span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #45527a;
+}
+
+.sprof-attendance__empty {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f7f8fc;
+  border: 1px dashed #dbe2f0;
+  font-size: 0.88rem;
+  color: #7f8ba5;
+}
+
+@media (max-width: 640px) {
+  .sprof-attendance {
+    grid-template-columns: auto 1fr;
+  }
+
+  .sprof-attendance__legend--total {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
 /* Documents checklist */
 
 .sprof-docs {
