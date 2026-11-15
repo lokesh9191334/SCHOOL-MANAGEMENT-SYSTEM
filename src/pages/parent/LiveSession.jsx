@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   cancelLiveSession,
   fetchLiveSessionMeta,
@@ -6,31 +6,31 @@ import {
   fetchLiveSessions,
   scheduleLiveSession,
 } from '../../services/liveSessions'
-import '../shared/LeaveDesk.css'
+import {
+  addDaysIso,
+  countdownLabel,
+  groupSlots,
+  initialsOf,
+  isoDateParts,
+  nextWeekdayIso,
+  relativeWhen,
+  todayIso,
+} from '../shared/liveSessionUi'
 import '../shared/LiveSession.css'
 
 const EMPTY_SUMMARY = { total: 0, pending: 0, accepted: 0, rejected: 0, cancelled: 0 }
 
-function todayISO() {
-  const now = new Date()
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
-}
+const AGENDA_HINTS = ['Homework follow-up', 'Test performance', 'Attendance', 'Class behaviour', 'Report card']
 
-function addDaysISO(date, days) {
-  const when = new Date(`${date}T12:00:00Z`)
-  when.setUTCDate(when.getUTCDate() + days)
-  return when.toISOString().slice(0, 10)
-}
-
-function formatWhen(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
+const RAIL_STEPS = [
+  { id: 1, label: 'Child' },
+  { id: 2, label: 'Teacher' },
+  { id: 3, label: 'Time' },
+  { id: 4, label: 'Confirm' },
+]
 
 function statusClass(status) {
-  if (status === 'Accepted') return 'is-approved'
+  if (status === 'Accepted') return 'is-accepted'
   if (status === 'Pending') return 'is-pending'
   return 'is-rejected'
 }
@@ -39,6 +39,10 @@ function statusLabel(row) {
   if (row.status === 'Rejected') return 'Cancelled by teacher'
   if (row.status === 'Cancelled') return 'Cancelled by you'
   return row.status
+}
+
+function meetingDateTime(row) {
+  return `${row.date || ''}T${row.startTime || '00:00'}:00`
 }
 
 async function copyText(value) {
@@ -50,10 +54,11 @@ async function copyText(value) {
 }
 
 export default function ParentLiveSession() {
+  const studioRef = useRef(null)
   const [children, setChildren] = useState([])
   const [childId, setChildId] = useState('')
   const [teacherEmail, setTeacherEmail] = useState('')
-  const [date, setDate] = useState(todayISO())
+  const [date, setDate] = useState(() => nextWeekdayIso())
   const [agenda, setAgenda] = useState('')
   const [slotPick, setSlotPick] = useState('')
   const [maxDaysAhead, setMaxDaysAhead] = useState(14)
@@ -78,8 +83,26 @@ export default function ParentLiveSession() {
   const slotData = slotState.key === slotKey ? slotState.data : null
   const slotError = slotState.key === slotKey ? slotState.error : ''
   const slotsLoading = Boolean(slotKey) && slotState.key !== slotKey
-  const minDate = todayISO()
-  const maxDate = addDaysISO(minDate, maxDaysAhead)
+  const minDate = todayIso()
+  const maxDate = addDaysIso(minDate, maxDaysAhead)
+
+  const activeStep = !childId ? 1 : !teacherEmail ? 2 : !slotPick ? 3 : 4
+  const readyCount = (childId ? 1 : 0) + (teacherEmail ? 1 : 0) + (slotPick ? 1 : 0)
+
+  const dateStrip = useMemo(
+    () =>
+      Array.from({ length: 8 }, (_, index) => {
+        const value = addDaysIso(minDate, index)
+        return { value, ...isoDateParts(value) }
+      }),
+    [minDate],
+  )
+
+  const upcoming = sessions
+    .filter((row) => ['Pending', 'Accepted'].includes(row.status))
+    .sort((a, b) => meetingDateTime(a).localeCompare(meetingDateTime(b)))
+  const past = sessions.filter((row) => !['Pending', 'Accepted'].includes(row.status))
+  const nextAccepted = upcoming.find((row) => row.status === 'Accepted') || null
 
   const applySessions = useCallback((body) => {
     setSessions(Array.isArray(body?.sessions) ? body.sessions : [])
@@ -132,8 +155,8 @@ export default function ParentLiveSession() {
     }
   }, [slotKey, childId, teacherEmail, date])
 
-  const changeChild = (event) => {
-    setChildId(event.target.value)
+  const changeChild = (id) => {
+    setChildId(id)
     setTeacherEmail('')
     setSlotPick('')
     setAgenda('')
@@ -144,9 +167,20 @@ export default function ParentLiveSession() {
     setSlotPick('')
   }
 
-  const changeDate = (event) => {
-    setDate(event.target.value)
+  const changeDate = (value) => {
+    if (!value) return
+    setDate(value)
     setSlotPick('')
+  }
+
+  const appendAgenda = (text) => {
+    setAgenda((prev) => {
+      const clean = prev.trim()
+      if (!clean) return text
+      if (clean.toLowerCase().includes(text.toLowerCase())) return prev
+      const joined = /[.!?]$/.test(clean) ? `${clean} ${text}` : `${clean}. ${text}`
+      return joined.slice(0, 500)
+    })
   }
 
   const submit = async (event) => {
@@ -175,7 +209,7 @@ export default function ParentLiveSession() {
         agenda: agenda.trim(),
       })
       setNotice(
-        `Live session request sent to ${body.session?.teacherName || teacher.name}. You will get an email once it is accepted or cancelled.`,
+        `Request sent to ${body.session?.teacherName || teacher.name}. You will get an email as soon as it is accepted or cancelled.`,
       )
       setSlotPick('')
       setAgenda('')
@@ -187,6 +221,27 @@ export default function ParentLiveSession() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const bookAgain = (row) => {
+    setError('')
+    setNotice('')
+    const target = children.find((entry) => entry.id === row.studentId)
+    if (!target) {
+      setError('That student is no longer linked to your account, so this session cannot be repeated.')
+      return
+    }
+    const match = (target.teachers || []).find((entry) => entry.email === row.teacherEmail)
+    if (!match) {
+      setError(`${row.teacherName || 'That teacher'} is not on the timetable for ${target.className || 'this class'} any more. Choose another teacher.`)
+      return
+    }
+    setChildId(target.id)
+    setTeacherEmail(match.email)
+    setDate(nextWeekdayIso())
+    setSlotPick('')
+    setAgenda(row.agenda || '')
+    studioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const openCancel = (row) => {
@@ -210,9 +265,7 @@ export default function ParentLiveSession() {
     try {
       const body = await cancelLiveSession(cancelRow.id, { note: cancelNote.trim() })
       setCancelRow(null)
-      setNotice(
-        `Live session cancelled.${body.email?.sent ? ' The teacher has been emailed.' : ''}`,
-      )
+      setNotice(`Live session cancelled.${body.email?.sent ? ' The teacher has been emailed.' : ''}`)
       await refreshSessions()
       setSlotRefresh((value) => value + 1)
     } catch (err) {
@@ -231,42 +284,96 @@ export default function ParentLiveSession() {
     }
   }
 
-  const upcoming = sessions.filter((row) => ['Pending', 'Accepted'].includes(row.status))
-  const past = sessions.filter((row) => !['Pending', 'Accepted'].includes(row.status))
+  const copyDetails = async (row) => {
+    try {
+      await copyText(
+        [
+          `Live session · ${row.studentName || 'Student'}`,
+          `${row.teacherName || 'Teacher'}${row.teacherSubject ? ` (${row.teacherSubject})` : ''}`,
+          `${row.dateLabel} · ${row.timeLabel} IST`,
+          row.meetingUrl ? `Join: ${row.meetingUrl}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      )
+      setNotice('Session details copied.')
+    } catch (err) {
+      setError(err.message || 'The session details could not be copied.')
+    }
+  }
 
   return (
-    <div className="lvd-page">
-      <header className="lvd-hero">
-        <div>
-          <p className="admin-kicker">Parent Portal · Live Session</p>
-          <h2>Meet your child’s teachers live</h2>
-          <p>
-            Pick your child, the teacher who actually takes their class, and a free 15-minute slot. The
-            teacher accepts or rejects from their desk, and you get an email either way.
+    <div className="lvs-page" ref={studioRef}>
+      <header className="lvs-hero">
+        <div className="lvs-hero__main">
+          <p className="lvs-kicker">Parent portal · Live session</p>
+          <h1>Meet your child’s teachers, live</h1>
+          <p className="lvs-hero__sub">
+            Pick your child, the teacher who actually takes their class, and a genuinely free 15-minute slot.
+            The teacher accepts or cancels from their desk and you are emailed either way.
           </p>
+          <div className="lvs-flags">
+            <span>15-minute video call</span>
+            <span>Real free periods</span>
+            <span>Email on every decision</span>
+          </div>
         </div>
-        <div className="lvd-stats">
-          <article className="lvd-stat is-pending">
-            <strong>{summary.pending}</strong>
-            <span>Pending</span>
-          </article>
-          <article className="lvd-stat is-approved">
-            <strong>{summary.accepted}</strong>
-            <span>Confirmed</span>
-          </article>
-          <article className="lvd-stat is-rejected">
-            <strong>{summary.rejected}</strong>
-            <span>Cancelled</span>
-          </article>
-          <article className="lvd-stat">
-            <strong>{summary.total}</strong>
-            <span>Total</span>
-          </article>
+        <div className="lvs-hero__side">
+          <div className="lvs-stats">
+            <article className="lvs-stat is-gold">
+              <strong>{summary.pending}</strong>
+              <span>Pending</span>
+            </article>
+            <article className="lvs-stat is-teal">
+              <strong>{summary.accepted}</strong>
+              <span>Confirmed</span>
+            </article>
+            <article className="lvs-stat">
+              <strong>{summary.total}</strong>
+              <span>Total</span>
+            </article>
+          </div>
+          {nextAccepted ? (
+            <div className="lvs-focus">
+              <span className="lvs-focus__label">Next confirmed session</span>
+              <strong>
+                {nextAccepted.dateLabel} · {nextAccepted.timeLabel}
+              </strong>
+              <small>
+                {nextAccepted.teacherName}
+                {nextAccepted.studentName ? ` · ${nextAccepted.studentName}` : ''}
+              </small>
+              <a
+                className="lvs-mini-link"
+                href={nextAccepted.meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Join meeting
+              </a>
+            </div>
+          ) : (
+            <div className="lvs-focus is-idle">
+              <span className="lvs-focus__label">Next confirmed session</span>
+              <strong>Nothing confirmed yet</strong>
+              <small>Book a slot below and it will appear here once the teacher accepts.</small>
+            </div>
+          )}
         </div>
       </header>
 
-      {error ? <p className="lvd-alert is-error">{error}</p> : null}
-      {notice ? <p className="lvd-alert is-success">{notice}</p> : null}
+      {error ? (
+        <p className="lvs-alert is-error" role="alert">
+          <span className="lvs-alert__dot" aria-hidden />
+          <span>{error}</span>
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="lvs-alert is-success" role="status">
+          <span className="lvs-alert__dot" aria-hidden />
+          <span>{notice}</span>
+        </p>
+      ) : null}
 
       {cancelNotice ? (
         <div className="lvs-notice" role="alert">
@@ -280,56 +387,96 @@ export default function ParentLiveSession() {
               {cancelNotice.studentName ? ` · ${cancelNotice.studentName}` : ''}
             </p>
             {cancelNotice.decisionNote ? (
-              <div className="lvs-notice__note">Reason from teacher: {cancelNotice.decisionNote}</div>
+              <div className="lvs-notice__note">
+                <b>Reason from teacher</b>
+                {cancelNotice.decisionNote}
+              </div>
             ) : null}
           </div>
         </div>
       ) : null}
 
-      {metaLoading ? (
-        <section className="lvd-panel">
-          <p className="lvd-empty">Loading your children and teachers…</p>
-        </section>
-      ) : !children.length ? (
-        <section className="lvd-panel">
-          <h3>Your account is not linked to a student yet</h3>
-          <p className="lvd-empty">
-            Live sessions need your child’s student record. Ask the school office to link your parent
-            account to your child.
-          </p>
-        </section>
-      ) : (
-        <section className="lvd-panel">
-          <h3>Schedule a live session</h3>
+      <section className="lvs-studio" aria-label="Schedule a live session">
+        <div className="lvs-studio__head">
+          <div>
+            <p className="lvs-kicker is-dark">Booking studio</p>
+            <h2>Schedule a live session</h2>
+            <p>Four quick steps. Only real free time from the teacher’s timetable is offered.</p>
+          </div>
+          <span className="lvs-meter">{readyCount}/3 ready</span>
+        </div>
+
+        <div className="lvs-rail" aria-hidden>
+          {RAIL_STEPS.map((step) => {
+            const done = step.id < activeStep || (step.id === 4 && readyCount === 3)
+            const active = step.id === activeStep
+            return (
+              <div
+                key={step.id}
+                className={`lvs-rail__step ${done ? 'is-done' : ''} ${active ? 'is-active' : ''}`}
+              >
+                <span className="lvs-rail__dot">{done ? '✓' : step.id}</span>
+                <span className="lvs-rail__label">{step.label}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        {metaLoading ? (
+          <div className="lvs-skeleton" aria-label="Loading your children">
+            <span />
+            <span />
+            <span />
+          </div>
+        ) : !children.length ? (
+          <div className="lvs-empty">
+            <span className="lvs-empty__icon" aria-hidden>
+              ⚑
+            </span>
+            <strong>Your account is not linked to a student yet</strong>
+            <p>
+              Live sessions need your child’s student record. Ask the school office to link your parent
+              account to your child.
+            </p>
+          </div>
+        ) : (
           <form className="lvs-flow" onSubmit={submit}>
-            <div className="lvs-step">
+            <div className={`lvs-step ${childId ? 'is-done' : 'is-active'}`}>
               <div className="lvs-step__head">
-                <span className="lvs-step__num">1</span>
+                <span className="lvs-step__num">{childId ? '✓' : '1'}</span>
                 <div>
                   <h3>Select your child</h3>
-                  <p>
-                    {child && child.className
-                      ? `${child.name || 'Child'} · ${child.className}${child.rollNo ? ` · Roll ${child.rollNo}` : ''}`
-                      : 'Your child’s class is not set on the student record yet.'}
-                  </p>
+                  <p>Teachers are shown from the class this child is studying in.</p>
                 </div>
               </div>
-              <label className="lvd-field">
-                <span>Child</span>
-                <select value={childId} onChange={changeChild}>
-                  {children.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name || 'Student'}
-                      {row.className ? ` · ${row.className}` : ''}
-                    </option>
+              <div className="lvs-step__body">
+                <div className="lvs-children">
+                  {children.map((row, index) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className={`lvs-child ${childId === row.id ? 'is-active' : ''}`}
+                      onClick={() => changeChild(row.id)}
+                      aria-pressed={childId === row.id}
+                    >
+                      <span className={`lvs-avatar ${index % 2 ? 'is-indigo' : ''}`}>{initialsOf(row.name)}</span>
+                      <span className="lvs-child__body">
+                        <strong>{row.name || 'Student'}</strong>
+                        <small>
+                          {row.className || 'Class not set'}
+                          {row.rollNo ? ` · Roll ${row.rollNo}` : ''}
+                        </small>
+                      </span>
+                      {childId === row.id ? <span className="lvs-tick">✓</span> : null}
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </div>
             </div>
 
-            <div className="lvs-step">
+            <div className={`lvs-step ${teacherEmail ? 'is-done' : activeStep === 2 ? 'is-active' : 'is-idle'}`}>
               <div className="lvs-step__head">
-                <span className="lvs-step__num">2</span>
+                <span className="lvs-step__num">{teacherEmail ? '✓' : '2'}</span>
                 <div>
                   <h3>Select the teacher</h3>
                   <p>
@@ -339,216 +486,347 @@ export default function ParentLiveSession() {
                   </p>
                 </div>
               </div>
-              {!child?.className ? null : teachers.length ? (
-                <div className="lvs-teachers">
-                  {teachers.map((row) => (
-                    <button
-                      key={row.email}
-                      type="button"
-                      className={`lvs-teacher ${teacherEmail === row.email ? 'is-active' : ''}`}
-                      onClick={() => changeTeacher(row.email)}
-                      aria-pressed={teacherEmail === row.email}
-                    >
-                      {row.isClassTeacher ? <span className="lvs-badge">Class teacher</span> : null}
-                      <strong>{row.name}</strong>
-                      <small>{row.subjectLabel || 'Subject not set on the timetable'}</small>
-                      <small>{row.email}</small>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="lvd-empty">
-                  No teacher is mapped to {child.className} yet. Ask the school admin to publish the class
-                  timetable or assign a class teacher, then refresh this page.
-                </p>
-              )}
-            </div>
-
-            <div className="lvs-step">
-              <div className="lvs-step__head">
-                <span className="lvs-step__num">3</span>
-                <div>
-                  <h3>Select a date and time</h3>
-                  <p>Slots come from the teacher’s real free periods, break times and after-school hours. Each session is 15 minutes.</p>
-                </div>
-              </div>
-              <div className="lvs-row">
-                <label className="lvd-field">
-                  <span>Meeting date</span>
-                  <input type="date" value={date} min={minDate} max={maxDate} onChange={changeDate} />
-                </label>
-                <p className="lvd-footnote">Book up to {maxDaysAhead} days ahead. Weekends and published holidays are unavailable.</p>
-              </div>
-              {!teacherEmail ? (
-                <p className="lvd-footnote">Choose a teacher above to see the free slots.</p>
-              ) : slotsLoading ? (
-                <p className="lvd-empty">Checking {teacher?.name || 'the teacher'}’s free slots…</p>
-              ) : slotError ? (
-                <p className="lvd-alert is-error">{slotError}</p>
-              ) : slotData?.slots?.length ? (
-                <>
-                  <div className="lvs-slots" role="group" aria-label="Free time slots">
-                    {slotData.slots.map((slot) => (
+              <div className="lvs-step__body">
+                {!child?.className ? null : teachers.length ? (
+                  <div className="lvs-teachers">
+                    {teachers.map((row) => (
                       <button
-                        key={slot.startTime}
+                        key={row.email}
                         type="button"
-                        className={`lvs-slot ${slotPick === slot.startTime ? 'is-active' : ''}`}
-                        onClick={() => setSlotPick(slot.startTime)}
-                        aria-pressed={slotPick === slot.startTime}
+                        className={`lvs-teacher ${teacherEmail === row.email ? 'is-active' : ''}`}
+                        onClick={() => changeTeacher(row.email)}
+                        aria-pressed={teacherEmail === row.email}
                       >
-                        {slot.startTime}–{slot.endTime}
+                        <span className={`lvs-avatar ${row.isClassTeacher ? 'is-gold' : 'is-teal'}`}>
+                          {initialsOf(row.name)}
+                        </span>
+                        <span className="lvs-teacher__name">
+                          <strong>{row.name}</strong>
+                          {row.isClassTeacher ? <span className="lvs-badge">Class teacher</span> : null}
+                        </span>
+                        <span className="lvs-teacher__meta">
+                          <span className="lvs-subject">{row.subjectLabel || 'Subject not on timetable'}</span>
+                          <span className="lvs-teacher__email">{row.email}</span>
+                        </span>
                       </button>
                     ))}
                   </div>
-                  {slotData.note ? <p className="lvd-footnote">{slotData.note}</p> : null}
-                </>
-              ) : (
-                <p className="lvd-empty">
-                  {slotData?.note || 'No free slot is left for this teacher on this date. Try another day.'}
-                </p>
-              )}
+                ) : (
+                  <div className="lvs-empty">
+                    <span className="lvs-empty__icon" aria-hidden>
+                      ⚑
+                    </span>
+                    <strong>No teacher is mapped to {child.className} yet</strong>
+                    <p>
+                      Ask the school admin to publish the class timetable or assign a class teacher, then
+                      refresh this page.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="lvs-step">
+            <div className={`lvs-step ${slotPick ? 'is-done' : activeStep === 3 ? 'is-active' : 'is-idle'}`}>
+              <div className="lvs-step__head">
+                <span className="lvs-step__num">{slotPick ? '✓' : '3'}</span>
+                <div>
+                  <h3>Select a date and time</h3>
+                  <p>
+                    Slots come from the teacher’s real free periods, break times and after-school hours. Each
+                    session is 15 minutes.
+                  </p>
+                </div>
+              </div>
+              <div className="lvs-step__body">
+                {!teacherEmail ? (
+                  <p className="lvs-step__note">Choose a teacher above to see their free slots.</p>
+                ) : (
+                  <>
+                    <div className="lvs-dates" role="group" aria-label="Next dates">
+                      {dateStrip.map((entry) => (
+                        <button
+                          key={entry.value}
+                          type="button"
+                          className={`lvs-date ${date === entry.value ? 'is-active' : ''} ${entry.value === minDate ? 'is-today' : ''}`}
+                          onClick={() => changeDate(entry.value)}
+                          disabled={entry.weekend}
+                          aria-pressed={date === entry.value}
+                        >
+                          <span className="lvs-date__weekday">{entry.weekday}</span>
+                          <span className="lvs-date__day">{entry.day}</span>
+                          <span className="lvs-date__month">{entry.month}</span>
+                          {entry.weekend ? <span className="lvs-date__tag">Off</span> : null}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="lvs-date-more">
+                      <span>Or pick any date up to {maxDaysAhead} days ahead</span>
+                      <input type="date" value={date} min={minDate} max={maxDate} onChange={(event) => changeDate(event.target.value)} />
+                    </div>
+
+                    {slotsLoading ? (
+                      <div className="lvs-skeleton" aria-label="Checking free slots">
+                        <span />
+                        <span />
+                      </div>
+                    ) : slotError ? (
+                      <p className="lvs-alert is-error">{slotError}</p>
+                    ) : slotData?.slots?.length ? (
+                      <>
+                        <div className="lvs-slot-groups" role="group" aria-label="Free time slots">
+                          {groupSlots(slotData.slots).map((group) => (
+                            <div key={group.label} className="lvs-slot-group">
+                              <div className="lvs-slot-group__head">
+                                <strong>{group.label}</strong>
+                                <span>{group.slots.length}</span>
+                              </div>
+                              <div className="lvs-slots">
+                                {group.slots.map((slot) => (
+                                  <button
+                                    key={slot.startTime}
+                                    type="button"
+                                    className={`lvs-slot ${slotPick === slot.startTime ? 'is-active' : ''}`}
+                                    onClick={() => setSlotPick(slot.startTime)}
+                                    aria-pressed={slotPick === slot.startTime}
+                                  >
+                                    {slot.startTime}–{slot.endTime}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {slotData.note ? <p className="lvs-slot-note">{slotData.note}</p> : null}
+                      </>
+                    ) : (
+                      <div className="lvs-empty">
+                        <span className="lvs-empty__icon" aria-hidden>
+                          ◷
+                        </span>
+                        <strong>No free slot on this date</strong>
+                        <p>{slotData?.note || 'Try another day from the date strip above.'}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className={`lvs-step ${readyCount === 3 ? 'is-active' : 'is-idle'}`}>
               <div className="lvs-step__head">
                 <span className="lvs-step__num">4</span>
                 <div>
                   <h3>Confirm the schedule</h3>
-                  <p>Your child, teacher and time are shown below. Add an agenda if you want.</p>
+                  <p>Add what you want to discuss, then send the request to the teacher.</p>
                 </div>
               </div>
-              <label className="lvd-field">
-                <span>Agenda for the teacher (optional)</span>
-                <textarea
-                  value={agenda}
-                  maxLength={500}
-                  onChange={(event) => setAgenda(event.target.value)}
-                  placeholder="For example: I want to discuss maths homework and the next class test."
-                />
-              </label>
-              <div className="lvs-confirm">
-                <div>
-                  <strong>
-                    {child?.name || 'Choose a child'} · {teacher?.name || 'Choose a teacher'}
-                  </strong>
-                  <small>
-                    {slotData?.dateLabel || date}
-                    {slotPick ? ` · ${slotPick}` : ' · choose a slot'}
-                  </small>
+              <div className="lvs-step__body">
+                <div className="lvs-field">
+                  <span className="lvs-field__label">
+                    Agenda for the teacher <small>optional · {agenda.length}/500</small>
+                  </span>
+                  <div className="lvs-chips">
+                    {AGENDA_HINTS.map((hint) => (
+                      <button key={hint} type="button" className="lvs-chip-btn" onClick={() => appendAgenda(hint)}>
+                        + {hint}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={agenda}
+                    maxLength={500}
+                    onChange={(event) => setAgenda(event.target.value)}
+                    placeholder="For example: I want to discuss maths homework and the next class test."
+                  />
                 </div>
-                <button
-                  type="submit"
-                  className="lvd-btn primary"
-                  disabled={saving || !child || !teacher || !slotPick}
-                >
-                  {saving ? 'Sending request…' : 'Confirm schedule'}
-                </button>
+
+                <div className="lvs-summary">
+                  <div className="lvs-summary__grid">
+                    <div className="lvs-summary__cell">
+                      <span>Child</span>
+                      <strong className={child ? 'is-ready' : ''}>{child?.name || 'Not chosen'}</strong>
+                    </div>
+                    <div className="lvs-summary__cell">
+                      <span>Teacher</span>
+                      <strong className={teacher ? 'is-ready' : ''}>{teacher?.name || 'Not chosen'}</strong>
+                    </div>
+                    <div className="lvs-summary__cell">
+                      <span>When</span>
+                      <strong className={slotPick ? 'is-ready' : ''}>
+                        {slotData?.dateLabel || date}
+                        {slotPick ? ` · ${slotPick}` : ' · pick a slot'}
+                      </strong>
+                    </div>
+                    <div className="lvs-summary__cell">
+                      <span>Length</span>
+                      <strong className="is-ready">15 minutes</strong>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="lvs-cta"
+                    disabled={saving || !child || !teacher || !slotPick}
+                  >
+                    {saving ? 'Sending request…' : 'Confirm schedule'}
+                  </button>
+                </div>
+                <p className="lvs-footnote">
+                  The teacher gets this request on their desk and by email. On rejection they must write a
+                  reason, which is emailed to you and shown on your Parent Home.
+                </p>
               </div>
-              <p className="lvd-footnote">
-                The teacher gets this request on their dashboard and by email. On rejection they must
-                write a reason, which is emailed to you and shown on your Parent Home.
-              </p>
             </div>
           </form>
-        </section>
-      )}
+        )}
+      </section>
 
-      <section className="lvd-panel">
-        <h3>Upcoming sessions</h3>
+      <section className="lvs-section" aria-label="Upcoming sessions">
+        <div className="lvs-section__head">
+          <h2>Upcoming sessions</h2>
+          <span className="lvs-count-pill">{upcoming.length} upcoming</span>
+        </div>
         {!upcoming.length ? (
-          <p className="lvd-empty">No upcoming live session. Book one above and it will appear here.</p>
+          <div className="lvs-empty">
+            <span className="lvs-empty__icon" aria-hidden>
+              ▣
+            </span>
+            <strong>No upcoming live session</strong>
+            <p>Book one above and it will appear here with its status and join link.</p>
+          </div>
         ) : (
           <div className="lvs-grid-sessions">
             {upcoming.map((row) => (
-              <article key={row.id} className={`lvs-session ${row.status === 'Accepted' ? 'is-live' : ''}`}>
-                <div className="lvs-session__head">
-                  <div>
-                    <span className="lvs-session__when">
-                      {row.dateLabel} · {row.timeLabel}
-                    </span>
-                    <span className="lvs-session__who">
-                      {row.teacherName}
-                      {row.teacherSubject ? ` · ${row.teacherSubject}` : ''}
-                    </span>
+              <article key={row.id} className={`lvs-session is-${row.status.toLowerCase()}`}>
+                <div className="lvs-session__top">
+                  <div className="lvs-when">
+                    <strong>{row.dateLabel}</strong>
+                    <span>{row.timeLabel} IST · 15 min</span>
                   </div>
-                  <span className={`lvd-chip ${statusClass(row.status)}`}>{statusLabel(row)}</span>
+                  <span className={`lvs-status ${statusClass(row.status)}`}>{statusLabel(row)}</span>
                 </div>
-                <dl className="lvd-meta">
-                  <div>
-                    <dt>Student</dt>
-                    <dd>{row.studentName || '—'}</dd>
+                <div className="lvs-person">
+                  <span className="lvs-avatar is-sm is-teal">{initialsOf(row.teacherName)}</span>
+                  <div className="lvs-person__body">
+                    <strong>{row.teacherName || 'Teacher'}</strong>
+                    <small>{row.teacherSubject || 'Subject not set'}</small>
                   </div>
-                  <div>
-                    <dt>Class</dt>
-                    <dd>{row.className || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>Requested</dt>
-                    <dd>{formatWhen(row.createdAt)}</dd>
-                  </div>
-                </dl>
-                {row.agenda ? <p className="lvd-reason">{row.agenda}</p> : null}
+                  <span className={`lvs-count ${row.status === 'Accepted' ? 'is-live' : ''}`}>
+                    {countdownLabel(row.date)}
+                  </span>
+                </div>
+                <div className="lvs-tags">
+                  <span>{row.studentName || 'Student'}</span>
+                  <span>{row.className || 'Class not set'}</span>
+                </div>
+                {row.agenda ? <p className="lvs-quote">“{row.agenda}”</p> : null}
+
                 {row.status === 'Accepted' ? (
                   <>
                     <div className="lvs-actions">
-                      <a className="lvd-btn lvs-join" href={row.meetingUrl} target="_blank" rel="noopener noreferrer">
+                      <a
+                        className="lvs-btn is-join"
+                        href={row.meetingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         Join live session
                       </a>
-                      <button type="button" className="lvd-btn ghost" onClick={() => copyLink(row.meetingUrl)}>
+                      <button type="button" className="lvs-btn ghost" onClick={() => copyLink(row.meetingUrl)}>
                         Copy link
                       </button>
-                      <button type="button" className="lvd-btn danger" onClick={() => openCancel(row)}>
+                      <button type="button" className="lvs-btn ghost" onClick={() => copyDetails(row)}>
+                        Copy details
+                      </button>
+                      <button type="button" className="lvs-btn danger" onClick={() => openCancel(row)}>
                         Cancel
                       </button>
                     </div>
-                    <p className="lvs-meeting">{row.meetingUrl}</p>
+                    <div className="lvs-meeting">
+                      <code>{row.meetingUrl}</code>
+                      <button
+                        type="button"
+                        className="lvs-icon-btn"
+                        onClick={() => copyLink(row.meetingUrl)}
+                        aria-label="Copy meeting link"
+                        title="Copy meeting link"
+                      >
+                        ⧉
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <>
-                    <p className="lvd-waiting">
-                      Waiting for {row.teacherName} to accept or reject this request.
+                    <p className="lvs-waiting">
+                      Waiting for {row.teacherName} to accept or cancel — requested {relativeWhen(row.createdAt)}.
                     </p>
                     <div className="lvs-actions">
-                      <button type="button" className="lvd-btn ghost" onClick={() => openCancel(row)}>
+                      <button type="button" className="lvs-btn ghost" onClick={() => openCancel(row)}>
                         Cancel request
                       </button>
                     </div>
                   </>
                 )}
+
+                {row.status === 'Accepted' && row.decisionNote ? (
+                  <div className="lvs-note is-approved">
+                    <span>Note from teacher</span>
+                    <p>{row.decisionNote}</p>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>
         )}
       </section>
 
-      <section className="lvd-panel">
-        <h3>Session history</h3>
+      <section className="lvs-section" aria-label="Session history">
+        <div className="lvs-section__head">
+          <h2>Session history</h2>
+          <span className="lvs-count-pill">{past.length} closed</span>
+        </div>
         {!past.length ? (
-          <p className="lvd-empty">Cancelled and rejected sessions will appear here.</p>
+          <div className="lvs-empty">
+            <span className="lvs-empty__icon" aria-hidden>
+              ▤
+            </span>
+            <strong>Nothing here yet</strong>
+            <p>Rejected and cancelled sessions are kept here with the teacher’s reason.</p>
+          </div>
         ) : (
           <div className="lvs-grid-sessions">
             {past.map((row) => (
-              <article key={row.id} className="lvs-session">
-                <div className="lvs-session__head">
-                  <div>
-                    <span className="lvs-session__when">
-                      {row.dateLabel} · {row.timeLabel}
-                    </span>
-                    <span className="lvs-session__who">
-                      {row.teacherName} · {row.studentName || '—'}
-                    </span>
+              <article key={row.id} className={`lvs-session is-${row.status.toLowerCase()}`}>
+                <div className="lvs-session__top">
+                  <div className="lvs-when">
+                    <strong>{row.dateLabel}</strong>
+                    <span>{row.timeLabel} IST</span>
                   </div>
-                  <span className={`lvd-chip ${statusClass(row.status)}`}>{statusLabel(row)}</span>
+                  <span className={`lvs-status ${statusClass(row.status)}`}>{statusLabel(row)}</span>
+                </div>
+                <div className="lvs-person">
+                  <span className="lvs-avatar is-sm">{initialsOf(row.teacherName)}</span>
+                  <div className="lvs-person__body">
+                    <strong>{row.teacherName || 'Teacher'}</strong>
+                    <small>
+                      {row.studentName || 'Student'}
+                      {row.className ? ` · ${row.className}` : ''}
+                    </small>
+                  </div>
                 </div>
                 {row.decisionNote ? (
-                  <div className="lvd-note">
+                  <div className="lvs-note">
                     <span>{row.status === 'Rejected' ? 'Reason from teacher' : 'Your note'}</span>
                     <p>{row.decisionNote}</p>
                   </div>
                 ) : null}
-                <p className="lvd-footnote">
-                  {row.decidedAt ? `${row.decidedByName || 'School'} · ${formatWhen(row.decidedAt)}` : formatWhen(row.createdAt)}
+                <p className="lvs-footnote">
+                  {row.decidedAt ? `${row.decidedByName || 'School'} · ${relativeWhen(row.decidedAt)}` : `Requested ${relativeWhen(row.createdAt)}`}
                 </p>
+                <div className="lvs-actions">
+                  <button type="button" className="lvs-btn ghost" onClick={() => bookAgain(row)}>
+                    Book again
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -556,14 +834,27 @@ export default function ParentLiveSession() {
       </section>
 
       {cancelRow ? (
-        <div className="lvd-modal" role="dialog" aria-modal="true" aria-label="Cancel live session">
-          <form className="lvd-modal__card" onSubmit={applyCancel}>
-            <h3>Cancel this live session</h3>
-            <p>
-              {cancelRow.teacherName} · {cancelRow.dateLabel} · {cancelRow.timeLabel}
-            </p>
-            <label className="lvd-field">
-              <span>Note for the teacher (optional)</span>
+        <div className="lvs-modal" role="dialog" aria-modal="true" aria-label="Cancel live session">
+          <form className="lvs-modal__card" onSubmit={applyCancel}>
+            <div className="lvs-modal__head">
+              <span className="lvs-modal__icon is-danger" aria-hidden>
+                !
+              </span>
+              <div>
+                <h3>Cancel this live session</h3>
+                <p>The teacher is emailed as soon as you cancel. You can book another slot any time.</p>
+              </div>
+            </div>
+            <div className="lvs-modal__session">
+              <span>{cancelRow.teacherName}</span>
+              <span>{cancelRow.studentName}</span>
+              <span>{cancelRow.dateLabel}</span>
+              <span>{cancelRow.timeLabel}</span>
+            </div>
+            <label className="lvs-field">
+              <span className="lvs-field__label">
+                Note for the teacher <small>optional · {cancelNote.length}/300</small>
+              </span>
               <textarea
                 value={cancelNote}
                 maxLength={300}
@@ -571,12 +862,12 @@ export default function ParentLiveSession() {
                 placeholder="For example: We have a doctor appointment at that time."
               />
             </label>
-            {cancelError ? <p className="lvd-alert is-error">{cancelError}</p> : null}
-            <div className="lvd-modal__actions">
-              <button type="button" className="lvd-btn ghost" onClick={closeCancel} disabled={cancelBusy}>
+            {cancelError ? <p className="lvs-alert is-error">{cancelError}</p> : null}
+            <div className="lvs-modal__actions">
+              <button type="button" className="lvs-btn ghost" onClick={closeCancel} disabled={cancelBusy}>
                 Keep session
               </button>
-              <button type="submit" className="lvd-btn danger" disabled={cancelBusy}>
+              <button type="submit" className="lvs-btn danger" disabled={cancelBusy}>
                 {cancelBusy ? 'Cancelling…' : 'Cancel session'}
               </button>
             </div>
