@@ -340,6 +340,7 @@ function LiveTransport() {
       layers.push({
         route,
         geometry: coordinates,
+        source: entry.data?.source || '',
         progress: vehicle
           ? computeRouteProgress({ geometry: coordinates, stops: route.stops, vehicle })
           : null,
@@ -394,14 +395,30 @@ function LiveTransport() {
     }
   }, [routes, vehicles, activeRouteId, geometry])
 
-  const retryGeometry = useCallback((routeId) => {
-    setGeometry((prev) => {
-      if (!prev[routeId]) return prev
-      const next = { ...prev }
-      delete next[routeId]
-      return next
-    })
-  }, [])
+  const retryGeometry = useCallback(
+    (routeId) => {
+      const route = routes.find((item) => item.id === routeId)
+      if (!route) return
+      const signature = stopsSignature(route.stops)
+      const flightKey = `${routeId}:${signature}:refresh`
+      if (geometryInFlight.current.has(flightKey)) return
+      geometryInFlight.current.add(flightKey)
+      fetchRouteGeometry(routeId, { refresh: true })
+        .then((data) => {
+          setGeometry((prev) => ({ ...prev, [routeId]: { signature, data } }))
+        })
+        .catch((err) => {
+          setGeometry((prev) => ({
+            ...prev,
+            [routeId]: { signature, error: err?.message || 'Could not draw the road path.' },
+          }))
+        })
+        .finally(() => {
+          geometryInFlight.current.delete(flightKey)
+        })
+    },
+    [routes],
+  )
 
   const handleSelectRoute = useCallback(
     (id) => {
@@ -864,6 +881,7 @@ function LiveTransport() {
             vehicles={vehicles}
             selectedRouteId={activeRouteId}
             selectedVehicleId={selectedVehicleId}
+            focusVehicleId={selectedVehicleId}
             onSelectRoute={handleSelectRoute}
             onSelectVehicle={handleSelectVehicle}
           />
@@ -872,6 +890,15 @@ function LiveTransport() {
               {selectedGeometryEntry.error}
               <button type="button" onClick={() => retryGeometry(selectedRoute.id)}>
                 Try again
+              </button>
+            </p>
+          ) : null}
+          {selectedRoute && selectedGeometryEntry?.data?.source === 'straight' ? (
+            <p className="tlive-map-note">
+              This dashed line joins the stops directly — the road service could not be reached, so it is not the real
+              road.
+              <button type="button" onClick={() => retryGeometry(selectedRoute.id)}>
+                Rebuild road path
               </button>
             </p>
           ) : null}
@@ -902,6 +929,7 @@ function LiveTransport() {
               bus={selectedBus}
               onClear={() => handleSelectRoute('')}
               onFocusVehicle={handleSelectVehicle}
+              onRebuild={() => retryGeometry(selectedRoute.id)}
             />
           ) : (
             <p className="tlive-focus">
@@ -1353,7 +1381,7 @@ function LiveTransport() {
   )
 }
 
-function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, bus, onClear, onFocusVehicle }) {
+function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, bus, onClear, onFocusVehicle, onRebuild }) {
   const tone = vehicle ? vehicleTone(vehicle) : 'off'
   const statusLabel =
     !vehicle
@@ -1370,13 +1398,15 @@ function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, b
   const busLabel = bus?.number || route.vehicleLabel || vehicle?.vehicleLabel || 'No bus assigned'
   const busMeta = [bus?.model, bus?.capacity ? `${bus.capacity} seats` : ''].filter(Boolean).join(' · ')
   const kmh = speedKmh(vehicle?.lastPing)
+  const directPath = geometryEntry?.data?.source === 'straight'
   const sourceLabel =
-    geometryEntry?.data?.source === 'osrm'
+    geometryEntry?.data?.source === 'osrm' || geometryEntry?.data?.source === 'fossgis'
       ? 'OSM road path'
-      : geometryEntry?.data?.source === 'straight'
-        ? 'Straight-line fallback'
+      : directPath
+        ? 'Straight-line preview (not a road)'
         : ''
-  const percent = progress ? Math.round(progress.percent) : 0
+  const offRoute = Boolean(progress?.offRoute && progress.offRouteMeters != null)
+  const percent = progress && !offRoute ? Math.round(progress.percent) : 0
   const hasFix = Boolean(vehicle?.lastPing)
 
   return (
@@ -1415,9 +1445,15 @@ function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, b
 
       <div className="tlive-progress">
         <div className="tlive-progress__meta">
-          <span>{progress ? `${percent}% covered` : 'Waiting for GPS fix'}</span>
           <span>
-            {progress
+            {offRoute
+              ? 'Bus is not on this route line'
+              : progress
+                ? `${percent}% covered`
+                : 'Waiting for GPS fix'}
+          </span>
+          <span>
+            {progress && !offRoute
               ? `${formatDistance(progress.progressDistance)} of ${formatDistance(progress.totalDistance)}`
               : '—'}
           </span>
@@ -1455,6 +1491,13 @@ function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, b
         </p>
       ) : null}
 
+      {offRoute ? (
+        <p className="tlive-muted">
+          The driver&apos;s phone is {formatDistance(progress.offRouteMeters)} away from this route line. The map shows
+          the real GPS position; covered distance, next stop and ETA stay hidden until the bus is back on the route.
+        </p>
+      ) : null}
+
       <div>
         <p className="tr-kicker">Stop sequence</p>
         <ol className="tr-timeline tlive-timeline">
@@ -1486,6 +1529,11 @@ function RouteProgressPanel({ route, geometryEntry, progress, vehicle, driver, b
         {vehicle?.lastPing ? (
           <button type="button" className="tlive-btn" onClick={() => onFocusVehicle(vehicle.id)}>
             Center bus on map
+          </button>
+        ) : null}
+        {directPath && onRebuild ? (
+          <button type="button" className="tlive-btn" onClick={onRebuild}>
+            Rebuild road path
           </button>
         ) : null}
         <Link className="tlive-btn" to="/transport/routes">

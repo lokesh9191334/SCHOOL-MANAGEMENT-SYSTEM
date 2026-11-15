@@ -263,6 +263,28 @@ function RoutesPage() {
       })
   }, [selectedRoute, selectedSignature, geometry])
 
+  const rebuildRoadPath = useCallback(() => {
+    if (!selectedRoute) return
+    const routeId = selectedRoute.id
+    const signature = selectedSignature
+    const flightKey = `${routeId}:${signature}:refresh`
+    if (geometryInFlight.current.has(flightKey)) return
+    geometryInFlight.current.add(flightKey)
+    fetchRouteGeometry(routeId, { refresh: true })
+      .then((data) => {
+        setGeometry((prev) => ({ ...prev, [routeId]: { signature, data } }))
+      })
+      .catch((err) => {
+        setGeometry((prev) => ({
+          ...prev,
+          [routeId]: { signature, error: err?.message || 'Could not draw the road path.' },
+        }))
+      })
+      .finally(() => {
+        geometryInFlight.current.delete(flightKey)
+      })
+  }, [selectedRoute, selectedSignature])
+
   const selectedGeometry =
     selectedEntry && selectedEntry.signature === selectedSignature ? selectedEntry.data?.coordinates || [] : []
   const geometryPending =
@@ -619,7 +641,14 @@ function RoutesPage() {
         <section className="tr-layout" aria-label={`Route preview: ${selectedRoute.name}`}>
           <div className="tr-stack tr-detail-map">
             <TransportMap
-              layers={[{ route: selectedRoute, geometry: selectedGeometry, progress: null }]}
+              layers={[
+                {
+                  route: selectedRoute,
+                  geometry: selectedGeometry,
+                  source: selectedEntry?.data?.source || '',
+                  progress: null,
+                },
+              ]}
               selectedRouteId={selectedRoute.id}
             />
             {geometryPending ? (
@@ -630,18 +659,19 @@ function RoutesPage() {
             {selectedEntry?.error ? (
               <div className="tr-stack">
                 <p className="tr-error">{selectedEntry.error}</p>
-                <button
-                  type="button"
-                  className="tr-btn tr-btn--small"
-                  onClick={() =>
-                    setGeometry((prev) => {
-                      const next = { ...prev }
-                      delete next[selectedRoute.id]
-                      return next
-                    })
-                  }
-                >
+                <button type="button" className="tr-btn tr-btn--small" onClick={rebuildRoadPath}>
                   Try again
+                </button>
+              </div>
+            ) : null}
+            {selectedEntry?.data?.source === 'straight' ? (
+              <div className="tr-stack">
+                <p className="tr-muted">
+                  The road service could not be reached, so the map joins the stops directly. This dashed line is not
+                  the real road.
+                </p>
+                <button type="button" className="tr-btn tr-btn--small" onClick={rebuildRoadPath}>
+                  Rebuild road path
                 </button>
               </div>
             ) : null}
@@ -693,7 +723,13 @@ function RoutesPage() {
               </div>
               <div className="tr-info">
                 <span>Road line</span>
-                <b>{selectedEntry?.data ? (selectedEntry.data.source === 'osrm' ? 'Real road path' : 'Direct line') : '—'}</b>
+                <b>
+                  {selectedEntry?.data
+                    ? selectedEntry.data.source === 'straight'
+                      ? 'Direct line (not a road)'
+                      : 'Real road path'
+                    : '—'}
+                </b>
               </div>
             </div>
 

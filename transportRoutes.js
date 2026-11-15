@@ -188,16 +188,41 @@ export function straightGeometry(stops) {
   }
 }
 
-/** OSRM demo server — free, no key. Returns null on any failure so the
-    caller can fall back to a direct line instead of inventing a path. */
-export async function fetchRoadGeometry(stops) {
-  if (!Array.isArray(stops) || stops.length < 2) return null
-  const path = stops.map((stop) => `${stop.lng},${stop.lat}`).join(';')
-  const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=false`
+/* Free OpenStreetMap routing services, tried in order. Both are key-less and
+   return the same GeoJSON shape. */
+const ROAD_PROVIDERS = [
+  {
+    id: 'osrm',
+    url: (path) => `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=false`,
+    timeoutMs: 8000,
+  },
+  {
+    id: 'fossgis',
+    url: (path) => `https://routing.openstreetmap.de/routed-car/route/v1/driving/${path}?overview=full&geometries=geojson&steps=false`,
+    timeoutMs: 10000,
+  },
+]
+
+const ROAD_ENDPOINT_TOLERANCE_M = 900
+
+/** A road path must start and end at the first/last stop. Anything else is a
+    routing glitch (wrong place, detached road) and must not be drawn. */
+function endpointsMatchStops(coordinates, stops) {
+  const first = coordinates[0]
+  const last = coordinates[coordinates.length - 1]
+  const start = stops[0]
+  const end = stops[stops.length - 1]
+  return (
+    haversineMeters({ lat: first[0], lng: first[1] }, start) <= ROAD_ENDPOINT_TOLERANCE_M &&
+    haversineMeters({ lat: last[0], lng: last[1] }, end) <= ROAD_ENDPOINT_TOLERANCE_M
+  )
+}
+
+async function fetchFromProvider(provider, path, stops) {
   try {
-    const response = await fetch(url, {
+    const response = await fetch(provider.url(path), {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(7000),
+      signal: AbortSignal.timeout(provider.timeoutMs),
     })
     if (!response.ok) return null
     const body = await response.json()
@@ -207,14 +232,27 @@ export async function fetchRoadGeometry(stops) {
     const coordinates = raw
       .map((pair) => [Number(pair?.[1]), Number(pair?.[0])])
       .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)
-    if (coordinates.length < 2) return null
+    if (coordinates.length < 2 || !endpointsMatchStops(coordinates, stops)) return null
     return {
       coordinates,
       distanceMeters: Math.round(Number(road.distance) || 0),
       durationSeconds: Math.round(Number(road.duration) || 0),
-      source: 'osrm',
+      source: provider.id,
     }
   } catch {
     return null
   }
+}
+
+/** Real road geometry through the stops in order. Returns null only when every
+    provider fails, so the caller can fall back to a direct line — never an
+    invented path. */
+export async function fetchRoadGeometry(stops) {
+  if (!Array.isArray(stops) || stops.length < 2) return null
+  const path = stops.map((stop) => `${stop.lng},${stop.lat}`).join(';')
+  for (const provider of ROAD_PROVIDERS) {
+    const geometry = await fetchFromProvider(provider, path, stops)
+    if (geometry) return geometry
+  }
+  return null
 }

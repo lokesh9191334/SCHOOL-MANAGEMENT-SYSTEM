@@ -27,6 +27,26 @@ function storedView() {
 }
 
 const KIND_COLOR = { pickup: '#0f766e', drop: '#b45309', both: '#1b2a55' }
+const VEHICLE_NEAR_ROUTE_M = 1500
+
+function metersBetween(a, b) {
+  const R = 6371000
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(b[0] - a[0])
+  const dLng = toRad(b[1] - a[1])
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+/** Keep a vehicle in the fitted view only when it is actually near the route;
+    a bus far away must not zoom the route out of sight. */
+function nearRoute(point, path) {
+  for (let index = 0; index < path.length; index += 4) {
+    if (metersBetween(point, path[index]) <= VEHICLE_NEAR_ROUTE_M) return true
+  }
+  const last = path[path.length - 1]
+  return Boolean(last) && metersBetween(point, last) <= VEHICLE_NEAR_ROUTE_M
+}
 
 function toneOf(vehicle) {
   if (!vehicle) return 'offline'
@@ -109,6 +129,7 @@ function TransportMap({
   vehicles = [],
   selectedRouteId = '',
   selectedVehicleId = '',
+  focusVehicleId = '',
   onSelectRoute,
   onSelectVehicle,
   highlightStopIds = [],
@@ -186,14 +207,19 @@ function TransportMap({
       if (!route) continue
       const path = Array.isArray(geometry) && geometry.length > 1 ? geometry : []
       const selected = route.id === selectedRouteId
-      const covered = selected && progress?.completedPath?.length > 1
+      // A direct line between stops is a preview, never a road — draw it dashed
+      // and never paint "covered" progress on it.
+      const direct = item.source === 'straight'
+      const covered = selected && !direct && progress?.completedPath?.length > 1
       if (path.length > 1) {
-        routeSignature.push(`${route.id}:${path.length}:${path[0]?.join(',')}:${path[path.length - 1]?.join(',')}`)
+        routeSignature.push(
+          `${route.id}:${path.length}:${path[0]?.join(',')}:${path[path.length - 1]?.join(',')}:${direct ? 'direct' : 'road'}`,
+        )
         const base = L.polyline(path, {
           color: selected ? (covered ? '#9aa6bd' : '#c9a227') : '#4b5b76',
           weight: selected ? (covered ? 5 : 4) : 4,
-          opacity: selected ? (covered ? 0.75 : 0.9) : 0.62,
-          dashArray: selected && covered ? '2 9' : null,
+          opacity: selected ? (covered ? 0.75 : direct ? 0.6 : 0.9) : 0.62,
+          dashArray: direct ? '10 9' : selected && covered ? '2 9' : null,
           lineCap: 'round',
         }).addTo(layer)
         base.on('click', () => onSelectRoute?.(route.id))
@@ -204,6 +230,15 @@ function TransportMap({
             weight: 6,
             opacity: 1,
             lineCap: 'round',
+          }).addTo(layer)
+        }
+        if (selected && progress?.offRoute && progress.busPoint && progress.progressPoint) {
+          L.polyline([progress.busPoint, progress.progressPoint], {
+            color: '#94a3b8',
+            weight: 2,
+            opacity: 0.85,
+            dashArray: '4 7',
+            interactive: false,
           }).addTo(layer)
         }
         for (const point of path) bounds.push(point)
@@ -248,6 +283,19 @@ function TransportMap({
       if (!ping || !Number.isFinite(Number(ping.lat)) || !Number.isFinite(Number(ping.lng))) continue
       const point = [Number(ping.lat), Number(ping.lng)]
       const selected = vehicle.id === selectedVehicleId
+      const accuracy = Number(ping.accuracy)
+      if (Number.isFinite(accuracy) && accuracy > 80) {
+        // Show how precise the phone GPS really is instead of a false pinpoint.
+        L.circle(point, {
+          radius: accuracy,
+          color: selected ? '#4157ff' : '#64748b',
+          weight: 1,
+          opacity: 0.45,
+          fillColor: selected ? '#4157ff' : '#64748b',
+          fillOpacity: 0.07,
+          interactive: false,
+        }).addTo(layer)
+      }
       const marker = L.marker(point, {
         icon: busIcon(vehicle, selected),
         zIndexOffset: selected ? 900 : 700,
@@ -283,14 +331,21 @@ function TransportMap({
 
     if (bounds.length) {
       const fixSignature = vehicles.map((vehicle) => `${vehicle.id}:${vehicle.lastPing ? '1' : '0'}`).join(',')
-      const fitKey = `${selectedRouteId}|${routeSignature.join('|')}|${fixSignature}`
+      const selectedLayer = selectedRouteId ? layers.find((item) => item.route?.id === selectedRouteId) : null
+      const offRoutePoint = selectedLayer?.progress?.offRoute ? selectedLayer.progress.busPoint : null
+      const offRouteKey = offRoutePoint ? `${Number(offRoutePoint[0]).toFixed(3)},${Number(offRoutePoint[1]).toFixed(3)}` : ''
+      const fitKey = `${selectedRouteId}|${routeSignature.join('|')}|${fixSignature}|${offRouteKey}`
       if (fitKeyRef.current !== fitKey) {
         fitKeyRef.current = fitKey
         if (selectedRouteId) {
-          const selectedLayer = layers.find((item) => item.route?.id === selectedRouteId)
-          const selectedPath = selectedLayer?.geometry
-          // Keep the bus in view even when it has left the drawn route line.
-          const focus = [...(Array.isArray(selectedPath) ? selectedPath : []), ...vehiclePoints]
+          const selectedPath = Array.isArray(selectedLayer?.geometry) ? selectedLayer.geometry : []
+          // Fit the route itself; only buses actually driving it join the view.
+          const busFocus = vehiclePoints.filter((point) => !selectedPath.length || nearRoute(point, selectedPath))
+          // An off-route bus is far by definition — keep it in view so the dashed
+          // connector shows where the phone really is instead of hiding the bus.
+          const focus = selectedPath.length
+            ? [...selectedPath, ...busFocus, ...(offRoutePoint ? [offRoutePoint] : [])]
+            : vehiclePoints
           map.fitBounds(L.latLngBounds(focus.length ? focus : bounds).pad(0.18), { animate: false, maxZoom: 16 })
         } else {
           map.fitBounds(L.latLngBounds(bounds).pad(0.2), { animate: false, maxZoom: 15 })
@@ -298,20 +353,21 @@ function TransportMap({
       }
     }
 
-    if (selectedVehicleId) {
-      const vehicle = vehicles.find((item) => item.id === selectedVehicleId)
+    if (focusVehicleId) {
+      const vehicle = vehicles.find((item) => item.id === focusVehicleId)
       const ping = vehicle?.lastPing
       if (ping && Number.isFinite(Number(ping.lat))) {
-        const key = `veh:${selectedVehicleId}`
+        const key = `veh:${focusVehicleId}`
         if (focusKeyRef.current !== key) {
           focusKeyRef.current = key
+          // 15 keeps the bus readable; the route line stays visible around it.
           map.flyTo([Number(ping.lat), Number(ping.lng)], Math.max(map.getZoom(), 15), { duration: 0.7 })
         }
       }
     } else {
       focusKeyRef.current = ''
     }
-  }, [layers, vehicles, selectedRouteId, selectedVehicleId, onSelectRoute, onSelectVehicle, highlightSet])
+  }, [layers, vehicles, selectedRouteId, selectedVehicleId, focusVehicleId, onSelectRoute, onSelectVehicle, highlightSet])
 
   return (
     <div className={`tmap-shell ${className}`.trim()}>

@@ -1,5 +1,9 @@
 const EARTH_RADIUS_M = 6371000
 const PASSED_TOLERANCE_M = 30
+/* A bus this far from the drawn route is not "on" it — phone GPS noise stays
+   well below this, while a wrong road line or a bus on another street is above. */
+const OFF_ROUTE_MIN_METERS = 150
+const OFF_ROUTE_MAX_METERS = 350
 
 function toRad(value) {
   return (value * Math.PI) / 180
@@ -85,6 +89,11 @@ export function computeRouteProgress({ geometry, stops = [], vehicle = null }) {
   const hasFix = ping && Number.isFinite(Number(ping.lat)) && Number.isFinite(Number(ping.lng))
   const busPoint = hasFix ? [Number(ping.lat), Number(ping.lng)] : null
   const projection = busPoint ? projectOnPath(busPoint, path, cumulative) : null
+  const accuracy = Number(ping?.accuracy)
+  const offRouteLimit = Number.isFinite(accuracy) && accuracy > 0
+    ? Math.min(OFF_ROUTE_MAX_METERS, Math.max(OFF_ROUTE_MIN_METERS, accuracy * 2))
+    : OFF_ROUTE_MIN_METERS
+  const offRoute = Boolean(projection && projection.offsetMeters > offRouteLimit)
 
   const stopRows = stops.map((stop, index) => {
     const point = [Number(stop.lat), Number(stop.lng)]
@@ -99,8 +108,9 @@ export function computeRouteProgress({ geometry, stops = [], vehicle = null }) {
     }
   })
 
+  const hasProgress = Boolean(projection) && !offRoute
   let nextStop = null
-  if (projection) {
+  if (hasProgress) {
     for (const stop of stopRows) {
       if (stop.distanceAlong === null) continue
       if (stop.distanceAlong <= projection.distanceAlong + PASSED_TOLERANCE_M) {
@@ -112,7 +122,7 @@ export function computeRouteProgress({ geometry, stops = [], vehicle = null }) {
     }
   }
 
-  const completedPath = projection
+  const completedPath = hasProgress
     ? [...path.slice(0, projection.segmentIndex + 1), projection.point]
     : []
   const speedMps = Number(ping?.speed)
@@ -125,9 +135,12 @@ export function computeRouteProgress({ geometry, stops = [], vehicle = null }) {
     completedPath,
     busPoint,
     progressPoint: projection?.point || null,
-    progressDistance: projection?.distanceAlong || 0,
-    percent: totalDistance > 0 ? Math.min(100, (Number(projection?.distanceAlong || 0) / totalDistance) * 100) : 0,
+    progressDistance: hasProgress ? projection.distanceAlong : 0,
+    percent: hasProgress && totalDistance > 0 ? Math.min(100, (projection.distanceAlong / totalDistance) * 100) : 0,
     offRouteMeters: projection?.offsetMeters ?? null,
+    offRouteLimitMeters: offRouteLimit,
+    offRoute,
+    hasProgress,
     nextStop,
     nextStopDistanceMeters: nextDistance,
     etaSeconds,

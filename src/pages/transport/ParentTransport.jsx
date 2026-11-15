@@ -142,6 +142,7 @@ export default function ParentTransport({ tab = 'live' }) {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [liveToken, setLiveToken] = useState(0)
   const [geometry, setGeometry] = useState(null)
+  const [geometryRefresh, setGeometryRefresh] = useState(0)
   const geometryInFlight = useRef(false)
 
   const refresh = useCallback(() => {
@@ -151,6 +152,7 @@ export default function ParentTransport({ tab = 'live' }) {
 
   const retryGeometry = useCallback(() => {
     setGeometry(null)
+    setGeometryRefresh((value) => value + 1)
   }, [])
 
   useEffect(() => {
@@ -203,13 +205,13 @@ export default function ParentTransport({ tab = 'live' }) {
     if (geometry && geometry.signature === wanted) return
     if (geometryInFlight.current) return
     geometryInFlight.current = true
-    fetchRouteGeometry(route.id)
+    fetchRouteGeometry(route.id, { refresh: geometryRefresh > 0 })
       .then((body) => setGeometry({ signature: wanted, data: body }))
       .catch((err) => setGeometry({ signature: wanted, error: err?.message || 'Could not draw the road path.' }))
       .finally(() => {
         geometryInFlight.current = false
       })
-  }, [route, geometry])
+  }, [route, geometry, geometryRefresh])
 
   const geometryEntry = geometry && geometry.signature === signature ? geometry : null
   const coordinates = geometryEntry?.data?.coordinates || null
@@ -223,8 +225,8 @@ export default function ParentTransport({ tab = 'live' }) {
   )
 
   const mapLayers = useMemo(
-    () => (route ? [{ route, geometry: coordinates || undefined, progress }] : []),
-    [route, coordinates, progress],
+    () => (route ? [{ route, geometry: coordinates || undefined, source: geometryEntry?.data?.source || '', progress }] : []),
+    [route, coordinates, progress, geometryEntry],
   )
 
   const busMarkers = useMemo(() => {
@@ -264,13 +266,15 @@ export default function ParentTransport({ tab = 'live' }) {
   const driverName = driver?.name || bus?.driverName || 'Driver not assigned'
   const driverPhone = driver?.phone || ''
   const driverMeta = [driverPhone, driver?.status].filter(Boolean).join(' · ') || 'Contact details not added'
-  const percent = progress ? Math.round(progress.percent) : 0
+  const offRoute = Boolean(progress?.offRoute && progress.offRouteMeters != null)
+  const percent = progress && !offRoute ? Math.round(progress.percent) : 0
   const focusBus = (activeTab === 'live' || activeTab === 'bus') && Boolean(bus?.lastPing)
+  const directPath = geometryEntry?.data?.source === 'straight'
   const sourceLabel =
-    geometryEntry?.data?.source === 'osrm'
+    geometryEntry?.data?.source === 'osrm' || geometryEntry?.data?.source === 'fossgis'
       ? 'OSM road path'
-      : geometryEntry?.data?.source === 'straight'
-        ? 'Straight-line fallback'
+      : directPath
+        ? 'Straight-line preview (not a road)'
         : ''
 
   const tabs = TABS
@@ -707,6 +711,15 @@ export default function ParentTransport({ tab = 'live' }) {
                   <span className="tr-spinner" aria-hidden /> Drawing the road path…
                 </p>
               ) : null}
+              {directPath ? (
+                <p className="ptr-map-note">
+                  This dashed line joins the stops directly — the road service could not be reached, so it is not the
+                  real road.
+                  <button type="button" onClick={retryGeometry}>
+                    Retry road path
+                  </button>
+                </p>
+              ) : null}
             </div>
 
             <aside className="tr-card tr-card--pad ptr-bus-card">
@@ -738,9 +751,15 @@ export default function ParentTransport({ tab = 'live' }) {
 
               <div className="tlive-progress">
                 <div className="tlive-progress__meta">
-                  <span>{progress ? `${percent}% covered` : 'Waiting for GPS fix'}</span>
                   <span>
-                    {progress
+                    {offRoute
+                      ? 'Bus is not on this route line'
+                      : progress
+                        ? `${percent}% covered`
+                        : 'Waiting for GPS fix'}
+                  </span>
+                  <span>
+                    {progress && !offRoute
                       ? `${formatDistance(progress.progressDistance)} of ${formatDistance(progress.totalDistance)}`
                       : '—'}
                   </span>
@@ -756,6 +775,14 @@ export default function ParentTransport({ tab = 'live' }) {
                   <span className="tlive-progress__fill" style={{ width: `${percent}%` }} />
                 </div>
               </div>
+
+              {offRoute ? (
+                <p className="ptr-note">
+                  The bus phone is {formatDistance(progress.offRouteMeters)} away from this route line, so the map shows
+                  the phone&apos;s real GPS position. Covered distance, next stop and ETA stay hidden until the bus is
+                  back on this route.
+                </p>
+              ) : null}
 
               <div className="tlive-bus-facts">
                 <div className="tlive-bus-fact">

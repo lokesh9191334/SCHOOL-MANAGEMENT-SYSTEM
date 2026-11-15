@@ -2668,16 +2668,29 @@ app.get('/api/transport/routes/:id/geometry', requireRoles('admin', 'super_admin
     }
   }
   const signature = routeSignature(route.stops)
+  const refresh = ['1', 'true', 'yes'].includes(String(req.query.refresh || '').toLowerCase())
   const cacheRaw = readJsonFile(TRANSPORT_GEOMETRY_FILE, {})
   const cache = cacheRaw && typeof cacheRaw === 'object' && !Array.isArray(cacheRaw) ? cacheRaw : {}
   const cached = cache[route.id]
   const cachedFresh =
     cached &&
     cached.signature === signature &&
-    (cached.source === 'osrm' || Date.now() - Number(cached.fetchedAt || 0) < 10 * 60 * 1000)
+    !refresh &&
+    // A real road path stays valid until the stops change; a straight-line
+    // fallback is retried soon so the map can upgrade to roads.
+    (cached.source === 'straight' ? Date.now() - Number(cached.fetchedAt || 0) < 60 * 1000 : true)
   if (cachedFresh) return res.json({ id: route.id, ...cached })
 
   let geometry = route.stops.length >= 2 ? await fetchRoadGeometry(route.stops) : null
+  if (!geometry && cached && cached.signature === signature && cached.source && cached.source !== 'straight') {
+    // Routing service briefly down — keep the road line we already had.
+    geometry = {
+      coordinates: cached.coordinates,
+      distanceMeters: cached.distanceMeters,
+      durationSeconds: cached.durationSeconds,
+      source: cached.source,
+    }
+  }
   if (!geometry) geometry = straightGeometry(route.stops)
   const record = { signature, ...geometry, fetchedAt: Date.now() }
   const routeIds = new Set(readTransportRoutes().map((item) => item.id))

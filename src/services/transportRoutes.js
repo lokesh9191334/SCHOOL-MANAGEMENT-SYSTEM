@@ -59,7 +59,8 @@ export const updateTransportRoute = (id, route) =>
 export const deleteTransportRoute = (id) =>
   request(`/routes/${encodeURIComponent(id)}`, { method: 'DELETE' })
 
-export const fetchRouteGeometry = (id) => request(`/routes/${encodeURIComponent(id)}/geometry`)
+export const fetchRouteGeometry = (id, { refresh = false } = {}) =>
+  request(`/routes/${encodeURIComponent(id)}/geometry${refresh ? '?refresh=1' : ''}`)
 
 /* Drivers */
 export const fetchTransportDrivers = () => request('/drivers')

@@ -146,6 +146,7 @@ const DriverTrack = () => {
   const wakeLockRef = useRef(null)
   const trackingRef = useRef(false)
   const batteryRef = useRef(null)
+  const lastSentRef = useRef(null)
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(istClock()), 1000)
@@ -185,6 +186,7 @@ const DriverTrack = () => {
         battery: batteryRef.current,
         device: deviceLabel(),
       })
+      lastSentRef.current = { at: Date.now(), lat: current.lat, lng: current.lng }
       setSentCount((count) => count + 1)
       setLastSentAt(Date.now())
       setTrackError('')
@@ -233,6 +235,7 @@ const DriverTrack = () => {
     setTrackState('waiting')
     trackingRef.current = true
     samplesRef.current = []
+    lastSentRef.current = null
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -255,7 +258,14 @@ const DriverTrack = () => {
         fixRef.current = next
         setFix(next)
         setTrackState('live')
-        if (first) sendNow()
+        if (first) {
+          sendNow()
+        } else if (trackingRef.current) {
+          // Background timers can be throttled on phones; send as soon as the bus
+          // has actually moved so the school never sees an old position.
+          const last = lastSentRef.current
+          if (!last || (next.at - last.at >= 4000 && metersBetween(last, next) >= 20)) sendNow()
+        }
       },
       (err) => {
         setTrackError(describeGeoError(err))
