@@ -833,8 +833,10 @@
 }
 
 @media (max-width: 980px) {
+  /* minmax(0, …) — a bare 1fr refused to shrink below the content's
+     min-content width, pushing the form wider than the phone screen. */
   .premium-admission-form.adm-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .adm-rail {

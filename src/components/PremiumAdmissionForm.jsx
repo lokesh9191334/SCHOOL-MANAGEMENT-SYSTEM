@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import {
   ADMISSION_CASTES,
   ADMISSION_CLASS_OPTIONS,
@@ -13,10 +15,13 @@ import {
   getMaskedAadhar,
 } from '../services/aadhar'
 import { createInviteKey, generateLocalInviteKey } from '../services/inviteKeys'
+import { fetchStudents } from '../services/students'
+import { readSchoolIdentity } from '../utils/schoolIdentity'
 import { currencySymbol } from '../utils/currency'
-import { FEE_PLAN_OPTIONS } from '../../feeSchedule.js'
+import { FEE_PLAN_OPTIONS, buildFeeSchedule } from '../../feeSchedule.js'
 import './PremiumAdmissionForm.css'
 import './AdmissionWizard.css'
+import './AdmissionStudio.css'
 
 const FEE_BY_CLASS = {
   Nursery: { admissionFee: 3500, tuitionFee: 12000, activityFee: 2000 },
@@ -80,6 +85,10 @@ const GLYPH_PATHS = {
   card: 'M3 6h18v12H3V6Zm0 4h18M7 15h4',
   doc: 'M7 3h7l4 4v14H7V3Zm7 1.5V8h3.5M9 12h7M9 16h7',
   photo: 'M4 5h16v14H4V5Zm3 9 3-3 2.5 2.5L15 10l5 5M9 9.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z',
+  shield: 'M12 3l7 3v5.2c0 4.4-2.9 7.8-7 9.8-4.1-2-7-5.4-7-9.8V6l7-3Zm-2.4 8.8 1.9 1.9 3.2-3.2',
+  print: 'M7 8V4h10v4M7 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7v-6Z',
+  share: 'M14 5l5 5-5 5M19 10H9a5 5 0 0 0-5 5v3',
+  spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z',
 }
 
 function StepGlyph({ name, size = 20 }) {
@@ -223,6 +232,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     guardianAadhar: null,
   })
 
+  const schoolIdentity = useMemo(() => readSchoolIdentity(), [])
   const [step, setStep] = useState(0)
   const [completedSteps, setCompletedSteps] = useState(() => new Set())
   const [draftRestoredAt, setDraftRestoredAt] = useState('')
@@ -230,8 +240,24 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
   const [photoError, setPhotoError] = useState('')
   const [photoDragging, setPhotoDragging] = useState(false)
   const [appIdCopied, setAppIdCopied] = useState(false)
+  const [draftNotice, setDraftNotice] = useState('')
+  const [duplicateCheck, setDuplicateCheck] = useState({ status: 'idle', matches: [] })
+  const [printMode, setPrintMode] = useState(false)
+  const [printStamp, setPrintStamp] = useState('')
   const shellRef = useRef(null)
   const submittedRef = useRef(false)
+  const duplicateOverrideRef = useRef(false)
+
+  const nowIstStamp = () =>
+    new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date())
 
   useEffect(() => {
     let active = true
@@ -302,6 +328,21 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     return Math.round((checks.filter(Boolean).length / checks.length) * 100)
   }, [formData, aadharVerification])
 
+  const stepCompletion = useMemo(
+    () =>
+      ADMISSION_STEP_FIELDS.map((fields) => {
+        if (!fields.length) return completion
+        const done = fields.filter((field) => {
+          if (field === 'studentAadhar' || field === 'fatherAadhar') {
+            return formData[field] && aadharVerification[field].status === 'valid'
+          }
+          return Boolean(String(formData[field] ?? '').trim())
+        }).length
+        return Math.round((done / fields.length) * 100)
+      }),
+    [formData, aadharVerification, completion],
+  )
+
   useEffect(() => {
     if (submittedRef.current) return
     const hasContent = Boolean(
@@ -333,6 +374,43 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     }, 700)
     return () => window.clearTimeout(timer)
   }, [formData])
+
+  const saveDraftNow = () => {
+    try {
+      const snapshot = { ...formData }
+      if (snapshot.studentPhotoUrl && snapshot.studentPhotoUrl.length > 900000) {
+        snapshot.studentPhotoUrl = ''
+      }
+      window.localStorage.setItem(
+        ADMISSION_DRAFT_KEY,
+        JSON.stringify({ savedAt: Date.now(), formData: snapshot }),
+      )
+      setDraftSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+      setDraftNotice('Draft saved on this device.')
+    } catch {
+      setDraftNotice('This browser blocked local draft storage. Keep this tab open.')
+    }
+    window.setTimeout(() => setDraftNotice(''), 2600)
+  }
+
+  useEffect(() => {
+    if (!printMode) return undefined
+    const cleanup = () => {
+      document.body.classList.remove('adm-printing')
+      setPrintMode(false)
+    }
+    document.body.classList.add('adm-printing')
+    window.addEventListener('afterprint', cleanup)
+    const timer = window.setTimeout(() => {
+      window.print()
+      cleanup()
+    }, 80)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('afterprint', cleanup)
+      document.body.classList.remove('adm-printing')
+    }
+  }, [printMode])
 
   const collectErrors = () => {
     const newErrors = {}
@@ -432,6 +510,23 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     scrollToStepTop()
   }
 
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey) return
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        goNext()
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        goBack()
+      }
+    }
+    // Capture phase so Alt+arrows never fall through to browser history navigation.
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, formData, aadharVerification])
+
   const firstInvalidStep = (found) =>
     ADMISSION_STEP_FIELDS.findIndex((fields) => fields.some((field) => found[field]))
 
@@ -467,6 +562,11 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+  }
+
+  // Keep the last 10 digits so paste-format like "+91 98765 00011" lands correctly.
+  const handlePhoneChange = (field, value) => {
+    handleInputChange(field, String(value ?? '').replace(/\D/g, '').slice(-10))
   }
 
   const handleFileChange = (field, files) => {
@@ -727,6 +827,49 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     }))
   }
 
+  const normalizeDigits = (value, length) => String(value ?? '').replace(/\D/g, '').slice(-length)
+  const normalizeName = (value) =>
+    String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+
+  const findDuplicateMatches = (students) => {
+    const aadhaar = String(formData.studentAadhar || '').replace(/\s/g, '')
+    const name = normalizeName(`${formData.firstName} ${formData.lastName}`)
+    const phone = normalizeDigits(formData.phone, 10)
+    const dob = String(formData.dateOfBirth || '')
+    const matches = []
+    for (const student of students) {
+      const savedAadhaar = String(student.studentAadhar || '').replace(/\s/g, '')
+      const savedName = normalizeName(student.title || student.name || `${student.firstName || ''} ${student.lastName || ''}`)
+      const savedDob = String(student.dateOfBirth || '')
+      const savedPhone = normalizeDigits(student.phone, 10)
+      let reason = ''
+      if (aadhaar.length === 12 && savedAadhaar === aadhaar) reason = 'Same Aadhaar number'
+      else if (name && savedName === name && dob && savedDob === dob) reason = 'Same name and date of birth'
+      else if (name && savedName === name) reason = 'Same student name in the registry'
+      else if (phone.length === 10 && savedPhone === phone) reason = 'Same contact phone as an existing student'
+      if (reason) {
+        matches.push({
+          id: student.id,
+          title: student.title || student.name || `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student',
+          classLabel:
+            student.subtitle ||
+            (student.applyingForClass || student.studentClass ? `Class ${student.applyingForClass || student.studentClass}` : '') ||
+            'Class —',
+          status: student.status || 'Active',
+          reason,
+        })
+      }
+    }
+    return matches
+  }
+
+  const missingByStep = (found) =>
+    ADMISSION_STEP_FIELDS.map((fields, index) => ({
+      index,
+      label: ADMISSION_STEPS[index].label,
+      fields: fields.filter((field) => Boolean(found[field])),
+    })).filter((row) => row.fields.length)
+
   const handleRegister = async (e) => {
     e.preventDefault()
     if (step !== ADMISSION_STEPS.length - 1) {
@@ -741,6 +884,22 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
       setRegistrationError('Some required details are missing. Finish the highlighted fields, then submit again.')
       focusFirstError()
       return
+    }
+
+    if (!duplicateOverrideRef.current) {
+      setDuplicateCheck({ status: 'checking', matches: [] })
+      try {
+        const students = await fetchStudents()
+        const matches = findDuplicateMatches(students)
+        if (matches.length) {
+          setDuplicateCheck({ status: 'found', matches })
+          scrollToStepTop()
+          return
+        }
+        setDuplicateCheck({ status: 'clear', matches: [] })
+      } catch {
+        setDuplicateCheck({ status: 'unavailable', matches: [] })
+      }
     }
 
     setRegistrationError('')
@@ -813,6 +972,26 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     Number(formData.activityFee || 0) +
     Number(formData.transportFee || 0) +
     Number(formData.hostelFee || 0)
+
+  const planSchedule = useMemo(
+    () =>
+      buildFeeSchedule({
+        plan: formData.installmentPlan,
+        totalFee: totalFees,
+        startDate: formData.dueDate || new Date().toISOString().slice(0, 10),
+      }),
+    [formData.installmentPlan, formData.dueDate, totalFees],
+  )
+
+  const parentSharePhone = normalizeDigits(
+    formData.guardianPhone || formData.fatherPhone || formData.motherPhone || '',
+    10,
+  )
+  const whatsappShareLink = parentSharePhone
+    ? `https://wa.me/91${parentSharePhone}?text=${encodeURIComponent(
+        `Dear Parent, ${formData.firstName || 'your child'}'s admission application ${formData.applicationId} has been recorded at our school. Parent portal key: ${formData.parentInviteKey}. Open the school website → Create Account → Parent, paste this key, then verify the email OTP.`,
+      )}`
+    : ''
 
   const renderAadhaarExtras = (field) => (
     formData[field] ? (
@@ -901,6 +1080,14 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
     },
   ]
   const documentsReady = documentRows.filter(([, checked, file]) => checked && file).length
+  const errorJumps = missingByStep(Object.fromEntries(Object.entries(errors).filter(([, text]) => Boolean(text))))
+  const feeRows = [
+    ['Admission fee', formData.admissionFee],
+    ['Tuition fee', formData.tuitionFee],
+    ['Activity fee', formData.activityFee],
+    ['Transport fee', formData.transportFee],
+    ['Hostel fee', formData.hostelFee],
+  ].filter(([, amount]) => Number(amount) > 0)
 
   return (
     <div ref={shellRef} className={`premium-admission-form adm-shell${embedded ? ' is-embedded' : ''}`}>
@@ -918,6 +1105,18 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
           <strong>{formData.applicationId}</strong>
           <small>{appIdCopied ? 'Copied to clipboard' : 'Tap to copy'}</small>
         </button>
+
+        {reviewName ? (
+          <div className="adm-rail-applicant">
+            <div className="adm-rail-applicant__avatar">
+              {studentPhotoPreview ? <img src={studentPhotoPreview} alt="" /> : <span>{reviewInitials}</span>}
+            </div>
+            <div>
+              <strong>{reviewName}</strong>
+              <span>{value(formData.applyingForClass)} · {formData.age ? `${formData.age} yrs` : 'Age pending'}</span>
+            </div>
+          </div>
+        ) : null}
 
         <div className="adm-rail__progress">
           <div className="adm-ring" style={{ '--adm-ring': `${completion * 3.6}deg` }} aria-hidden>
@@ -953,6 +1152,9 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                   <strong>{item.label}</strong>
                   <small>{item.hint}</small>
                 </span>
+                <span className="adm-step-chip__mini" aria-hidden>
+                  <i style={{ width: `${stepCompletion[index] ?? 0}%` }} />
+                </span>
               </button>
             )
           })}
@@ -979,9 +1181,22 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             <p>{ADMISSION_STEPS[step].hint}</p>
           </div>
           <div className="adm-topbar__aside">
-            <span className="adm-topbar__session">Session {session}</span>
-            <div className="adm-topbar__bar" aria-hidden>
-              <span style={{ width: `${completion}%` }} />
+            <div className="adm-identity-chip">
+              <span className="adm-identity-chip__avatar">
+                {studentPhotoPreview ? <img src={studentPhotoPreview} alt="" /> : reviewInitials || <StepGlyph name="user" size={16} />}
+              </span>
+              <div>
+                <strong>{reviewName || 'New applicant'}</strong>
+                <span>
+                  {formData.applyingForClass || 'Class pending'} · Session {session}
+                </span>
+              </div>
+            </div>
+            <div className="adm-topbar__meter">
+              <span>{completion}% complete</span>
+              <div className="adm-topbar__bar" aria-hidden>
+                <span style={{ width: `${completion}%` }} />
+              </div>
             </div>
           </div>
         </header>
@@ -994,9 +1209,27 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             </button>
           </div>
         ) : null}
+        {draftNotice ? (
+          <div className="adm-draft-note adm-draft-note--live" role="status">
+            <span>{draftNotice}</span>
+          </div>
+        ) : null}
 
         <form onSubmit={handleRegister} className="admission-form adm-form" noValidate>
-          {registrationError ? <div className="adm-alert" role="alert">{registrationError}</div> : null}
+          {registrationError ? (
+            <div className="adm-alert" role="alert">
+              <span>{registrationError}</span>
+              {errorJumps.length ? (
+                <div className="adm-alert__jumps">
+                  {errorJumps.map((row) => (
+                    <button key={row.index} type="button" onClick={() => jumpToStep(row.index)}>
+                      {row.label} · {row.fields.length} missing
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {step === 0 ? (
             <div className="adm-step">
@@ -1235,7 +1468,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={(e) => handlePhoneChange('phone', e.target.value)}
                 className={errors.phone ? 'error' : ''}
                 placeholder="Enter phone number"
               />
@@ -1247,7 +1480,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
               <input
                 type="tel"
                 value={formData.emergencyContact}
-                onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+                onChange={(e) => handlePhoneChange('emergencyContact', e.target.value)}
                 placeholder="Emergency contact number"
               />
             </div>
@@ -1550,7 +1783,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 <input
                   type="tel"
                   value={formData.fatherPhone}
-                  onChange={(e) => handleInputChange('fatherPhone', e.target.value)}
+                  onChange={(e) => handlePhoneChange('fatherPhone', e.target.value)}
                   className={errors.fatherPhone ? 'error' : ''}
                   placeholder="Enter father phone"
                 />
@@ -1619,7 +1852,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 <input
                   type="tel"
                   value={formData.motherPhone}
-                  onChange={(e) => handleInputChange('motherPhone', e.target.value)}
+                  onChange={(e) => handlePhoneChange('motherPhone', e.target.value)}
                   placeholder="Enter mother phone"
                 />
               </div>
@@ -1691,7 +1924,7 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 <input
                   type="tel"
                   value={formData.guardianPhone}
-                  onChange={(e) => handleInputChange('guardianPhone', e.target.value)}
+                  onChange={(e) => handlePhoneChange('guardianPhone', e.target.value)}
                   placeholder="Enter guardian phone"
                 />
               </div>
@@ -1847,15 +2080,54 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 <input type="date" value={formData.dueDate} onChange={(e) => handleInputChange('dueDate', e.target.value)} />
               </div>
             </div>
-            <div className="fee-summary-card">
-              <div>
-                <p className="fee-summary-label">Estimated Total</p>
-                <h4>{currencySymbol()}{totalFees.toLocaleString()}</h4>
+            <div className="adm-invoice">
+              <div className="adm-invoice__head">
+                <div>
+                  <p className="fee-summary-label">Estimated annual total</p>
+                  <h4>{currencySymbol()}{totalFees.toLocaleString()}</h4>
+                  <span>
+                    {(planSchedule?.count || 1) > 1
+                      ? `${planSchedule.count} installments · ${formData.installmentPlan}`
+                      : formData.paymentMode === 'advance'
+                        ? 'Advance payment recorded against the annual fee'
+                        : 'Full payment at admission'}
+                  </span>
+                </div>
+                <div className="adm-invoice__stamp">
+                  <StepGlyph name="card" size={18} />
+                  <span>Fee plan</span>
+                </div>
               </div>
-              <div className="fee-summary-note">
-                <p>Payment mode: {formData.paymentMode}</p>
-                <p>Plan: {formData.installmentPlan}</p>
-              </div>
+              <ul className="adm-invoice__rows">
+                {feeRows.map(([label, amount]) => (
+                  <li key={label}>
+                    <span>{label}</span>
+                    <strong>{currencySymbol()}{Number(amount).toLocaleString()}</strong>
+                  </li>
+                ))}
+              </ul>
+              {planSchedule && planSchedule.count > 1 ? (
+                <div className="adm-plan">
+                  <div className="adm-plan__head">
+                    <strong>Installment schedule</strong>
+                    <span>Starts {formData.dueDate || 'today'} · each {currencySymbol()}{planSchedule.installments[0]?.amount.toLocaleString()}</span>
+                  </div>
+                  <ol className="adm-plan__list">
+                    {planSchedule.installments.map((row) => (
+                      <li key={row.index}>
+                        <span className="adm-plan__seq">{row.index}</span>
+                        <div>
+                          <strong>{currencySymbol()}{row.amount.toLocaleString()}</strong>
+                          <small>Due {row.dueDate}</small>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="adm-plan__note">
+                    Earlier installments must be cleared before a later one — parents cannot skip ahead.
+                  </p>
+                </div>
+              ) : null}
             </div>
             <div className="form-group full-width">
               <label>Fee Notes</label>
@@ -1953,7 +2225,87 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             <div className="adm-review-hero__id">
               <span>Application</span>
               <strong>{formData.applicationId}</strong>
+              <button
+                type="button"
+                className="adm-print-btn"
+                onClick={() => {
+                  setPrintStamp(nowIstStamp())
+                  setPrintMode(true)
+                }}
+              >
+                <StepGlyph name="print" size={15} />
+                Print application
+              </button>
             </div>
+          </div>
+
+          <div className="adm-readiness">
+            <div>
+              <span>Form completion</span>
+              <strong>{completion}%</strong>
+            </div>
+            <div>
+              <span>Documents with files</span>
+              <strong>{documentsReady}/{documentRows.length}</strong>
+            </div>
+            <div>
+              <span>Fee estimate</span>
+              <strong>{currencySymbol()}{totalFees.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span>Installments</span>
+              <strong>{planSchedule?.count || 1}</strong>
+            </div>
+          </div>
+
+          <div className={`adm-registry adm-registry--${duplicateCheck.status}`}>
+            <div className="adm-registry__head">
+              <span className="adm-registry__icon"><StepGlyph name="shield" size={18} /></span>
+              <div>
+                <strong>Duplicate admission check</strong>
+                <small>
+                  {duplicateCheck.status === 'checking'
+                    ? 'Comparing name, date of birth, Aadhaar and phone with the student registry…'
+                    : duplicateCheck.status === 'clear'
+                      ? 'No matching student found in the registry.'
+                      : duplicateCheck.status === 'found'
+                        ? `${duplicateCheck.matches.length} possible duplicate${duplicateCheck.matches.length === 1 ? '' : 's'} found — review before admitting.`
+                        : duplicateCheck.status === 'unavailable'
+                          ? 'Registry check is unavailable right now. The record can still be saved.'
+                          : duplicateCheck.status === 'override'
+                            ? 'Duplicate warning accepted — this will be saved as a new admission.'
+                            : 'Runs automatically against the live student registry when you press Register student.'}
+                </small>
+              </div>
+            </div>
+            {duplicateCheck.status === 'found' ? (
+              <>
+                <ul className="adm-registry__matches">
+                  {duplicateCheck.matches.map((match) => (
+                    <li key={match.id}>
+                      <div>
+                        <strong>{match.title}</strong>
+                        <span>{match.classLabel} · {match.status} · ID {match.id}</span>
+                      </div>
+                      <span className="adm-registry__reason">{match.reason}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="adm-registry__actions">
+                  <Link to="/students" className="adm-btn adm-btn--ghost">Open registry</Link>
+                  <button
+                    type="button"
+                    className="adm-btn adm-btn--ghost adm-btn--warn"
+                    onClick={() => {
+                      duplicateOverrideRef.current = true
+                      setDuplicateCheck({ status: 'override', matches: [] })
+                    }}
+                  >
+                    Admit anyway
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className="adm-review-grid">
@@ -2055,10 +2407,22 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
                 <button type="button" className="btn-secondary" onClick={regenerateParentKey}>
                   Regenerate
                 </button>
+                {whatsappShareLink ? (
+                  <a
+                    className="btn-secondary adm-share-link"
+                    href={whatsappShareLink}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <StepGlyph name="share" size={14} />
+                    Send on WhatsApp
+                  </a>
+                ) : null}
               </div>
             </div>
             <p className="invite-key-note">
               Key format: SMS-PAR-XXXX-XXXX · One-time use · Saved with admission when you register the student
+              {parentSharePhone ? ` · WhatsApp will open the chat for ${parentSharePhone}` : ' · Add a parent phone to enable WhatsApp sharing'}
             </p>
           </div>
         </div>
@@ -2066,39 +2430,166 @@ const PremiumAdmissionForm = ({ onSubmit, onCancel, embedded = false }) => {
             </div>
           ) : null}
 
-          <div className="adm-nav">
-            <div className="adm-nav__meta">
-              <strong>{ADMISSION_STEPS[step].label}</strong>
-              <span>
-                {isLastStep
-                  ? 'All steps reviewed — submit to create the student record'
-                  : `Step ${step + 1} of ${ADMISSION_STEPS.length} · ${completion}% complete`}
-              </span>
-            </div>
-            <div className="adm-nav__actions">
-              {step === 0 ? (
-                <button type="button" className="adm-btn adm-btn--ghost" onClick={onCancel} disabled={isSubmitting}>
-                  Cancel
-                </button>
-              ) : (
-                <button type="button" className="adm-btn adm-btn--ghost" onClick={goBack} disabled={isSubmitting}>
-                  Back
-                </button>
-              )}
-              {isLastStep ? (
-                <button type="submit" className="adm-btn adm-btn--primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Registering…' : 'Register student'}
-                </button>
-              ) : (
-                <button type="button" className="adm-btn adm-btn--primary" onClick={goNext} disabled={isSubmitting}>
-                  Continue
-                  <span aria-hidden>→</span>
-                </button>
-              )}
+      </form>
+
+        {/* Kept outside the <form> so its sticky containing block is the whole
+            panel — inside the form it could not pin above the dock on short
+            viewports. */}
+        <div className="adm-nav">
+          <div className="adm-nav__meta">
+            <strong>{ADMISSION_STEPS[step].label}</strong>
+            <span>
+              {isLastStep
+                ? 'All steps reviewed — submit to create the student record'
+                : `Step ${step + 1} of ${ADMISSION_STEPS.length} · ${completion}% complete`}
+            </span>
+            <small className="adm-nav__shortcut">Alt + ← / → moves between steps · autosave keeps a draft on this device</small>
+          </div>
+          <div className="adm-nav__actions">
+            <button type="button" className="adm-btn adm-btn--quiet" onClick={saveDraftNow} disabled={isSubmitting}>
+              Save draft
+            </button>
+            {step === 0 ? (
+              <button type="button" className="adm-btn adm-btn--ghost" onClick={onCancel} disabled={isSubmitting}>
+                Cancel
+              </button>
+            ) : (
+              <button type="button" className="adm-btn adm-btn--ghost" onClick={goBack} disabled={isSubmitting}>
+                Back
+              </button>
+            )}
+            {isLastStep ? (
+              <button type="button" className="adm-btn adm-btn--primary" onClick={handleRegister} disabled={isSubmitting}>
+                {isSubmitting ? 'Registering…' : 'Register student'}
+              </button>
+            ) : (
+              <button type="button" className="adm-btn adm-btn--primary" onClick={goNext} disabled={isSubmitting}>
+                Continue
+                <span aria-hidden>→</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {createPortal(
+        <section className={`adm-print-sheet${printMode ? ' is-printing' : ''}`} aria-hidden="true">
+        <header className="adm-print-sheet__head">
+          <div className="adm-print-sheet__brand">
+            {schoolIdentity.logoData ? (
+              <img src={schoolIdentity.logoData} alt="" />
+            ) : (
+              <img src="/brand/sms-mark.svg" alt="" />
+            )}
+            <div>
+              <h1>{schoolIdentity.name || 'School Management System'}</h1>
+              <p>{[schoolIdentity.address, schoolIdentity.phone, schoolIdentity.email].filter(Boolean).join(' · ') || 'Admission application'}</p>
             </div>
           </div>
-      </form>
-      </div>
+          <div className="adm-print-sheet__meta">
+            <strong>ADMISSION APPLICATION</strong>
+            <span>{formData.applicationId}</span>
+            <span>Session {session}</span>
+            <span>Printed {printStamp || '—'}</span>
+          </div>
+        </header>
+
+        <div className="adm-print-sheet__applicant">
+          <div className="adm-print-sheet__photo">
+            {studentPhotoPreview ? <img src={studentPhotoPreview} alt="" /> : <span>Photo</span>}
+          </div>
+          <div>
+            <h2>{reviewName || 'Applicant name pending'}</h2>
+            <p>
+              Applying for {value(formData.applyingForClass)} · DOB {value(formData.dateOfBirth)} ·{' '}
+              {value(formData.gender)} · Blood group {value(formData.bloodGroup)}
+            </p>
+            <p>
+              Aadhaar {maskedAadhaar('studentAadhar')} · Nationality {value(formData.nationality)} ·{' '}
+              Religion {value(formData.religion)}
+            </p>
+          </div>
+        </div>
+
+        <div className="adm-print-sheet__grid">
+          <article>
+            <h3>Contact &amp; address</h3>
+            <dl>
+              <div><dt>Phone</dt><dd>{value(formData.phone)}</dd></div>
+              <div><dt>Email</dt><dd>{value(formData.email)}</dd></div>
+              <div><dt>PIN / State</dt><dd>{value(formData.postalCode)} · {value(formData.state)}</dd></div>
+              <div><dt>District / Area</dt><dd>{value(formData.district)} · {value(formData.areaName)}</dd></div>
+              <div><dt>Address</dt><dd>{value(formData.currentAddress)}</dd></div>
+            </dl>
+          </article>
+          <article>
+            <h3>Academics</h3>
+            <dl>
+              <div><dt>Applying for</dt><dd>{value(formData.applyingForClass)}</dd></div>
+              <div><dt>Previous school</dt><dd>{value(formData.previousSchool)}</dd></div>
+              <div><dt>Previous class</dt><dd>{value(formData.previousClass)}</dd></div>
+              <div><dt>Last exam result</dt><dd>{value(formData.lastExamResult)}</dd></div>
+              <div><dt>Transport / Hostel</dt><dd>{formData.transportRequired ? 'Yes' : 'No'} / {formData.hostelRequired ? 'Yes' : 'No'}</dd></div>
+            </dl>
+          </article>
+          <article>
+            <h3>Parent &amp; guardian</h3>
+            <dl>
+              <div><dt>Father</dt><dd>{value(formData.fatherName)} · {value(formData.fatherPhone)}</dd></div>
+              <div><dt>Mother</dt><dd>{value(formData.motherName)} · {value(formData.motherPhone)}</dd></div>
+              <div><dt>Guardian</dt><dd>{value(formData.guardianName)} · {value(formData.guardianRelation)} · {value(formData.guardianPhone)}</dd></div>
+              <div><dt>Emergency</dt><dd>{value(formData.emergencyContact)} · {value(formData.emergencyRelation)}</dd></div>
+            </dl>
+          </article>
+          <article>
+            <h3>Welfare notes</h3>
+            <dl>
+              <div><dt>Medical</dt><dd>{value(formData.medicalConditions)}</dd></div>
+              <div><dt>Allergies</dt><dd>{value(formData.allergies)}</dd></div>
+              <div><dt>Special needs</dt><dd>{value(formData.specialNeeds)}</dd></div>
+            </dl>
+          </article>
+        </div>
+
+        <div className="adm-print-sheet__fees">
+          <div>
+            <h3>Fee plan</h3>
+            <table>
+              <tbody>
+                {feeRows.map(([label, amount]) => (
+                  <tr key={label}>
+                    <td>{label}</td>
+                    <td>{currencySymbol()}{Number(amount).toLocaleString()}</td>
+                  </tr>
+                ))}
+                <tr className="is-total">
+                  <td>Estimated annual total</td>
+                  <td>{currencySymbol()}{totalFees.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>Plan: {formData.installmentPlan} · Payment mode: {formData.paymentMode} · Due date: {value(formData.dueDate)}</p>
+          </div>
+          <div>
+            <h3>Documents</h3>
+            <ul>
+              {documentRows.map(([label, checked, file]) => (
+                <li key={label}>{label}: {checked ? (file ? 'attached' : 'marked, file pending') : 'pending'}</li>
+              ))}
+            </ul>
+            <h3>Declaration</h3>
+            <p>Parent confirms the information is accurate and consents to data processing for admission.</p>
+          </div>
+        </div>
+
+        <footer className="adm-print-sheet__foot">
+          <div><span>Parent / guardian signature</span></div>
+          <div><span>Admission office signature</span></div>
+          {schoolIdentity.principalName ? <div><span>Principal · {schoolIdentity.principalName}</span></div> : null}
+        </footer>
+      </section>,
+        document.body,
+      )}
     </div>
   )
 }
