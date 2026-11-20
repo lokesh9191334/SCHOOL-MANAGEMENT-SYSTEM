@@ -56,6 +56,7 @@ const AppShell = () => {
   const subtitle = titleFromRoleNav(pathname)
   const homePath = homePathForRole(role)
   const canSeeSecurity = role === 'admin' || role === 'super_admin'
+  const isFullBleedRoute = pathname === '/students/add'
 
   const mobileDock = useMemo(() => {
     const flat = navSections.flatMap((section) => section.items)
@@ -253,7 +254,7 @@ const AppShell = () => {
 
         </aside>
 
-        <div className="sms-main">
+        <div className={`sms-main${isFullBleedRoute ? ' is-full-bleed' : ''}`}>
           <header className="sms-topbar">
             <div className="sms-topbar-lead">
               <button

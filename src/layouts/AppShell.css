@@ -238,6 +238,12 @@
   width: 100%;
 }
 
+/* Full-bleed routes (admission wizard) hand the whole canvas to the page —
+   its own hero carries navigation back to the registry. */
+.sms-main.is-full-bleed > .sms-topbar {
+  display: none;
+}
+
 .sms-outlet {
   position: relative;
   pointer-events: auto;
