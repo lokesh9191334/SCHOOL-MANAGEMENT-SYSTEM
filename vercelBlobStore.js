@@ -186,6 +186,23 @@ async function persistBlobWrites(context) {
   context.writes.clear()
 }
 
+/** Read-only probe used by /api/health?blob=1 to surface storage failures. */
+export async function checkBlobAccess() {
+  if (!isVercelRuntime) return { ok: false, reason: 'not-vercel' }
+  if (!hasVercelBlobCredentials()) return { ok: false, reason: 'missing-credentials' }
+  try {
+    const page = await list({ prefix: blobPrefix, limit: 1 })
+    return { ok: true, blobs: page.blobs.length }
+  } catch (error) {
+    return {
+      ok: false,
+      name: error?.name || 'Error',
+      status: error?.statusCode || error?.status || null,
+      message: String(error?.message || error).slice(0, 300),
+    }
+  }
+}
+
 export function vercelBlobDataMiddleware(req, res, next) {
   if (!isVercelRuntime || !req.path.startsWith('/api/') || req.path === '/api/health') {
     next()

@@ -18,6 +18,7 @@ import {
   netlifyBlobDataMiddleware,
 } from './netlifyBlobStore.js'
 import {
+  checkBlobAccess,
   getDataDirectory,
   hasVercelBlobCredentials,
   vercelBlobDataMiddleware,
@@ -369,7 +370,7 @@ function requireRoles(...roles) {
   }
 }
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', async (req, res) => {
   if (process.env.VERCEL && !hasVercelBlobCredentials()) {
     return res.status(503).json({
       status: 'error',
@@ -400,6 +401,10 @@ app.get('/api/health', (_req, res) => {
       status: 'error',
       error: 'Configure SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM to deliver login codes.',
     })
+  }
+  if (req.query.blob === '1') {
+    const blob = await checkBlobAccess()
+    return res.status(blob.ok ? 200 : 500).json({ status: blob.ok ? 'ok' : 'error', blob })
   }
   res.json({ status: 'ok' })
 })
