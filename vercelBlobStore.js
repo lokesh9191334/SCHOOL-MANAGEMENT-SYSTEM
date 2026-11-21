@@ -190,9 +190,32 @@ async function persistBlobWrites(context) {
 export async function checkBlobAccess() {
   if (!isVercelRuntime) return { ok: false, reason: 'not-vercel' }
   if (!hasVercelBlobCredentials()) return { ok: false, reason: 'missing-credentials' }
+  let writeTest = 'ok'
   try {
-    const page = await list({ prefix: blobPrefix, limit: 1 })
-    return { ok: true, blobs: page.blobs.length }
+    await fs.promises.mkdir(dataDir, { recursive: true })
+    const probePath = join(dataDir, '.health-probe')
+    await fs.promises.writeFile(probePath, 'ok')
+    await fs.promises.rm(probePath, { force: true })
+  } catch (error) {
+    writeTest = `${error?.code || error?.name || 'Error'}: ${String(error?.message || error).slice(0, 160)}`
+  }
+  try {
+    const page = await list({ prefix: blobPrefix, limit: 3 })
+    const details = []
+    for (const blob of page.blobs) {
+      try {
+        const stored = await get(blob.pathname, { access: 'private', useCache: false })
+        details.push({ path: blob.pathname, status: stored?.statusCode ?? null })
+      } catch (error) {
+        details.push({
+          path: blob.pathname,
+          error: error?.name || 'Error',
+          status: error?.statusCode || null,
+          message: String(error?.message || error).slice(0, 200),
+        })
+      }
+    }
+    return { ok: true, blobs: page.blobs.length, hasMore: page.hasMore, writeTest, details }
   } catch (error) {
     return {
       ok: false,
