@@ -195,6 +195,7 @@ function blobAuthInfo() {
   return {
     authMode: token ? 'token' : oidc ? 'oidc' : 'none',
     storeId: tokenStoreId || envStoreId || null,
+    blobStoreIdVar: process.env.BLOB_STORE_ID || null,
     oidcPresent: oidc,
     tokenVariablePresent: Boolean(token),
     tokenShapeOk: Boolean(token) && token.startsWith('vercel_blob_rw_') && tokenStoreId.length > 0,
