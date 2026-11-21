@@ -186,10 +186,65 @@ async function persistBlobWrites(context) {
   context.writes.clear()
 }
 
+function blobAuthInfo() {
+  const token = process.env.BLOB_READ_WRITE_TOKEN || ''
+  const oidc = Boolean(process.env.VERCEL_OIDC_TOKEN)
+  const parts = token ? token.split('_') : []
+  const tokenStoreId = parts.length >= 4 ? parts[3] : ''
+  const envStoreId = (process.env.BLOB_STORE_ID || '').replace(/^store_/, '')
+  return {
+    authMode: token ? 'token' : oidc ? 'oidc' : 'none',
+    storeId: tokenStoreId || envStoreId || null,
+    oidcPresent: oidc,
+    tokenVariablePresent: Boolean(token),
+    tokenShapeOk: Boolean(token) && token.startsWith('vercel_blob_rw_') && tokenStoreId.length > 0,
+  }
+}
+
+async function rawBlobProbe(pathname) {
+  const info = blobAuthInfo()
+  if (!info.storeId) return { skipped: 'no-store-id' }
+  const bearer = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN || ''
+  if (!bearer) return { skipped: 'no-bearer' }
+  const base = `https://${info.storeId}.private.blob.vercel-storage.com/${pathname.split('/').map(encodeURIComponent).join('/')}`
+  const results = []
+  for (const suffix of ['?cache=0', '']) {
+    const variant = suffix ? 'cache-0' : 'no-cache-param'
+    try {
+      const response = await fetch(`${base}${suffix}`, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${bearer}` },
+      })
+      const text = await response.text()
+      results.push({
+        variant,
+        status: response.status,
+        statusText: response.statusText,
+        vercelError: response.headers.get('x-vercel-error'),
+        vercelId: response.headers.get('x-vercel-id'),
+        server: response.headers.get('server'),
+        contentType: response.headers.get('content-type'),
+        body: text.slice(0, 300),
+      })
+    } catch (error) {
+      results.push({ variant, error: String(error?.message || error).slice(0, 200) })
+    }
+  }
+  return results
+}
+
 /** Read-only probe used by /api/health?blob=1 to surface storage failures. */
 export async function checkBlobAccess() {
   if (!isVercelRuntime) return { ok: false, reason: 'not-vercel' }
   if (!hasVercelBlobCredentials()) return { ok: false, reason: 'missing-credentials' }
+  const environment = {
+    projectId: process.env.VERCEL_PROJECT_ID || null,
+    orgId: process.env.VERCEL_ORG_ID || null,
+    deploymentId: process.env.VERCEL_DEPLOYMENT_ID || null,
+    gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
+    gitRepo: process.env.VERCEL_GIT_REPO_SLUG || null,
+    region: process.env.VERCEL_REGION || null,
+  }
   let writeTest = 'ok'
   try {
     await fs.promises.mkdir(dataDir, { recursive: true })
@@ -215,10 +270,22 @@ export async function checkBlobAccess() {
         })
       }
     }
-    return { ok: true, blobs: page.blobs.length, hasMore: page.hasMore, writeTest, details }
+    const raw = page.blobs[0] ? await rawBlobProbe(page.blobs[0].pathname) : null
+    return {
+      ok: true,
+      auth: blobAuthInfo(),
+      environment,
+      blobs: page.blobs.length,
+      hasMore: page.hasMore,
+      writeTest,
+      details,
+      raw,
+    }
   } catch (error) {
     return {
       ok: false,
+      auth: blobAuthInfo(),
+      environment,
       name: error?.name || 'Error',
       status: error?.statusCode || error?.status || null,
       message: String(error?.message || error).slice(0, 300),
